@@ -111,3 +111,15 @@ test('reinstalling identical assets offline does not erase the working cache', a
   assert.equal((await same.request('app.js')).status, 200);
   assert.equal(same.requests.length, 0);
 });
+
+test('Neon Circuit downloads as a complete independent bundle and works offline', async () => {
+  const sw = await mountWorker(), id = 'neon-circuit-v1';
+  assert.equal((await sw.message('download', id)).result.state, 'ready');
+  assert.equal(sw.assets.tracks[id].files.length, 6);
+  sw.offline(true);
+  for (const file of sw.assets.tracks[id].files) {
+    const response = await sw.request(file.path);
+    assert.equal(response.status, 200);
+    assert.equal((await response.arrayBuffer()).byteLength, file.bytes);
+  }
+});

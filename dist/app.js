@@ -3,9 +3,9 @@ import { PULSE_CHARTS } from './phrase-charts.js';
 import { renderPulse, pulseSummary } from './pulse-view.js';
 import { OfflineView } from './offline-view.js?v=0.4.0';
 import { Game } from './engine.js';
-import { SongAudio } from './audio.js?v=0.3.1';
+import { SongAudio } from './audio.js?v=0.5.3';
 import { MediaSongAudio } from './media-audio.js?v=0.3.1';
-import { Renderer } from './renderer.js?v=0.5.2';
+import { Renderer } from './renderer.js?v=0.5.3';
 
 import { Temporal } from './temporal.js';
 import { formatNumber, formatPercent, formatSigned, formatTime, formatCount } from './format.js?v=0.3.0';
@@ -13,7 +13,7 @@ import { DEFAULT_SETTINGS, loadSave, saveSettings as writeSettings, recordAttemp
 import { ProgressView } from './progress.js?v=0.5.0';
 
 const $ = id => document.getElementById(id);
-const APP_VERSION = '0.5.2';
+const APP_VERSION = '0.5.3';
 if ($('app-version')) $('app-version').textContent = `v${APP_VERSION}`;
 $('pulse-target').textContent = formatPercent(90);
 const LEVELS = { 1: 'Легко', 2: 'Средне', 3: 'Сложно', 4: 'Экстрим' };
@@ -203,18 +203,29 @@ async function resume() {
     $('pause-error').hidden = false;
   } finally { if (id === requestId) $('resume').disabled = false; }
 }
+function pressNote(lane, time) {
+  const strays = game.strays;
+  const note = game.press(lane, time);
+  renderer.effects.observeFailures(game, time);
+  renderer.effects.recordHit(note, time, game.multiplier(time));
+  if (game.strays > strays) renderer.effects.recordJudgment(lane, 'МИМО', time, true);
+}
+function releaseNote(lane, time) {
+  game.release(lane, time);
+  renderer.effects.observeFailures(game, time);
+}
 function down(lane, source) {
   if (state !== 'playing' || demo || audio.countdown > 0 || audio.waiting) return;
   const wasHeld = inputs[lane].size > 0; inputs[lane].add(source);
   if (!wasHeld) {
     const time = gameTime();
-    renderer.effects.recordHit(game.press(lane, time), time, game.multiplier(time));
+    pressNote(lane, time);
     pulse?.recordInput(time, game.strays);
   }
 }
 function up(lane, source) {
   const had = inputs[lane].delete(source);
-  if (had && inputs[lane].size === 0 && state === 'playing' && !demo && audio.countdown === 0) game.release(lane, gameTime());
+  if (had && inputs[lane].size === 0 && state === 'playing' && !demo && audio.countdown === 0) releaseNote(lane, gameTime());
 }
 function finish() {
   audio.stop(); state = 'results'; show('results');
@@ -282,15 +293,16 @@ function frame() {
       if (demo) {
         while (demoIndex < demoActions.length && demoActions[demoIndex].time <= time) {
           const action = demoActions[demoIndex++];
-          if (action.down) renderer.effects.recordHit(game.press(action.lane, action.time), action.time, game.multiplier(action.time));
-          else game.release(action.lane, action.time);
+          if (action.down) pressNote(action.lane, action.time);
+          else releaseNote(action.lane, action.time);
         }
         if (game.revengeReady) game.activateRevenge(time);
       } else if (time >= resumeGrace && resumeGrace !== -Infinity) {
-        for (let lane = 0; lane < 3; lane++) if (!game.held[lane]) game.release(lane, time);
+        for (let lane = 0; lane < 3; lane++) if (!game.held[lane]) releaseNote(lane, time);
         resumeGrace = -Infinity;
       }
       game.update(time);
+      renderer.effects.observeFailures(game, time);
       pulse?.advance(time);
     }
     renderPulse(pulse?.view(time) ?? null);
@@ -301,10 +313,11 @@ function frame() {
     const multiplier = game.multiplier(time);
     text('multiplier', `×${formatNumber(multiplier)}`);
     $('multiplier').dataset.level = String(multiplier);
+    $('game-screen').dataset.energy = multiplier === 8 ? 'active' : game.revengeReady ? 'ready' : 'charging';
     $('song-progress').value = Math.min(1, Math.max(0, position / buffer.duration));
     $('revenge-progress').value = time < game.revengeUntil ? Math.max(0, (game.revengeUntil - time) / 15 * 50) : Math.min(50, game.streak);
     $('revenge').disabled = !game.revengeReady || demo || countdown > 0 || Boolean(audio.waiting) || state !== 'playing';
-    text('revenge-label', time < game.revengeUntil ? `×${formatNumber(8)} · ${formatNumber(Math.ceil(game.revengeUntil - time))} с` : `REVENGE ×${formatNumber(8)}`);
+    text('revenge-label', time < game.revengeUntil ? `×${formatNumber(8)} · ${formatNumber(Math.ceil(game.revengeUntil - time))} с` : game.revengeReady ? `ВКЛЮЧИТЬ ×${formatNumber(8)} →` : `ЗАРЯД ×${formatNumber(8)}`);
     $('audio-status').hidden = audio !== mediaAudio;
     text('audio-status', audio.waiting ? 'Ожидаем звук…' : 'Совместимый звук');
     text('game-stats', `Очки: ${formatNumber(game.score)}; попадания: ${formatNumber(game.hits)}; пропуски: ${formatNumber(game.misses)}`);

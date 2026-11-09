@@ -1,0 +1,107 @@
+[
+  {
+    "id": "0734D2E4-7693-418B-82F8-C6D88A02A782",
+    "title": "Waiting for the End",
+    "artist": "Linkin Park",
+    "duration": 97.75600907029478,
+    "tutorial": false,
+    "genre": "Alternative",
+    "levels": {
+      "1": {
+        "notes": 116,
+        "holds": 14,
+        "shakes": 0
+      },
+      "2": {
+        "notes": 217,
+        "holds": 14,
+        "shakes": 0
+      },
+      "3": {
+        "notes": 354,
+        "holds": 16,
+        "shakes": 2
+      },
+      "4": {
+        "notes": 479,
+        "holds": 17,
+        "shakes": 0
+      }
+    }
+  },
+  {
+    "id": "D0FE6721-1476-45C2-A8BA-0686488282BF",
+    "title": "House Music",
+    "artist": "Benny Benassi",
+    "duration": 129.5209070294785,
+    "tutorial": false,
+    "genre": "Dance",
+    "levels": {
+      "1": {
+        "notes": 276,
+        "holds": 0,
+        "shakes": 0
+      },
+      "2": {
+        "notes": 408,
+        "holds": 1,
+        "shakes": 8
+      },
+      "3": {
+        "notes": 636,
+        "holds": 2,
+        "shakes": 8
+      },
+      "4": {
+        "notes": 864,
+        "holds": 16,
+        "shakes": 9
+      }
+    }
+  },
+  {
+    "id": "F522698F-40CC-4E05-9164-00CFFF8576B7",
+    "title": "Sing",
+    "artist": "My Chemical Romance",
+    "duration": 110.2715646258503,
+    "tutorial": false,
+    "genre": "Alternative",
+    "levels": {
+      "1": {
+        "notes": 148,
+        "holds": 15,
+        "shakes": 0
+      },
+      "2": {
+        "notes": 296,
+        "holds": 15,
+        "shakes": 10
+      },
+      "3": {
+        "notes": 433,
+        "holds": 16,
+        "shakes": 6
+      },
+      "4": {
+        "notes": 576,
+        "holds": 17,
+        "shakes": 6
+      }
+    }
+  },
+  {
+    "id": "13E040AF-2F72-4315-B798-680F3761C756",
+    "title": "Audio Calibration",
+    "artist": "Tapulous",
+    "duration": 34.66739229024943,
+    "tutorial": true,
+    "genre": "Calibration",
+    "levels": {
+      "1": {
+        "notes": 20,
+        "holds": 0,
+        "shakes": 0
+      }
+    }
+  }
+]

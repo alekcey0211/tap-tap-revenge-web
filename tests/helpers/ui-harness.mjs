@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { SAVE_KEY, currentRecords } from '../../dist/storage.js';
-import { SongAudio } from '../../dist/audio.js?v=0.3.1';
+import { SongAudio } from '../../dist/audio.js?v=0.5.3';
 
 let sequence = 0;
 export function deferred() {
@@ -65,6 +65,7 @@ export async function mount(t, { records = {}, settings = {}, bootFailure = fals
       audio.state = 'running';
       return audio.resumeGate?.promise || Promise.resolve();
     }
+    close() { this.closed = true; return Promise.resolve(); }
     createBufferSource() { return { connect: n => n, disconnect() {}, stop() {}, start: (at, offset) => audio.starts.push({ at, offset }) }; }
     createGain() { return { gain: { value: 0, setTargetAtTime() {} }, connect() {}, disconnect() {} }; }
   }

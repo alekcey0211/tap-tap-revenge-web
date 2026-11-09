@@ -138,3 +138,32 @@ test('multiple pointers and keyboard on one lane release a hold only when the la
   const result = Object.values(ui.records())[0];
   assert.equal(result.hits, 2); assert.equal(result.brokenHolds, 0); assert.equal(result.strays, 0);
 });
+
+test('frozen Web Audio countdown returns to pause, then explicit retry resumes from the same position', async t => {
+  const ui = await mount(t); await ui.click('play'); ui.tick(3.2);
+  await ui.click('pause'); await ui.click('resume');
+  const old = ui.audio.contexts[0], score = ui.node('game-stats').textContent;
+  ui.native.now = 1600; ui.tick(3.2); // context reports running but its clock has stopped
+  assert.equal(ui.node('pause-dialog').open, true);
+  assert.equal(ui.node('pause-error').hidden, false);
+  assert.equal(ui.node('resume').disabled, false);
+  assert.equal(ui.node('game-stats').textContent, score);
+  assert.equal(ui.progress().history.length, 0);
+  await ui.click('resume'); assert.equal(old.closed, true); assert.equal(ui.audio.contexts.length, 2);
+  assert.ok(Math.abs(ui.audio.starts.at(-1).offset - .2) < 1e-9);
+  ui.native.now = 1700; ui.tick(5.3);
+  assert.equal(ui.node('pause-dialog').open, false);
+  assert.equal(ui.settings().compatibleAudio, false);
+});
+
+test('Web Audio resume timeout restores an enabled pause button; late resolution never starts music', async t => {
+  const ui = await mount(t); await ui.click('play'); ui.tick(6); await ui.click('pause');
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const gate = deferred(); ui.audio.resumeGate = gate;
+  const pending = ui.click('resume'); t.mock.timers.tick(4000); await pending;
+  assert.equal(ui.node('pause-dialog').open, true); assert.equal(ui.node('resume').disabled, false);
+  assert.equal(ui.audio.starts.length, 1);
+  ui.audio.resumeGate = null; await ui.click('resume');
+  assert.equal(ui.audio.starts.length, 2); assert.equal(ui.audio.starts.at(-1).offset, 3);
+  gate.resolve(); await Promise.resolve(); assert.equal(ui.audio.starts.length, 2);
+});

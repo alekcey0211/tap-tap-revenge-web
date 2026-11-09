@@ -22,14 +22,14 @@ test('rendering pending notes, holds, countdown and reduced motion does not muta
   const canvas = { clientWidth: 390, clientHeight: 540, getContext: () => context };
   const renderer = new Renderer(canvas, paths);
   const game = new Game([{ time: 1, lane: 0, duration: 2 }, { time: 2, lane: 1, duration: 0 }]);
-  game.press(0, 1);
+  renderer.effects.recordHit(game.press(0, 1), 1, 1);
   const before = JSON.stringify(game);
   for (const motion of [false, true]) for (const time of [0, 1, 1.5, 2, 3]) {
     renderer.render(game, time, '1', 100, 0, motion);
     renderer.render(game, time, '1', 100, 3, motion);
   }
   assert.equal(JSON.stringify(game), before);
-  assert.ok(text.some(([value, , y]) => value === 'PERFECT' && y > 446), 'feedback stays below rings');
+  assert.ok(text.some(([value]) => value === 'PERFECT'), 'successful lane judgment is drawn');
   assert.equal(canvas.height, 540);
 });
 
@@ -84,4 +84,44 @@ test('every lane uses the same circular head with volume, at mobile and desktop 
       assert.equal(JSON.stringify(game), before);
     }
   }
+});
+
+test('lane badges retain readable physical size and stay below targets on short screens', () => {
+  for (const [width, height] of [[320, 266], [390, 524]]) {
+    const rectangles = [], translations = [], fonts = [];
+    const context = new Proxy({}, {
+      get: (_, name) => ['createLinearGradient', 'createRadialGradient'].includes(name) ? () => ({ addColorStop() {} })
+        : name === 'fillRect' ? (...args) => rectangles.push(args)
+          : name === 'translate' ? (...args) => translations.push(args) : () => {},
+      set: (_, name, value) => { if (name === 'font') fonts.push(value); return true; },
+    });
+    const renderer = new Renderer({ clientWidth: width, clientHeight: height, getContext: () => context }, paths);
+    for (let lane = 0; lane < 3; lane++) renderer.effects.recordHit({ lane, judgment: 'PERFECT' }, 1, 1);
+    renderer.render(new Game([]), 1.2, '4', 100);
+    assert.equal(translations.length, 3);
+    assert.ok(fonts.every(font => parseFloat(font.split(' ')[1]) >= 11.5));
+    for (const [, y] of translations) {
+      const badge = rectangles.at(-1), halfHeight = badge[3] / 2;
+      assert.ok(y - halfHeight > 446 * height / 480);
+      assert.ok(y + halfHeight <= height);
+    }
+  }
+});
+
+test('x8 changes the whole field even with reduced motion and ends on expiry or miss', () => {
+  let fill;
+  const backgrounds = [];
+  const context = new Proxy({}, {
+    get: (_, name) => ['createLinearGradient', 'createRadialGradient'].includes(name) ? () => ({ addColorStop() {} })
+      : name === 'fillRect' ? (x, y, w, h) => { if (w === 320 && h === 480) backgrounds.push(fill); } : () => {},
+    set: (_, name, value) => { if (name === 'fillStyle') fill = value; return true; },
+  });
+  const renderer = new Renderer({ clientWidth: 320, clientHeight: 270, getContext: () => context }, paths);
+  const game = new Game([]); game.streak = 50; game.revengeReady = true;
+  renderer.render(game, 0, '4', 100, 0, true);
+  game.activateRevenge(0); renderer.render(game, 1, '4', 100, 0, true);
+  renderer.render(game, 15, '4', 100, 0, true);
+  game.revengeReady = true; game.activateRevenge(15); game.press(0, 16);
+  renderer.render(game, 16, '4', 100, 0, true);
+  assert.deepEqual(backgrounds, ['#10151e', '#123b32', '#10151e', '#10151e']);
 });

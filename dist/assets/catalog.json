@@ -103,5 +103,35 @@
         "shakes": 0
       }
     }
+  },
+  {
+    "id": "neon-circuit-v1",
+    "title": "Neon Circuit",
+    "artist": "Pulse Lab · программный синтез",
+    "duration": 62,
+    "tutorial": false,
+    "genre": "Electro · оригинальный трек",
+    "levels": {
+      "1": {
+        "notes": 58,
+        "holds": 4,
+        "shakes": 0
+      },
+      "2": {
+        "notes": 116,
+        "holds": 4,
+        "shakes": 0
+      },
+      "3": {
+        "notes": 216,
+        "holds": 4,
+        "shakes": 0
+      },
+      "4": {
+        "notes": 222,
+        "holds": 4,
+        "shakes": 0
+      }
+    }
   }
 ]

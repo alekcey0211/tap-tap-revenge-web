@@ -11,7 +11,10 @@ test('baseline identifies the verified version and unchanged source catalog', as
   assert.equal(baseline.charts.length, 13);
   assert.equal(new Set(baseline.charts.map(chart => chart.path)).size, 13);
   const data = await readFile(new URL('../dist/assets/catalog.json', import.meta.url));
-  assert.equal(sha256(data), baseline.catalogSha256);
+  const original = await readFile(new URL('./fixtures/catalog-v0.1.0.json', import.meta.url));
+  assert.equal(sha256(original), baseline.catalogSha256);
+  const entries = JSON.parse(original);
+  assert.deepEqual(JSON.parse(data).filter(song => entries.some(old => old.id === song.id)), entries);
 });
 
 for (const entry of baseline.charts) {

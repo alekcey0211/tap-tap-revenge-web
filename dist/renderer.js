@@ -45,6 +45,42 @@ export class Renderer {
     c.beginPath(); c.ellipse(-radius * .25, -radius * .36, radius * .32, radius * .15, -.5, 0, Math.PI * 2);
     c.fillStyle = '#ffffff55'; c.fill();
   }
+  renderStage(time, revenge, reducedMotion) {
+    const c = this.ctx;
+    // A perspective runway, moving with the song clock; it freezes on pause.
+    c.strokeStyle = revenge ? '#91e6ad40' : '#7794b322'; c.lineWidth = 1;
+    for (let i = 0; i < 9; i++) {
+      const phase = reducedMotion ? i / 9 : ((i / 9 + Math.max(0, time) * .12) % 1);
+      const depth = phase * phase, y = 53 + depth * 350;
+      c.beginPath(); c.moveTo(148 - depth * 140, y); c.lineTo(172 + depth * 140, y); c.stroke();
+    }
+    c.strokeStyle = revenge ? '#c9ff56' : '#49e6ef60'; c.lineWidth = revenge ? 3 : 1;
+    c.beginPath(); c.moveTo(3, 447); c.lineTo(3, 65); c.lineTo(24, 48);
+    c.moveTo(317, 447); c.lineTo(317, 65); c.lineTo(296, 48); c.stroke();
+    if (revenge) {
+      c.fillStyle = '#c9ff5626'; c.fillRect(80, 4, 160, 44);
+      c.fillStyle = '#c9ff56'; c.fillRect(80, 4, 160, 2);
+    }
+  }
+  renderJudgments(effects, width, height, dpr, reducedMotion) {
+    const c = this.ctx;
+    c.save(); c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const w = width / dpr, h = height / dpr;
+    const badgeHeight = Math.min(24, h * 30 / 480);
+    for (const hit of effects.judgments) {
+      if (!hit) continue;
+      const x = (54 + hit.lane * 106) * w / 320, y = h * 464 / 480;
+      const badgeWidth = Math.min(100, w / 3 - 10);
+      c.globalAlpha = hit.age < .5 || reducedMotion ? 1 : (.75 - hit.age) / .25;
+      const pop = reducedMotion ? 1 : 1 + .12 * Math.max(0, 1 - hit.age / .12);
+      c.save(); c.translate(x, y); c.scale(pop, pop);
+      c.fillStyle = hit.failed ? '#ff777e' : hit.text === 'PERFECT' ? '#c9ff56' : '#91e9ed';
+      c.fillRect(-badgeWidth / 2, -badgeHeight / 2, badgeWidth, badgeHeight);
+      this.text(hit.text, 0, 4, Math.min(13, badgeHeight * .7), '#10151e');
+      c.restore();
+    }
+    c.restore();
+  }
   renderEnergy(effects, reducedMotion) {
     if (effects.multiplier !== 8) return;
     const c = this.ctx;
@@ -76,7 +112,13 @@ export class Renderer {
       const progress = hit.age / .6;
       c.globalAlpha = (1 - progress) * (perfect ? .95 : .65);
       c.strokeStyle = perfect ? '#f3ffe0' : COLORS[hit.lane];
-      c.lineWidth = perfect ? 2.5 : 1.5;
+      c.lineWidth = perfect ? 4 : 3;
+      if (hit.age < .2) {
+        c.globalAlpha = reducedMotion ? .45 : .7 * (1 - hit.age / .2);
+        c.fillStyle = perfect ? '#efffd5' : COLORS[hit.lane];
+        c.beginPath(); c.ellipse(x, 422, 30, 23, 0, 0, Math.PI * 2); c.fill();
+      }
+      c.globalAlpha = (1 - progress) * .95;
       const radius = reducedMotion ? 34 : 29 + (12 + power * 6) * Math.sqrt(progress);
       c.beginPath(); c.ellipse(x, 422, radius, radius * .72, 0, 0, Math.PI * 2); c.stroke();
       if (reducedMotion) continue;
@@ -120,15 +162,16 @@ export class Renderer {
     }
     c.setTransform(width / 320, 0, 0, height / 480, 0, 0);
     c.clearRect(0, 0, 320, 480);
-    c.fillStyle = '#101113'; c.fillRect(0, 0, 320, 480);
     const effects = this.effects.frame(game.multiplier(time), time);
     const revenge = effects.multiplier === 8;
+    c.fillStyle = revenge ? '#123b32' : '#10151e'; c.fillRect(0, 0, 320, 480);
+    this.renderStage(time, revenge, reducedMotion);
     this.renderEnergy(effects, reducedMotion);
     for (let lane = 0; lane < 3; lane++) {
       const [x] = stagePosition(this.paths, lane, 1);
       const glow = c.createLinearGradient(160, 53, x, 422);
       glow.addColorStop(0, COLORS[lane] + '00');
-      glow.addColorStop(1, COLORS[lane] + (revenge ? '33' : '16'));
+      glow.addColorStop(1, COLORS[lane] + (revenge ? '55' : '20'));
       c.beginPath(); c.moveTo(160 + (lane - 1) * 14, 53);
       c.lineTo(x - 34, 448); c.lineTo(x + 34, 448); c.closePath();
       c.fillStyle = glow; c.fill();
@@ -137,12 +180,13 @@ export class Renderer {
         const [px, py] = stagePosition(this.paths, lane, i / 36);
         if (!i) c.moveTo(px, py); else c.lineTo(px, py);
       }
-      c.strokeStyle = COLORS[lane] + '80'; c.lineWidth = 1.2; c.stroke();
+      c.strokeStyle = revenge ? '#c9ff56bb' : COLORS[lane] + '80'; c.lineWidth = revenge ? 2 : 1.2; c.stroke();
       c.beginPath(); c.ellipse(x, 422, 31, 24, 0, 0, Math.PI * 2);
-      c.fillStyle = COLORS[lane] + '12'; c.fill();
-      const age = time - game.flashes[lane];
-      const active = game.held[lane] || (age >= 0 && age < .18);
-      c.strokeStyle = active ? '#f3f2ee' : COLORS[lane]; c.lineWidth = active ? 4 : 3;
+      c.fillStyle = COLORS[lane] + (revenge ? '45' : '22'); c.fill();
+      const judgment = effects.judgments[lane];
+      const failed = judgment?.failed && judgment.age < .35;
+      const active = !failed && (game.held[lane] || (judgment && judgment.age < .18));
+      c.strokeStyle = failed ? '#ff777e' : active ? '#f3f2ee' : COLORS[lane]; c.lineWidth = active ? 4 : 3;
       c.shadowColor = COLORS[lane]; c.shadowBlur = reducedMotion ? 0 : active ? 22 : 10;
       c.stroke(); c.shadowBlur = 0;
     }
@@ -177,13 +221,7 @@ export class Renderer {
       c.restore();
       c.globalAlpha = 1;
     }
-    // Feedback is below the hit targets, outside the note travel area.
-    if (game.feedback && time - game.feedback.time < .6) {
-      const f = game.feedback;
-      c.globalAlpha = reducedMotion ? 1 : Math.min(1, (.6 - (time - f.time)) * 4);
-      this.text(f.text, 160, 472, 17, f.text === 'PERFECT' ? '#c9ff56' : f.color);
-      c.globalAlpha = 1;
-    }
+    this.renderJudgments(effects, width, height, dpr, reducedMotion);
     this.renderMultiplier(effects, reducedMotion);
     if (countdown > 0) {
       c.fillStyle = '#101113cc'; c.fillRect(0, 0, 320, 480);

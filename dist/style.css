@@ -264,3 +264,35 @@ body[data-reduced-motion="true"] .spinner { animation: none; }
 #multiplier[data-level="4"] { color: #c9ff56; background: #c9ff5622; }
 #multiplier[data-level="8"] { color: #101113; background: #c9ff56; box-shadow: 0 0 14px #c9ff5644; }
 body[data-reduced-motion="true"] #multiplier { box-shadow: none; }
+
+/* The stage is an instrument panel, not another library card. Geometry stays fixed. */
+#game-screen { background: linear-gradient(160deg, #1d2834, #10151e 40%); }
+#game-screen[data-energy="active"] { background: linear-gradient(160deg, #365236, #123b32 60%); }
+#game-screen .now-playing img { border: 1px solid #829a9a; box-shadow: 0 4px 12px #0006; }
+#game-screen .hud { font-style: italic; text-shadow: 0 2px 0 #0008; }
+#game-screen[data-energy="active"] #live-score { color: #e6ffb1; }
+#game-screen .pulse { border-radius: 3px 12px 3px 12px; border-left: 3px solid #738ba3; background: #15202c; }
+#game-screen .pulse[data-outcome="captured"], #game-screen .pulse[data-outcome="perfect"] { border-left-color: var(--accent); background: #24371c; }
+#game-screen .game-footer { padding-top: 4px; }
+#game-screen #revenge { border-radius: 4px 14px 4px 14px; background: #15202c; }
+#game-screen[data-energy="ready"] #revenge { color: #10151e; background: var(--accent); border-color: var(--accent); }
+#game-screen[data-energy="active"] #revenge { color: #e6ffb1; background: #284b2d; border-color: #c9ff56; }
+body:not([data-reduced-motion="true"]) .primary,
+body:not([data-reduced-motion="true"]) .track { transition: transform 120ms ease, filter 120ms ease; }
+body:not([data-reduced-motion="true"]) .primary:active:not(:disabled) { transform: scale(.97); }
+body:not([data-reduced-motion="true"]) .track:active { transform: translateX(4px); }
+body:not([data-reduced-motion="true"]) #library:not([hidden]) .selected-art,
+body:not([data-reduced-motion="true"]) #results:not([hidden]) .result-art { animation: card-enter 320ms ease-out both; }
+body:not([data-reduced-motion="true"]) dialog[open] { animation: panel-enter 180ms ease-out both; }
+body:not([data-reduced-motion="true"]) #game-screen[data-energy="ready"] #revenge { animation: charge-ready 1.6s ease-in-out infinite alternate; }
+body:not([data-reduced-motion="true"]) #multiplier[data-level="2"],
+body:not([data-reduced-motion="true"]) #multiplier[data-level="3"],
+body:not([data-reduced-motion="true"]) #multiplier[data-level="4"],
+body:not([data-reduced-motion="true"]) #multiplier[data-level="8"] { animation: multiplier-enter 220ms ease-out; }
+@keyframes card-enter { from { opacity: 0; transform: translateY(12px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes panel-enter { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes multiplier-enter { from { transform: scale(1.25); } to { transform: scale(1); } }
+@keyframes charge-ready { from { box-shadow: 0 0 0 #c9ff5600; } to { box-shadow: 0 0 18px #c9ff5655; } }
+@media (prefers-reduced-motion: reduce) {
+  .primary, .track, .selected-art, .result-art, dialog[open], #revenge, #multiplier { animation: none !important; transition: none !important; }
+}

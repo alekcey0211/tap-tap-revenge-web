@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { HitEffects } from '../dist/hit-effects.js';
 import { Game } from '../dist/engine.js';
 import { mount } from './helpers/ui-harness.mjs';
-import { Renderer } from '../dist/renderer.js?v=0.5.2';
+import { Renderer } from '../dist/renderer.js?v=0.5.3';
 
 const note = { lane: 1, judgment: 'PERFECT' };
 test('only successful heads generate bursts; effects use song time and bounded memory', () => {
@@ -17,7 +17,7 @@ test('only successful heads generate bursts; effects use song time and bounded m
   assert.equal(effects.frame(4, 2.61).hits.length, 0);
   for (let i = 0; i < 1000; i++) effects.recordHit(note, 3, 8);
   assert.equal(effects.frame(8, 3).hits.length, 24);
-  effects.reset(); assert.deepEqual(effects.frame(1, 0), { multiplier: 1, hits: [], transition: null });
+  effects.reset(); assert.deepEqual(effects.frame(1, 0), { multiplier: 1, hits: [], judgments: [null, null, null], transition: null });
   assert.deepEqual(note, { lane: 1, judgment: 'PERFECT' });
 });
 
@@ -65,3 +65,29 @@ for (const compatibleAudio of [false, true]) {
     if (compatibleAudio) assert.equal(ui.audio.contexts.length, 0);
   });
 }
+
+test('simultaneous judgments stay independent and newer hits replace only their own lane', () => {
+  const effects = new HitEffects();
+  for (let lane = 0; lane < 3; lane++) effects.recordHit({ lane, judgment: 'PERFECT' }, 1, 1);
+  effects.recordHit({ lane: 0, judgment: 'GREAT' }, 1.2, 1);
+  const view = effects.frame(1, 1.3);
+  assert.deepEqual(view.judgments.map(hit => hit.text), ['GREAT', 'PERFECT', 'PERFECT']);
+  assert.equal(effects.frame(1, 1.8).judgments[1], null);
+  assert.equal(effects.frame(1, 1.8).judgments[0].text, 'GREAT');
+});
+
+test('misses, strays and broken holds get distinct lane feedback, not successful particles', () => {
+  const game = new Game([{ time: 1, lane: 0, duration: 0 }, { time: 1.3, lane: 0, duration: 2 }]);
+  const effects = new HitEffects();
+  effects.recordHit(game.press(0, 1.3), 1.3, 1);
+  effects.observeFailures(game, 1.3);
+  assert.equal(effects.frame(1, 1.3).judgments[0].text, 'PERFECT', 'older missed note never hides newer hit');
+  game.release(0, 1.4); effects.observeFailures(game, 1.4);
+  assert.equal(effects.frame(1, 1.4).judgments[0].text, 'СОРВАНО');
+  effects.recordJudgment(2, 'МИМО', 1.4, true);
+  assert.equal(effects.frame(1, 1.4).judgments[2].failed, true);
+  assert.equal(effects.hits.length, 1);
+  effects.observeFailures(game, 2.4);
+  assert.deepEqual(effects.frame(1, 2.4).judgments, [null, null, null], 'failure does not restart each frame');
+  effects.reset(); assert.equal(effects.failures.size, 0);
+});
