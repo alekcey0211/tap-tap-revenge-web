@@ -173,17 +173,17 @@ test('calibration uses real hits, offers a correction and never writes a record'
   assert.equal(ui.node('apply-calibration').hidden, false);
   await ui.click('apply-calibration');
   assert.equal(ui.node('offset').value, 25);
-  assert.equal(JSON.parse(ui.values.get('ttr-web-settings')).offset, 25);
+  assert.equal(ui.settings().offset, 25);
   assert.deepEqual(ui.records(), {});
 });
 
-test('settings edits retain the existing storage keys and update reduced motion', async t => {
+test('settings edits update the new save and reduced motion', async t => {
   const ui = await mount(t);
   ui.node('volume').oninput({ target: { value: '42' } });
   ui.node('motion').onchange({ target: { checked: true } });
   const target = { value: '999' };
   ui.node('offset').onchange({ target });
   assert.equal(target.value, 500);
-  assert.deepEqual(JSON.parse(ui.values.get('ttr-web-settings')), { compatibleAudio: false, volume: 42, offset: 500, motion: true });
+  assert.deepEqual(ui.settings(), { compatibleAudio: false, volume: 42, offset: 500, motion: true });
   assert.equal(ui.document.body.dataset.reducedMotion, 'true');
 });

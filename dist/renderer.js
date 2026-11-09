@@ -1,3 +1,4 @@
+import { formatNumber } from './format.js?v=0.3.0';
 import { pathPosition, TRAVEL } from './engine.js';
 
 const COLORS = ['#ff6868', '#c9ff56', '#49e6ef'];
@@ -103,7 +104,7 @@ export class Renderer {
     }
     if (countdown > 0) {
       c.fillStyle = '#101113cc'; c.fillRect(0, 0, 320, 480);
-      this.text(Math.ceil(countdown), 160, 247, 64, '#c9ff56');
+      this.text(formatNumber(Math.ceil(countdown)), 160, 247, 64, '#c9ff56');
       this.text('ПРИГОТОВЬСЯ', 160, 278, 12);
     }
   }

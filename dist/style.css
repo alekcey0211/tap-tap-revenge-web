@@ -9,10 +9,10 @@
 }
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 280px; }
-button, input { font: inherit; }
+button, input, select { font: inherit; }
 button { cursor: pointer; color: inherit; border: 0; touch-action: manipulation; }
 button:disabled { cursor: default; opacity: .45; }
-button:focus-visible, input:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
 button:hover:not(:disabled) { filter: brightness(1.08); }
 button:active:not(:disabled) { filter: brightness(.9); }
 [hidden] { display: none !important; }
@@ -193,3 +193,50 @@ body[data-reduced-motion="true"] .spinner { animation: none; }
   #live-score { font-size: 28px; }
   .mode-row { padding-top: 4px; }
 }
+
+/* Progress shares the music library's spacing and graphite/lime palette. */
+.progress-screen { padding-top: 12px; padding-bottom: 24px; }
+.progress-tabs { display: flex; border: 1px solid #626366; border-radius: 10px; margin-bottom: 20px; }
+.progress-tabs button { flex: 1; min-width: 0; min-height: 48px; padding: 8px 4px; background: none; border-radius: 9px; font-size: 14px; }
+.progress-tabs button[aria-pressed="true"] { color: #101113; background: var(--accent); font-weight: 700; }
+.progress-song { display: flex; align-items: center; gap: 12px; margin: 20px 0; }
+.progress-song img { width: 56px; height: 56px; object-fit: cover; border-radius: 10px; }
+.progress-song > div { flex: 1; min-width: 0; }
+.progress-screen select { display: block; width: 100%; min-height: 48px; color: inherit; background: #101113; border: 1px solid #626366; border-radius: 9px; padding: 8px; text-overflow: ellipsis; }
+.progress-song select { font-size: 17px; font-weight: 700; }
+#progress-levels button { font-size: 12px; }
+.progress-caption { text-transform: uppercase; font-size: 12px; font-weight: 700; letter-spacing: 1px; }
+#best-score { display: block; overflow-wrap: anywhere; }
+#best-delta { font-size: 14px; margin: 4px 0 16px; }
+#personal-best .result-summary { text-align: center; margin-top: 16px; }
+.progress-screen h3 { font-size: 20px; letter-spacing: -.4px; }
+.accuracy-section, .transfer-section { border-top: 1px solid var(--line); margin-top: 20px; padding-top: 18px; }
+.accuracy-section > .subtle, .transfer-section > .subtle { margin: 8px 0 12px; }
+.accuracy-chart { display: block; width: 100%; height: 110px; overflow: visible; }
+.accuracy-values { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.accuracy-axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 6px; }
+#progress-play { display: block; margin: 4px auto 0; }
+.history-filters { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.history-filters > div { min-width: 0; }
+.history-filters select { font-size: 13px; }
+.history-day { font-size: 13px !important; text-transform: uppercase; letter-spacing: 1px !important; margin-top: 24px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.history-row { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 10px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.history-row img { width: 48px; height: 48px; object-fit: cover; border-radius: 8px; }
+.history-row h4 { font-size: 15px; margin: 0 0 4px; overflow-wrap: anywhere; }
+.history-row p { font-size: 12px; line-height: 1.5; color: var(--muted); }
+.history-score-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.history-score-row strong { font-size: 24px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.history-badge { color: #101113; background: var(--accent); font-size: 10px; font-weight: 700; padding: 3px 6px; border-radius: 4px; }
+.history-help { margin-top: 20px; }
+.progress-empty { padding: 28px 0; text-align: center; }
+.progress-empty p { margin-top: 10px; }
+.progress-empty button { margin-top: 20px; }
+.save-warning { color: #ffaba0; font-size: 14px; line-height: 1.5; margin: 12px 0; }
+@media (min-width: 370px) {
+  .history-row { grid-template-columns: 48px minmax(0, 1fr) auto; }
+  .history-score-row { display: block; text-align: right; margin-top: 0; }
+  .history-score-row strong { display: block; }
+  .history-score-row .history-badge { display: inline-block; margin: 4px 0; }
+}
+.history-score-row { grid-column: 2; }
+@media (min-width: 370px) { .history-score-row { grid-column: auto; } }

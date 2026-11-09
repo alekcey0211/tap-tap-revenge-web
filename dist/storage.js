@@ -1,0 +1,149 @@
+import { Temporal } from './temporal.js';
+
+export const SAVE_KEY = 'ttr-web-save-v1';
+export const HISTORY_LIMIT = 100;
+export const IMPORT_LIMIT = 256 * 1024;
+export const CHART_VERSION = 'original-v1';
+export const RULES_VERSION = 'web-v1';
+export const DEFAULT_SETTINGS = { compatibleAudio: false, volume: 75, offset: 0, motion: false };
+const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const version = /^[a-zA-Z0-9._-]{1,40}$/;
+const invalid = () => { throw new Error('Файл прогресса повреждён или имеет неизвестный формат.'); };
+const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+const count = value => Number.isSafeInteger(value) && value >= 0 && value <= 1e9;
+export const recordKey = ({ songId, level, chartVersion = CHART_VERSION, rulesVersion = RULES_VERSION }) =>
+  `${songId}:${level}:${chartVersion}:${rulesVersion}`;
+
+function settingsFrom(value, defaults = DEFAULT_SETTINGS, strict = false) {
+  const result = { ...defaults };
+  if (!object(value)) { if (strict) invalid(); return result; }
+  for (const name of ['compatibleAudio', 'motion']) {
+    if (typeof value[name] === 'boolean') result[name] = value[name]; else if (strict) invalid();
+  }
+  for (const [name, min, max] of [['volume', 0, 100], ['offset', -500, 500]]) {
+    if (Number.isFinite(value[name])) {
+      if (strict && (value[name] < min || value[name] > max)) invalid();
+      result[name] = Math.max(min, Math.min(max, value[name]));
+    } else if (strict) invalid();
+  }
+  return result;
+}
+function resultFrom(value) {
+  if (!object(value) || !count(value.score) || !Number.isFinite(value.accuracy) || value.accuracy < 0 || value.accuracy > 100) invalid();
+  if (value.bestStreak != null && !count(value.bestStreak)) invalid();
+  const result = { score: value.score, accuracy: value.accuracy, bestStreak: value.bestStreak ?? null };
+  for (const name of ['hits', 'misses', 'brokenHolds', 'strays']) {
+    if (value[name] === undefined) continue;
+    if (!count(value[name])) invalid();
+    result[name] = value[name];
+  }
+  if (value.counts !== undefined) {
+    if (!object(value.counts)) invalid();
+    result.counts = {};
+    for (const name of ['PERFECT', 'GREAT', 'GOOD', 'OK']) {
+      if (!count(value.counts[name])) invalid();
+      result.counts[name] = value.counts[name];
+    }
+  }
+  return result;
+}
+function entryFrom(value, attempt = false) {
+  if (!object(value) || typeof value.songId !== 'string' || !uuid.test(value.songId) || !['1', '2', '3', '4'].includes(value.level)
+    || typeof value.chartVersion !== 'string' || !version.test(value.chartVersion) || typeof value.rulesVersion !== 'string' || !version.test(value.rulesVersion)) invalid();
+  const result = resultFrom(value.result);
+  if (value.previousScore !== null && !count(value.previousScore)) invalid();
+  const entry = { songId: value.songId, level: value.level, chartVersion: value.chartVersion,
+    rulesVersion: value.rulesVersion, result, previousScore: value.previousScore };
+  if (!attempt && entry.previousScore !== null && entry.previousScore >= result.score) invalid();
+  if (attempt) {
+    if (!uuid.test(value.id) || typeof value.playedAt !== 'string' || value.playedAt.length > 40 || typeof value.isRecord !== 'boolean') invalid();
+    let instant;
+    try { instant = Temporal.Instant.from(value.playedAt); } catch { invalid(); }
+    const year = instant.toZonedDateTimeISO('UTC').year;
+    if (year < 1970 || year > 2200) invalid();
+    if (value.isRecord && entry.previousScore !== null && entry.previousScore >= result.score) invalid();
+    Object.assign(entry, { id: value.id, playedAt: instant.toString(), isRecord: value.isRecord });
+  }
+  return entry;
+}
+function snapshotFrom(value) {
+  if (!object(value) || value.format !== 'tap-tap-web-progress' || value.schemaVersion !== 1 || !object(value.progress)) invalid();
+  const { records, history } = value.progress;
+  if (!Array.isArray(records) || records.length > 256 || !Array.isArray(history) || history.length > HISTORY_LIMIT) invalid();
+  const cleanRecords = records.map(entry => entryFrom(entry)), cleanHistory = history.map(entry => entryFrom(entry, true));
+  if (new Set(cleanRecords.map(recordKey)).size !== records.length || new Set(cleanHistory.map(item => item.id)).size !== history.length) invalid();
+  const best = new Map(cleanRecords.map(entry => [recordKey(entry), entry.result.score]));
+  if (cleanHistory.some(entry => !best.has(recordKey(entry)) || best.get(recordKey(entry)) < entry.result.score)) invalid();
+  cleanHistory.sort((a, b) => Temporal.Instant.compare(b.playedAt, a.playedAt));
+  return { format: 'tap-tap-web-progress', schemaVersion: 1, settings: settingsFrom(value.settings, DEFAULT_SETTINGS, true),
+    progress: { records: cleanRecords, history: cleanHistory } };
+}
+export function parseProgress(text) {
+  if (typeof text !== 'string' || new TextEncoder().encode(text).length > IMPORT_LIMIT) throw new Error('Файл прогресса слишком большой.');
+  let value;
+  try { value = JSON.parse(text); } catch { invalid(); }
+  return snapshotFrom(value);
+}
+function legacy(storage, defaults) {
+  let settings = defaults, records = [];
+  try { settings = settingsFrom(JSON.parse(storage.getItem('ttr-web-settings') || '{}'), defaults); } catch { /* Retain defaults. */ }
+  try {
+    const old = JSON.parse(storage.getItem('ttr-web-records') || '{}');
+    if (object(old)) for (const [key, result] of Object.entries(old).slice(0, 256)) {
+      const parts = key.split(':');
+      const [songId, level] = parts;
+      if (parts.length !== 2 || !uuid.test(songId) || !['1', '2', '3', '4'].includes(level)) continue;
+      try { records.push({ songId, level, chartVersion: CHART_VERSION, rulesVersion: RULES_VERSION, result: resultFrom(result), previousScore: null }); } catch { /* Skip only the malformed record. */ }
+    }
+  } catch { /* Keep valid settings when old records are damaged. */ }
+  return { settings, progress: { records, history: [] } };
+}
+export function loadSave(storage, defaults = DEFAULT_SETTINGS) {
+  const empty = { settings: { ...defaults }, progress: { records: [], history: [] } };
+  try {
+    const text = storage.getItem(SAVE_KEY);
+    if (text !== null) {
+      try { return { ...parseProgress(text), writable: true, warning: '' }; }
+      catch { return { ...legacy(storage, defaults), writable: false, warning: 'Сохранение не удалось прочитать. Исходные данные не изменены; новые результаты доступны только до закрытия страницы.' }; }
+    }
+    const migrated = legacy(storage, defaults);
+    saveProgress(storage, migrated.progress, migrated.settings);
+    return { ...migrated, writable: true, warning: '' };
+  } catch {
+    // Reading may work while writes fail (quota/private browsing). Preserve readable records.
+    return { ...(storage ? legacy(storage, defaults) : empty), writable: false,
+      warning: 'Браузер не сохраняет прогресс. Перед закрытием страницы сохрани его в файл.' };
+  }
+}
+export const loadSettings = (storage, defaults) => loadSave(storage, defaults).settings;
+export const loadProgress = storage => loadSave(storage).progress;
+export function exportProgress(settings, progress) {
+  return JSON.stringify(snapshotFrom({ format: 'tap-tap-web-progress', schemaVersion: 1, settings, progress }));
+}
+export function saveProgress(storage, progress, settings) {
+  storage.setItem(SAVE_KEY, exportProgress(settings, progress));
+}
+export function saveSettings(storage, settings, progress = loadProgress(storage)) { saveProgress(storage, progress, settings); }
+export function importProgress(storage, text) {
+  const snapshot = parseProgress(text);
+  // One key/write: validation and user confirmation happen before this atomic replacement.
+  storage.setItem(SAVE_KEY, JSON.stringify(snapshot));
+  return snapshot;
+}
+export function recordAttempt(progress, { songId, level, result, playedAt, id, demo = false, tutorial = false,
+  chartVersion = CHART_VERSION, rulesVersion = RULES_VERSION }) {
+  if (demo || tutorial) return progress;
+  const identity = { songId, level, chartVersion, rulesVersion }, key = recordKey(identity);
+  const previous = progress.records.find(entry => recordKey(entry) === key);
+  const isRecord = !previous || result.score > previous.result.score;
+  const entry = entryFrom({ ...identity, result, previousScore: previous?.result.score ?? null, playedAt, id, isRecord }, true);
+  if (progress.history.some(attempt => attempt.id === id)) return progress;
+  const records = isRecord ? [...progress.records.filter(item => recordKey(item) !== key),
+    entryFrom(entry)] : progress.records;
+  const history = [entry, ...progress.history].sort((a, b) => Temporal.Instant.compare(b.playedAt, a.playedAt)).slice(0, HISTORY_LIMIT);
+  return { records, history };
+}
+export function currentRecords(progress) {
+  return Object.fromEntries(progress.records.filter(entry => entry.chartVersion === CHART_VERSION && entry.rulesVersion === RULES_VERSION)
+    .map(entry => [`${entry.songId}:${entry.level}`, entry.result]));
+}

@@ -16,7 +16,7 @@ test('compatible setting persists, keeps normal volume and never autoplays after
   await ui.click('load-cancel');
   ui.node('compatible-audio').onchange({ target: { checked: false } });
   assert.equal(ui.node('volume').disabled, false); assert.equal(ui.node('volume').value, 35);
-  assert.equal(JSON.parse(ui.values.get('ttr-web-settings')).compatibleAudio, false);
+  assert.equal(ui.settings().compatibleAudio, false);
   await ui.click('play'); assert.equal(ui.audio.starts.length, 1);
 });
 

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { SAVE_KEY, currentRecords } from '../../dist/storage.js';
 import { SongAudio } from '../../dist/audio.js';
 
 let sequence = 0;
@@ -10,11 +11,12 @@ export function deferred() {
 }
 
 // Minimal DOM/audio doubles. Browser layout and native input are checked separately.
-export async function mount(t, { records = {}, settings = {}, bootFailure = false } = {}) {
+export async function mount(t, { records = {}, settings = {}, bootFailure = false, saved = null, storageFailure = false } = {}) {
   const html = await readFile(new URL('../../dist/index.html', import.meta.url), 'utf8');
   const elements = new Map(), lanes = [], events = {}, frames = [], values = new Map();
   values.set('ttr-web-settings', JSON.stringify(settings));
   values.set('ttr-web-records', JSON.stringify(records));
+  if (saved) values.set(SAVE_KEY, JSON.stringify(saved));
   const canvasContext = new Proxy({}, { get: (_, name) => name === 'createLinearGradient'
     ? () => ({ addColorStop() {} }) : () => {} });
   class Element {
@@ -31,6 +33,8 @@ export async function mount(t, { records = {}, settings = {}, bootFailure = fals
     focus() { document.activeElement = this; }
     showModal() { this.open = true; }
     close() { this.open = false; }
+    click() { return this.onclick?.(); }
+    remove() {}
     getContext() { return canvasContext; }
     setPointerCapture() {}
   }
@@ -45,6 +49,7 @@ export async function mount(t, { records = {}, settings = {}, bootFailure = fals
     body: new Element('body'), hidden: false, activeElement: null,
     getElementById(id) { assert.ok(elements.has(id), `existing element: ${id}`); return elements.get(id); },
     createElement: tag => new Element(tag),
+    createElementNS: (_, tag) => new Element(tag),
     querySelector: selector => selector === '.result-details' ? detail : dialogs()[0] || null,
     querySelectorAll: selector => selector === '[data-lane]' ? lanes : dialogs(),
     addEventListener: (name, fn) => { events[name] = fn; },
@@ -75,7 +80,7 @@ export async function mount(t, { records = {}, settings = {}, bootFailure = fals
     document, window: { addEventListener: (name, fn) => { events[name] = fn; } },
     AudioContext, Audio, performance: { now: () => native.now }, matchMedia: () => ({ matches: false }),
     requestAnimationFrame: callback => { frames.push(callback); },
-    localStorage: { getItem: key => values.get(key) || null, setItem: (key, value) => values.set(key, value) },
+    localStorage: { getItem: key => values.get(key) || null, setItem: (key, value) => { if (storageFailure) throw new Error('quota'); values.set(key, value); } },
     fetch: async url => {
       if (bootFailure && url === 'assets/catalog.json') return { ok: false };
       if (url.endsWith('.m4a')) {
@@ -103,7 +108,10 @@ export async function mount(t, { records = {}, settings = {}, bootFailure = fals
     click: async id => { assert.equal(node(id).disabled, false, id); await node(id).onclick(); },
     tick(time) { audio.currentTime = time; const callback = frames.shift(); assert.ok(callback); callback(); },
     setBootFailure(value) { bootFailure = value; },
-    records: () => JSON.parse(values.get('ttr-web-records')),
+    records: () => values.has(SAVE_KEY) ? currentRecords(JSON.parse(values.get(SAVE_KEY)).progress) : records,
+    settings: () => values.has(SAVE_KEY) ? JSON.parse(values.get(SAVE_KEY)).settings : settings,
+    progress: () => values.has(SAVE_KEY) ? JSON.parse(values.get(SAVE_KEY)).progress : { records: [], history: [] },
+    setStorageFailure(value) { storageFailure = value; },
     selectedTrack: id => node('tracks').children.find(button => button.children[1].children[0].textContent === id),
   };
 }

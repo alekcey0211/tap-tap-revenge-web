@@ -8,8 +8,8 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; media-src 'self' blob:; object-src 'none'; base-uri 'none'">
   <title>Tap Tap Revenge · Web</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="style.css?v=0.2.0">
-  <script type="module" src="app.js?v=0.2.2"></script>
+  <link rel="stylesheet" href="style.css?v=0.3.0">
+  <script type="module" src="app.js?v=0.3.0"></script>
 </head>
 <body>
   <main class="layout">
@@ -22,12 +22,13 @@
     <div class="game-shell">
       <header class="appbar" id="appbar"><button id="home" class="icon-button" aria-label="К трекам" hidden>‹</button><h2 id="screen-title">Музыка</h2><button id="settings-open" class="icon-button" aria-label="Настройки">⚙</button></header>
       <section id="library" class="screen" aria-label="Выбор трека">
-        <p class="catalog-caption">3 трека · 12 карт · <span id="app-version" title="Версия приложения"></span></p>
+        <p class="catalog-caption"><span id="catalog-count"></span> · <span id="app-version" title="Версия приложения"></span></p>
         <div class="selected-art"><img id="hero-art" alt=""><h3 id="hero-title">Загрузка…</h3><p id="hero-artist"></p><p id="hero-meta"></p></div>
         <div id="tracks" role="group" aria-label="Выбрать трек"></div>
         <div class="difficulty-label"><span>Сложность</span><span id="note-count"></span></div><div id="difficulties" role="group" aria-label="Сложность"></div>
         <p id="record" class="record"></p><button id="play" class="primary" disabled><span aria-hidden="true">▶</span> Играть</button>
         <div class="secondary-actions"><button id="demo" class="text-button" disabled>Демо</button><button id="calibration" class="text-button" disabled>Калибровка</button><button id="about-open" class="text-button">Об игре</button></div>
+        <button id="progress-open" class="settings-link" disabled>Мой прогресс <span aria-hidden="true">›</span></button>
         <p class="mobile-help">Лови ноты у колец. Длинные — удерживай.</p>
       </section>
       <section id="game-screen" class="screen" hidden aria-label="Игра">
@@ -45,6 +46,21 @@
         <details class="result-details"><summary>Подробности</summary><dl id="result-stats"></dl></details>
         <p id="calibration-result" hidden></p><button id="apply-calibration" class="primary" hidden>Применить поправку</button><button id="retry" class="primary">Ещё раз</button><button id="back-to-library" class="secondary">Выбрать трек</button>
       </section>
+      <section id="progress-screen" class="screen progress-screen" hidden aria-label="Личный прогресс">
+        <div class="progress-tabs" role="group" aria-label="Раздел прогресса"><button id="records-tab" aria-pressed="true" aria-controls="records-panel">Рекорды</button><button id="history-tab" aria-pressed="false" aria-controls="history-panel">История</button></div>
+        <p id="save-warning" class="save-warning" role="status" hidden></p>
+        <div id="records-panel">
+          <div class="progress-song"><img id="progress-art" alt=""><div><label class="sr-only" for="progress-song">Трек</label><select id="progress-song"></select><p id="progress-artist" class="subtle"></p></div></div>
+          <div id="progress-levels" class="progress-tabs" role="group" aria-label="Сложность"></div>
+          <div id="personal-best"><p class="progress-caption">Личный рекорд</p><strong id="best-score" class="final-score"></strong><p id="best-delta" class="accent" hidden></p><div class="result-summary"><div><strong id="best-accuracy"></strong><span>Точность</span></div><div><strong id="best-combo"></strong><span>Макс. комбо</span></div></div></div>
+          <div id="record-empty" class="progress-empty" hidden><h3>Рекорд впереди</h3><p class="subtle">Пройди эту карту, чтобы сохранить первый результат.</p></div>
+          <section class="accuracy-section" aria-labelledby="accuracy-heading"><h3 id="accuracy-heading">Точность по попыткам</h3><p id="accuracy-caption" class="subtle"></p><div id="accuracy-plot"></div><p id="accuracy-empty" class="subtle"></p></section>
+          <button id="progress-play" class="text-button">К выбранному треку</button>
+          <section class="transfer-section" aria-labelledby="transfer-heading"><h3 id="transfer-heading">Твой прогресс — с тобой</h3><p class="subtle">Хранится только в этом браузере.</p><button id="progress-export" class="primary">Сохранить в файл</button><button id="progress-import" class="secondary">Восстановить из файла</button><input id="progress-file" type="file" accept=".json,application/json" hidden><p class="subtle">Настройки и прогресс. Без музыки и аккаунта.</p></section>
+        </div>
+        <div id="history-panel" hidden><div class="history-filters"><div><label class="sr-only" for="history-song">Фильтр по треку</label><select id="history-song"></select></div><div><label class="sr-only" for="history-level">Фильтр по сложности</label><select id="history-level"></select></div></div><p id="history-caption" class="subtle"></p><div id="history-list"></div><div id="history-empty" class="progress-empty" hidden><h3>Пока нет попыток</h3><p id="history-empty-help" class="subtle"></p><button id="history-reset" class="secondary" hidden>Сбросить фильтры</button></div><p class="subtle history-help">Демо и калибровка сюда не попадают.</p></div>
+        <p id="progress-message" class="status" role="status"></p>
+      </section>
       <section id="preparation" class="screen preparation" hidden aria-label="Подготовка трека">
         <div id="preparation-track"><img id="preparation-art" alt=""><h3 id="preparation-title"></h3><p id="preparation-artist"></p></div>
         <div class="preparation-message" role="status"><div id="loading-indicator" class="spinner" aria-hidden="true"></div><div id="error-icon" aria-hidden="true" hidden>!</div><h3 id="preparation-heading">Загружаем трек…</h3><p id="preparation-description">Игра начнётся после загрузки.</p></div>
@@ -54,9 +70,10 @@
     </div>
   </main>
   <dialog id="pause-dialog" aria-labelledby="pause-heading"><span class="pause-symbol" aria-hidden="true">Ⅱ</span><h2 id="pause-heading">Пауза</h2><p>Ритм подождёт.</p><p id="pause-track"></p><p id="pause-error" role="status" hidden></p><button id="resume" class="primary">Продолжить</button><button id="restart" class="secondary">Начать заново</button><button id="quit" class="text-button">К трекам</button></dialog>
+  <dialog id="import-dialog" aria-labelledby="import-heading"><h2 id="import-heading">Восстановить прогресс?</h2><p id="import-summary"></p><p>Файл заменит текущие рекорды, историю и настройки, включая режим звука. Сначала сохрани текущий прогресс, если хочешь оставить копию.</p><p id="import-error" class="save-warning" role="status" hidden></p><button id="import-confirm" class="primary">Заменить прогресс</button><button id="import-cancel" class="secondary">Отмена</button></dialog>
   <dialog id="settings-dialog" aria-labelledby="settings-heading">
     <h2 id="settings-heading">Настройки</h2>
-    <div class="settings-section"><h3>Звук</h3><label class="check" for="compatible-audio"><span>Совместимый звук</span><input id="compatible-audio" type="checkbox" role="switch" aria-describedby="compatible-help"></label><p id="compatible-help" class="subtle">Включи, если музыка не слышна. Используется обычный аудиоплеер, громкость — кнопками телефона. Старт и продолжение без отсчёта. Режим применяется со следующего запуска трека.</p><label for="volume">Громкость <output id="volume-value">75%</output></label><input id="volume" type="range" min="0" max="100" value="75"></div>
+    <div class="settings-section"><h3>Звук</h3><label class="check" for="compatible-audio"><span>Совместимый звук</span><input id="compatible-audio" type="checkbox" role="switch" aria-describedby="compatible-help"></label><p id="compatible-help" class="subtle">Включи, если музыка не слышна. Используется обычный аудиоплеер, громкость — кнопками телефона. Старт и продолжение без отсчёта. Режим применяется со следующего запуска трека.</p><label for="volume">Громкость <output id="volume-value"></output></label><input id="volume" type="range" min="0" max="100" value="75"></div>
     <div class="settings-section"><h3>Синхронизация</h3><div class="offset-row"><label for="offset">Сдвиг нот</label><input id="offset" type="number" min="-500" max="500" step="5" value="0" aria-describedby="offset-help"><span>мс</span></div><p id="offset-help" class="subtle">Положительное значение — ноты позже. Для Bluetooth-наушников настрой синхронизацию.</p><button id="settings-calibration" class="settings-link" disabled>Калибровка <span aria-hidden="true">›</span></button></div>
     <div class="settings-section"><label class="check" for="motion"><span>Меньше движения</span><input id="motion" type="checkbox" role="switch"></label><p class="subtle">Уменьшает движение фона и эффектов.</p></div>
     <p class="subtle">Настройки и рекорды — только в этом браузере.</p><button id="settings-close" class="primary">Готово</button>
