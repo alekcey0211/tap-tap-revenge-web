@@ -1,0 +1,90 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { SongAudio } from '../../dist/audio.js';
+
+let sequence = 0;
+export function deferred() {
+  let resolve, reject;
+  const promise = new Promise((yes, no) => { resolve = yes; reject = no; });
+  return { promise, resolve, reject };
+}
+
+// Minimal DOM/audio doubles. Browser layout and native input are checked separately.
+export async function mount(t, { records = {}, settings = {}, bootFailure = false } = {}) {
+  const html = await readFile(new URL('../../dist/index.html', import.meta.url), 'utf8');
+  const elements = new Map(), lanes = [], events = {}, frames = [], values = new Map();
+  values.set('ttr-web-settings', JSON.stringify(settings));
+  values.set('ttr-web-records', JSON.stringify(records));
+  const canvasContext = new Proxy({}, { get: (_, name) => name === 'createLinearGradient'
+    ? () => ({ addColorStop() {} }) : () => {} });
+  class Element {
+    constructor(tagName, attrs = '') {
+      this.tagName = tagName.toUpperCase(); this.attrs = {}; this.dataset = {};
+      this.children = []; this.textContent = ''; this.hidden = /\bhidden\b/.test(attrs);
+      this.disabled = /\bdisabled\b/.test(attrs); this.open = false; this.value = '';
+      this.clientWidth = 390; this.clientHeight = 500;
+      for (const [, name, value] of attrs.matchAll(/([\w-]+)="([^"]*)"/g)) this.setAttribute(name, value);
+    }
+    setAttribute(name, value) { this.attrs[name] = value; if (name.startsWith('data-')) this.dataset[name.slice(5)] = value; }
+    append(...nodes) { this.children.push(...nodes); }
+    replaceChildren(...nodes) { this.children = nodes; }
+    focus() { document.activeElement = this; }
+    showModal() { this.open = true; }
+    close() { this.open = false; }
+    getContext() { return canvasContext; }
+    setPointerCapture() {}
+  }
+  for (const [, tag, attrs] of html.matchAll(/<([a-z][\w-]*)\b([^>]*)>/g)) {
+    const node = new Element(tag, attrs);
+    if (node.attrs.id) { assert.ok(!elements.has(node.attrs.id), 'unique IDs'); elements.set(node.attrs.id, node); }
+    if (node.dataset.lane !== undefined) lanes.push(node);
+  }
+  const detail = new Element('details');
+  const dialogs = () => [...elements.values()].filter(node => node.tagName === 'DIALOG' && node.open);
+  const document = {
+    body: new Element('body'), hidden: false, activeElement: null,
+    getElementById(id) { assert.ok(elements.has(id), `existing element: ${id}`); return elements.get(id); },
+    createElement: tag => new Element(tag),
+    querySelector: selector => selector === '.result-details' ? detail : dialogs()[0] || null,
+    querySelectorAll: selector => selector === '[data-lane]' ? lanes : dialogs(),
+    addEventListener: (name, fn) => { events[name] = fn; },
+  };
+  const catalog = JSON.parse(await readFile(new URL('../../dist/assets/catalog.json', import.meta.url)));
+  const audio = { currentTime: 0, starts: [], resumeFailure: false, loadFailure: false, loadGate: null };
+  class AudioContext {
+    get currentTime() { return audio.currentTime; }
+    resume() { return audio.resumeFailure ? Promise.reject(new Error('test unlock')) : Promise.resolve(); }
+    createBufferSource() { return { connect: n => n, disconnect() {}, stop() {}, start: (at, offset) => audio.starts.push({ at, offset }) }; }
+    createGain() { return { gain: { value: 0, setTargetAtTime() {} }, connect() {}, disconnect() {} }; }
+  }
+  const globals = {
+    document, window: { addEventListener: (name, fn) => { events[name] = fn; } },
+    AudioContext, matchMedia: () => ({ matches: false }),
+    requestAnimationFrame: callback => { frames.push(callback); },
+    localStorage: { getItem: key => values.get(key) || null, setItem: (key, value) => values.set(key, value) },
+    fetch: async url => {
+      if (bootFailure && url === 'assets/catalog.json') return { ok: false };
+      return { ok: true, json: async () => JSON.parse(await readFile(new URL('../../dist/' + url, import.meta.url))) };
+    },
+  };
+  for (const [key, value] of Object.entries(globals)) {
+    const descriptor = Object.getOwnPropertyDescriptor(globalThis, key);
+    Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
+    t.after(() => descriptor ? Object.defineProperty(globalThis, key, descriptor) : delete globalThis[key]);
+  }
+  t.mock.method(SongAudio.prototype, 'load', async () => {
+    if (audio.loadGate) await audio.loadGate.promise;
+    if (audio.loadFailure) throw new Error('test network error');
+    return { duration: 150 };
+  });
+  await import('../../dist/app.js?ui-test=' + sequence++);
+  const node = id => document.getElementById(id);
+  return {
+    node, audio, catalog, document, lanes, values, events, detail,
+    click: async id => { assert.equal(node(id).disabled, false, id); await node(id).onclick(); },
+    tick(time) { audio.currentTime = time; const callback = frames.shift(); assert.ok(callback); callback(); },
+    setBootFailure(value) { bootFailure = value; },
+    records: () => JSON.parse(values.get('ttr-web-records')),
+    selectedTrack: id => node('tracks').children.find(button => button.children[1].children[0].textContent === id),
+  };
+}

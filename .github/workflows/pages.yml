@@ -14,6 +14,7 @@ concurrency:
 
 jobs:
   build:
+    if: github.ref == 'refs/heads/codex/initial-web-port'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -24,6 +25,8 @@ jobs:
           node-version: '22'
       - name: Test game
         run: npm test
+      - name: Check public artifact
+        run: node scripts/check-release.mjs --publish
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload game files
@@ -32,6 +35,7 @@ jobs:
           path: dist
 
   deploy:
+    if: github.ref == 'refs/heads/codex/initial-web-port'
     needs: build
     runs-on: ubuntu-latest
     permissions:
