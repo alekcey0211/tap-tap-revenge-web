@@ -3,6 +3,8 @@ import { formatNumber } from './format.js?v=0.3.0';
 import { pathPosition, TRAVEL } from './engine.js';
 
 const COLORS = ['#ff6868', '#c9ff56', '#49e6ef'];
+const HIGHLIGHTS = ['#ffe3dc', '#f6ffda', '#ddfdff'];
+const SHADOWS = ['#852d40', '#486d20', '#175c83'];
 
 // Preserve the original vertical travel and hit line; uncross the lanes visually.
 export function stagePosition(paths, lane, progress) {
@@ -25,13 +27,23 @@ export class Renderer {
     c.fillStyle = color;
     c.fillText(text, x, y);
   }
-  noteShape(lane, x, y, radius) {
+  renderNote(lane, radius, reducedMotion) {
     const c = this.ctx;
-    c.beginPath();
-    if (lane === 1) {
-      c.moveTo(x, y - radius); c.lineTo(x + radius, y);
-      c.lineTo(x, y + radius); c.lineTo(x - radius, y); c.closePath();
-    } else c.ellipse(x, y, radius, radius * .72, 0, 0, Math.PI * 2);
+    // The caller uses a uniform screen scale: circles stay circular on short screens.
+    c.beginPath(); c.ellipse(0, radius * .14, radius, radius * .92, 0, 0, Math.PI * 2);
+    c.fillStyle = '#00000050'; c.fill();
+    const surface = c.createRadialGradient(-radius * .32, -radius * .4, radius * .03,
+      radius * .12, radius * .2, radius * 1.2);
+    surface.addColorStop(0, HIGHLIGHTS[lane]);
+    surface.addColorStop(.3, COLORS[lane]);
+    surface.addColorStop(.7, COLORS[lane]);
+    surface.addColorStop(1, SHADOWS[lane]);
+    c.beginPath(); c.arc(0, 0, radius, 0, Math.PI * 2);
+    c.fillStyle = surface; c.shadowColor = COLORS[lane]; c.shadowBlur = reducedMotion ? 0 : 8;
+    c.fill(); c.shadowBlur = 0;
+    c.strokeStyle = '#ffffff99'; c.lineWidth = 1; c.stroke();
+    c.beginPath(); c.ellipse(-radius * .25, -radius * .36, radius * .32, radius * .15, -.5, 0, Math.PI * 2);
+    c.fillStyle = '#ffffff55'; c.fill();
   }
   renderEnergy(effects, reducedMotion) {
     if (effects.multiplier !== 8) return;
@@ -136,6 +148,7 @@ export class Renderer {
     }
     this.renderHits(effects, reducedMotion);
     const travel = TRAVEL[difficulty];
+    const noteScale = Math.min(width / 320, height / 480);
     for (const note of game.notes) {
       if (!['pending', 'holding'].includes(note.state)) continue;
       const progress = 1 - (note.time - time) / travel;
@@ -158,10 +171,10 @@ export class Renderer {
         }
       }
       const radius = 32 * (.08 + .67 * (1 - Math.cos(Math.min(1, progress) * Math.PI / 2)));
-      this.noteShape(note.lane, x, y, radius);
-      c.fillStyle = color; c.shadowColor = color; c.shadowBlur = reducedMotion ? 0 : 12;
-      c.fill(); c.shadowBlur = 0;
-      c.strokeStyle = '#ffffffcc'; c.lineWidth = 1.3; c.stroke();
+      c.save(); c.translate(x, y);
+      c.scale(noteScale * 320 / width, noteScale * 480 / height);
+      this.renderNote(note.lane, radius, reducedMotion);
+      c.restore();
       c.globalAlpha = 1;
     }
     // Feedback is below the hit targets, outside the note travel area.

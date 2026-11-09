@@ -5,7 +5,7 @@ import { OfflineView } from './offline-view.js?v=0.4.0';
 import { Game } from './engine.js';
 import { SongAudio } from './audio.js?v=0.3.1';
 import { MediaSongAudio } from './media-audio.js?v=0.3.1';
-import { Renderer } from './renderer.js?v=0.5.1';
+import { Renderer } from './renderer.js?v=0.5.2';
 
 import { Temporal } from './temporal.js';
 import { formatNumber, formatPercent, formatSigned, formatTime, formatCount } from './format.js?v=0.3.0';
@@ -13,7 +13,7 @@ import { DEFAULT_SETTINGS, loadSave, saveSettings as writeSettings, recordAttemp
 import { ProgressView } from './progress.js?v=0.5.0';
 
 const $ = id => document.getElementById(id);
-const APP_VERSION = '0.5.1';
+const APP_VERSION = '0.5.2';
 if ($('app-version')) $('app-version').textContent = `v${APP_VERSION}`;
 $('pulse-target').textContent = formatPercent(90);
 const LEVELS = { 1: 'Легко', 2: 'Средне', 3: 'Сложно', 4: 'Экстрим' };

@@ -17,7 +17,7 @@ export async function mount(t, { records = {}, settings = {}, bootFailure = fals
   values.set('ttr-web-settings', JSON.stringify(settings));
   values.set('ttr-web-records', JSON.stringify(records));
   if (saved) values.set(SAVE_KEY, JSON.stringify(saved));
-  const canvasContext = new Proxy({}, { get: (_, name) => name === 'createLinearGradient'
+  const canvasContext = new Proxy({}, { get: (_, name) => ['createLinearGradient', 'createRadialGradient'].includes(name)
     ? () => ({ addColorStop() {} }) : () => {} });
   class Element {
     constructor(tagName, attrs = '') {

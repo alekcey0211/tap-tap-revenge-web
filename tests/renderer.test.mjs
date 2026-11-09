@@ -17,7 +17,7 @@ test('new lanes never cross and preserve baseline vertical travel and hit target
 
 test('rendering pending notes, holds, countdown and reduced motion does not mutate gameplay', () => {
   const text = [];
-  const context = new Proxy({}, { get: (_, name) => name === 'createLinearGradient' ? () => ({ addColorStop() {} })
+  const context = new Proxy({}, { get: (_, name) => ['createLinearGradient', 'createRadialGradient'].includes(name) ? () => ({ addColorStop() {} })
     : name === 'fillText' ? (...args) => text.push(args) : () => {} });
   const canvas = { clientWidth: 390, clientHeight: 540, getContext: () => context };
   const renderer = new Renderer(canvas, paths);
@@ -35,7 +35,7 @@ test('rendering pending notes, holds, countdown and reduced motion does not muta
 
 test('effects keep notes on top, multiplier banners above lanes and reduced motion without sparks', () => {
   const operations = [];
-  const context = new Proxy({}, { get: (_, name) => name === 'createLinearGradient' ? () => ({ addColorStop() {} })
+  const context = new Proxy({}, { get: (_, name) => ['createLinearGradient', 'createRadialGradient'].includes(name) ? () => ({ addColorStop() {} })
     : (...args) => operations.push([name, ...args]) });
   const canvas = { clientWidth: 320, clientHeight: 273, getContext: () => context };
   const renderer = new Renderer(canvas, paths);
@@ -57,4 +57,31 @@ test('effects keep notes on top, multiplier banners above lanes and reduced moti
   assert.ok(operations.length < animated, 'no particle or edge-motion draw calls in reduced motion');
   assert.ok(operations.some(([op, text]) => op === 'fillText' && text === '×8'));
   assert.equal(JSON.stringify(game), before);
+});
+
+test('every lane uses the same circular head with volume, at mobile and desktop sizes', () => {
+  for (const [width, height] of [[320, 270], [390, 528], [420, 640]]) {
+    for (const reducedMotion of [false, true]) {
+      const arcs = [], scales = [], stops = [], translations = [];
+      const context = new Proxy({}, { get: (_, name) => {
+        if (name === 'createLinearGradient') return () => ({ addColorStop() {} });
+        if (name === 'createRadialGradient') return () => ({ addColorStop: (...args) => stops.push(args) });
+        if (name === 'arc') return (...args) => arcs.push(args);
+        if (name === 'scale') return (...args) => scales.push(args);
+        if (name === 'translate') return (...args) => translations.push(args);
+        return () => {};
+      } });
+      const renderer = new Renderer({ clientWidth: width, clientHeight: height, getContext: () => context }, paths);
+      const game = new Game([0, 1, 2].map(lane => ({ time: 1, lane, duration: lane === 1 ? 2 : 0 })));
+      const before = JSON.stringify(game);
+      renderer.render(game, .8, '1', 100, 0, reducedMotion);
+      assert.equal(arcs.length, 3);
+      for (const arc of arcs) assert.deepEqual(arc, arcs[0], 'all heads are circles of the same radius');
+      for (const [x, y] of scales) assert.ok(Math.abs(width / 320 * x - height / 480 * y) < 1e-9, 'uniform physical scale');
+      assert.equal(stops.length, 12, 'each sphere has highlight, color and shade');
+      const progress = 1 - (1 - .8) / 2.7;
+      for (let lane = 0; lane < 3; lane++) assert.deepEqual(translations[lane], stagePosition(paths, lane, progress), 'centers and timing stay unchanged');
+      assert.equal(JSON.stringify(game), before);
+    }
+  }
 });
