@@ -1,6 +1,9 @@
+import { PULSE_RULES } from './phrase-progress.js';
+import { PHRASE_VERSION } from './phrase-charts.js';
+import { pulseSummary } from './pulse-view.js';
 import { Temporal } from './temporal.js';
 import { formatNumber, formatPercent, formatSigned, formatCount, formatAttemptTime, formatDay } from './format.js?v=0.3.0';
-import { CHART_VERSION, RULES_VERSION, HISTORY_LIMIT, IMPORT_LIMIT, recordKey, exportProgress, parseProgress } from './storage.js?v=0.3.0';
+import { CHART_VERSION, RULES_VERSION, HISTORY_LIMIT, IMPORT_LIMIT, recordKey, exportProgress, parseProgress } from './storage.js?v=0.5.0';
 
 const $ = id => document.getElementById(id);
 const LEVELS = { 1: 'Легко', 2: 'Средне', 3: 'Сложно', 4: 'Экстрим' };
@@ -88,6 +91,10 @@ export class ProgressView {
       $('best-delta').hidden = best.previousScore === null;
       $('best-delta').textContent = best.previousScore === null ? '' : `${formatSigned(best.result.score - best.previousScore)} к прошлому рекорду`;
     }
+    const bestPulse = progress.pulseRecords?.find(entry => recordKey(entry) === key
+      && entry.pulse.pulseRules === PULSE_RULES && entry.pulse.phraseVersion === PHRASE_VERSION);
+    $('best-pulse').hidden = !bestPulse;
+    $('best-pulse-value').textContent = bestPulse ? pulseSummary(bestPulse.pulse) : '';
     const recent = progress.history.filter(entry => recordKey(entry) === key).slice(0, 5).reverse();
     $('accuracy-caption').textContent = `Последние попытки этой карты: ${formatNumber(recent.length)}`;
     $('accuracy-plot').replaceChildren(); $('accuracy-empty').hidden = recent.length >= 2;
@@ -125,6 +132,7 @@ export class ProgressView {
       const score = node('div', undefined, 'history-score-row'); score.append(node('strong', formatNumber(entry.result.score)));
       if (entry.isRecord) { const badge = node('span', 'РЕКОРД', 'history-badge'); badge.title = 'Личный рекорд на момент этой попытки'; score.append(badge); }
       score.append(node('p', `${formatPercent(entry.result.accuracy)} · Комбо ${entry.result.bestStreak === null ? '—' : formatNumber(entry.result.bestStreak)}`));
+      if (entry.pulse) score.append(node('p', pulseSummary(entry.pulse), 'history-pulse'));
       row.append(img, detail, score); $('history-list').append(row);
     }
   }

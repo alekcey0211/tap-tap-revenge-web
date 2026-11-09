@@ -1,3 +1,6 @@
+import { PhraseProgress } from './phrase-progress.js';
+import { PULSE_CHARTS } from './phrase-charts.js';
+import { renderPulse, pulseSummary } from './pulse-view.js';
 import { OfflineView } from './offline-view.js?v=0.4.0';
 import { Game } from './engine.js';
 import { SongAudio } from './audio.js?v=0.3.1';
@@ -6,16 +9,17 @@ import { Renderer } from './renderer.js?v=0.3.0';
 
 import { Temporal } from './temporal.js';
 import { formatNumber, formatPercent, formatSigned, formatTime, formatCount } from './format.js?v=0.3.0';
-import { DEFAULT_SETTINGS, loadSave, saveSettings as writeSettings, recordAttempt, currentRecords, importProgress } from './storage.js?v=0.3.0';
-import { ProgressView } from './progress.js?v=0.3.0';
+import { DEFAULT_SETTINGS, loadSave, saveSettings as writeSettings, recordAttempt, currentRecords, importProgress } from './storage.js?v=0.5.0';
+import { ProgressView } from './progress.js?v=0.5.0';
 
 const $ = id => document.getElementById(id);
-const APP_VERSION = '0.4.0';
+const APP_VERSION = '0.5.0';
 if ($('app-version')) $('app-version').textContent = `v${APP_VERSION}`;
+$('pulse-target').textContent = formatPercent(90);
 const LEVELS = { 1: 'Легко', 2: 'Средне', 3: 'Сложно', 4: 'Экстрим' };
 const webAudio = new SongAudio(), mediaAudio = new MediaSongAudio();
 let audio = webAudio, pendingStart = null;
-let catalog, selected, level = '1', renderer, game, buffer;
+let catalog, selected, level = '1', renderer, game, buffer, pulse;
 let state = 'boot', demo = false, run = null, loadingRun = null, requestId = 0, pausePosition = 0;
 let resumeGrace = -Infinity, demoActions = [], demoIndex = 0, calibrationOffset = null;
 const inputs = [new Set(), new Set(), new Set()];
@@ -146,6 +150,8 @@ async function beginRun() {
   $('preparation-heading').textContent = 'Включаем музыку…';
   try {
     game = new Game(chart); buffer = loadedBuffer; demo = isDemo; run = { song, level: difficulty };
+    pulse = !demo && !song.tutorial && PULSE_CHARTS[song.id] ? new PhraseProgress(game.notes, PULSE_CHARTS[song.id]) : null;
+    renderPulse(pulse?.view(0) ?? null);
     inputs.forEach(input => input.clear());
     demoActions = chart.flatMap(note => [{ time: note.time, lane: note.lane, down: true },
       { time: note.time + (note.duration || 0.035), lane: note.lane, down: false }])
@@ -199,7 +205,11 @@ async function resume() {
 function down(lane, source) {
   if (state !== 'playing' || demo || audio.countdown > 0 || audio.waiting) return;
   const wasHeld = inputs[lane].size > 0; inputs[lane].add(source);
-  if (!wasHeld) game.press(lane, gameTime());
+  if (!wasHeld) {
+    const time = gameTime();
+    game.press(lane, time);
+    pulse?.recordInput(time, game.strays);
+  }
 }
 function up(lane, source) {
   const had = inputs[lane].delete(source);
@@ -208,11 +218,14 @@ function up(lane, source) {
 function finish() {
   audio.stop(); state = 'results'; show('results');
   const result = game.finish();
+  const pulseResult = pulse?.finish();
+  $('result-pulse').hidden = !pulseResult;
+  $('result-pulse').textContent = pulseResult ? pulseSummary(pulseResult) : '';
   const key = `${run.song.id}:${run.level}`;
   const previousScore = records[key]?.score;
   const isRecord = !demo && !run.song.tutorial && (!records[key] || result.score > records[key].score);
   if (!demo && !run.song.tutorial) {
-    progress = recordAttempt(progress, { songId: run.song.id, level: run.level, result,
+    progress = recordAttempt(progress, { songId: run.song.id, level: run.level, result, pulse: pulseResult,
       playedAt: Temporal.Now.instant().toString(), id: crypto.randomUUID() });
     records = currentRecords(progress); saveSettings();
   }
@@ -276,7 +289,9 @@ function frame() {
         resumeGrace = -Infinity;
       }
       game.update(time);
+      pulse?.advance(time);
     }
+    renderPulse(pulse?.view(time) ?? null);
     renderer.render(game, time, run.level, buffer.duration, countdown, settings.motion);
     text('time', `${formatTime(position)} / ${formatTime(buffer.duration)}`);
     text('live-score', formatNumber(game.score));

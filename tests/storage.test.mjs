@@ -145,3 +145,65 @@ test('a maximum-size valid export remains within the import size limit', () => {
   assert.ok(new TextEncoder().encode(text).length <= IMPORT_LIMIT);
   assert.equal(parseProgress(text).progress.history.length, 100);
 });
+
+const pulse = (captured = 6, perfect = 2, total = 8) => ({ pulseRules: 'strict-v1', phraseVersion: 'phrases-v1', total, captured, perfect });
+test('Pulse best is independent of score, legacy records and sound survive round trip', () => {
+  const settings = { ...DEFAULT_SETTINGS, compatibleAudio: true, offset: 35 };
+  let progress = recordAttempt(empty(), attempt({ result: { ...base, score: 500 } }));
+  const oldRecords = structuredClone(progress.records), oldAttempt = structuredClone(progress.history[0]);
+  progress = recordAttempt(progress, attempt({ pulse: pulse(6, 6) }));
+  progress = recordAttempt(progress, attempt({ pulse: pulse(7, 1) }));
+  progress = recordAttempt(progress, attempt({ pulse: pulse(6, 6) }));
+  assert.deepEqual(progress.records, oldRecords);
+  assert.deepEqual(progress.pulseRecords[0].pulse, pulse(7, 1), 'never combine separate runs');
+  progress = recordAttempt(progress, attempt({ pulse: pulse(7, 3) }));
+  assert.deepEqual(progress.pulseRecords[0].pulse, pulse(7, 3));
+  const storage = store(); importProgress(storage, exportProgress(settings, progress));
+  assert.deepEqual(loadProgress(storage), progress); assert.deepEqual(loadSettings(storage), settings);
+  assert.deepEqual(progress.history.find(item => item.id === oldAttempt.id), oldAttempt);
+  assert.equal(progress.records[0].pulse, undefined);
+  for (const mode of ['demo', 'tutorial']) assert.equal(recordAttempt(progress, attempt({ pulse: pulse(8, 8), [mode]: true })), progress);
+});
+test('Pulse versions have distinct bests and survive history eviction', () => {
+  let progress = recordAttempt(empty(), attempt({ pulse: pulse(8, 8) }));
+  progress = recordAttempt(progress, attempt({ pulse: { ...pulse(), pulseRules: 'future-v2' } }));
+  progress = recordAttempt(progress, attempt({ pulse: { ...pulse(), phraseVersion: 'future-map' } }));
+  for (let i = 0; i < 101; i++) progress = recordAttempt(progress, attempt({ pulse: pulse(1, 0), playedAt: '2026-11-10T00:00Z' }));
+  assert.equal(progress.pulseRecords.length, 3); assert.deepEqual(progress.pulseRecords[0].pulse, pulse(8, 8));
+  assert.deepEqual(parseProgress(exportProgress(DEFAULT_SETTINGS, progress)).progress, progress);
+});
+test('invalid Pulse import never replaces old data', () => {
+  const original = exportProgress(DEFAULT_SETTINGS, recordAttempt(empty(), attempt({ pulse: pulse() })));
+  const storage = store({ [SAVE_KEY]: original });
+  const mutations = [
+    v => { v.progress.history[0].pulse.perfect = 7; },
+    v => { v.progress.history[0].pulse.captured = 9; },
+    v => { v.progress.history[0].pulse.total = 0; },
+    v => { v.progress.history[0].pulse.total = 65; },
+    v => { v.progress.history[0].pulse.captured = 1.5; },
+    v => { v.progress.history[0].pulse.pulseRules = {}; },
+    v => { v.progress.history[0].pulse.phraseVersion = ''; },
+    v => { v.progress.pulseRecords = []; },
+    v => { delete v.progress.pulseRecords; },
+    v => { v.progress.pulseRecords.push(v.progress.pulseRecords[0]); },
+    v => { v.progress.pulseRecords[0].pulse.captured = 5; },
+    v => { v.progress.pulseRecords[0].pulse.total = 9; },
+    v => { v.progress.pulseRecords[0].songId = crypto.randomUUID(); },
+  ];
+  for (const mutate of mutations) {
+    const value = JSON.parse(original); mutate(value);
+    assert.throws(() => importProgress(storage, JSON.stringify(value)));
+    assert.equal(storage.getItem(SAVE_KEY), original);
+  }
+});
+test('maximum-size export including independent Pulse records remains importable', () => {
+  const result = { score: 1e9, accuracy: 99.99999999999999, bestStreak: 1e9, hits: 1e9, misses: 1e9, brokenHolds: 1e9, strays: 1e9,
+    counts: { PERFECT: 1e9, GREAT: 1e9, GOOD: 1e9, OK: 1e9 } };
+  const records = Array.from({ length: 256 }, () => ({ songId: crypto.randomUUID(), level: '4', chartVersion: 'a'.repeat(40), rulesVersion: 'b'.repeat(40), result, previousScore: 1e9 - 1 }));
+  const award = { ...pulse(64, 64, 64), pulseRules: 'a'.repeat(40), phraseVersion: 'b'.repeat(40) };
+  const pulseRecords = records.map(({ songId, level, chartVersion, rulesVersion }) => ({ songId, level, chartVersion, rulesVersion, pulse: award }));
+  const history = records.slice(0, 100).map(entry => ({ ...entry, pulse: award, id: crypto.randomUUID(), playedAt: '2026-11-09T19:00:00.999999999Z', isRecord: true }));
+  const text = exportProgress(DEFAULT_SETTINGS, { records, history, pulseRecords });
+  assert.ok(new TextEncoder().encode(text).length <= IMPORT_LIMIT, `size ${new TextEncoder().encode(text).length}`);
+  assert.equal(parseProgress(text).progress.pulseRecords.length, 256);
+});

@@ -7,7 +7,7 @@ const first = worker => Object.keys(worker.assets.tracks)[0];
 
 test('whole shell installs atomically, and navigations and versioned modules work offline under Pages scope', async () => {
   const sw = await mountWorker(); await sw.lifecycle('install'); sw.offline(true);
-  for (const path of ['./', './?from=home', 'index.html?check=1', 'app.js?v=0.4.0', 'vendor/temporal-0.5.1.js']) {
+  for (const path of ['./', './?from=home', 'index.html?check=1', 'app.js?v=0.5.0', 'phrase-progress.js', 'phrase-charts.js', 'pulse-view.js', 'vendor/temporal-0.5.1.js']) {
     const response = await sw.request(path, { mode: path.startsWith('./') || path.startsWith('index') ? 'navigate' : 'cors' });
     assert.equal(response.status, 200, path); assert.ok((await response.text()).length > 0);
   }

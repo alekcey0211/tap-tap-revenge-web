@@ -2,7 +2,7 @@ import { Temporal } from './temporal.js';
 
 export const SAVE_KEY = 'ttr-web-save-v1';
 export const HISTORY_LIMIT = 100;
-export const IMPORT_LIMIT = 256 * 1024;
+export const IMPORT_LIMIT = 512 * 1024;
 export const CHART_VERSION = 'original-v1';
 export const RULES_VERSION = 'web-v1';
 export const DEFAULT_SETTINGS = { compatibleAudio: false, volume: 75, offset: 0, motion: false };
@@ -13,6 +13,23 @@ const object = value => value !== null && typeof value === 'object' && !Array.is
 const count = value => Number.isSafeInteger(value) && value >= 0 && value <= 1e9;
 export const recordKey = ({ songId, level, chartVersion = CHART_VERSION, rulesVersion = RULES_VERSION }) =>
   `${songId}:${level}:${chartVersion}:${rulesVersion}`;
+
+export const pulseKey = entry => `${recordKey(entry)}:${entry.pulse.pulseRules}:${entry.pulse.phraseVersion}`;
+function pulseFrom(value) {
+  if (!object(value) || typeof value.pulseRules !== 'string' || !version.test(value.pulseRules)
+    || typeof value.phraseVersion !== 'string' || !version.test(value.phraseVersion)
+    || !Number.isSafeInteger(value.total) || value.total < 1 || value.total > 64
+    || !count(value.captured) || value.captured > value.total || !count(value.perfect) || value.perfect > value.captured) invalid();
+  return { pulseRules: value.pulseRules, phraseVersion: value.phraseVersion,
+    total: value.total, captured: value.captured, perfect: value.perfect };
+}
+function identityFrom(value) {
+  if (!object(value) || typeof value.songId !== 'string' || !uuid.test(value.songId) || !['1', '2', '3', '4'].includes(value.level)
+    || typeof value.chartVersion !== 'string' || !version.test(value.chartVersion) || typeof value.rulesVersion !== 'string' || !version.test(value.rulesVersion)) invalid();
+  return { songId: value.songId, level: value.level, chartVersion: value.chartVersion, rulesVersion: value.rulesVersion };
+}
+const pulseBetter = (candidate, previous) => candidate.captured > previous.captured
+  || candidate.captured === previous.captured && candidate.perfect > previous.perfect;
 
 function settingsFrom(value, defaults = DEFAULT_SETTINGS, strict = false) {
   const result = { ...defaults };
@@ -48,12 +65,10 @@ function resultFrom(value) {
   return result;
 }
 function entryFrom(value, attempt = false) {
-  if (!object(value) || typeof value.songId !== 'string' || !uuid.test(value.songId) || !['1', '2', '3', '4'].includes(value.level)
-    || typeof value.chartVersion !== 'string' || !version.test(value.chartVersion) || typeof value.rulesVersion !== 'string' || !version.test(value.rulesVersion)) invalid();
+  const identity = identityFrom(value);
   const result = resultFrom(value.result);
   if (value.previousScore !== null && !count(value.previousScore)) invalid();
-  const entry = { songId: value.songId, level: value.level, chartVersion: value.chartVersion,
-    rulesVersion: value.rulesVersion, result, previousScore: value.previousScore };
+  const entry = { ...identity, result, previousScore: value.previousScore };
   if (!attempt && entry.previousScore !== null && entry.previousScore >= result.score) invalid();
   if (attempt) {
     if (!uuid.test(value.id) || typeof value.playedAt !== 'string' || value.playedAt.length > 40 || typeof value.isRecord !== 'boolean') invalid();
@@ -62,6 +77,7 @@ function entryFrom(value, attempt = false) {
     const year = instant.toZonedDateTimeISO('UTC').year;
     if (year < 1970 || year > 2200) invalid();
     if (value.isRecord && entry.previousScore !== null && entry.previousScore >= result.score) invalid();
+    if (value.pulse !== undefined) entry.pulse = pulseFrom(value.pulse);
     Object.assign(entry, { id: value.id, playedAt: instant.toString(), isRecord: value.isRecord });
   }
   return entry;
@@ -74,9 +90,20 @@ function snapshotFrom(value) {
   if (new Set(cleanRecords.map(recordKey)).size !== records.length || new Set(cleanHistory.map(item => item.id)).size !== history.length) invalid();
   const best = new Map(cleanRecords.map(entry => [recordKey(entry), entry.result.score]));
   if (cleanHistory.some(entry => !best.has(recordKey(entry)) || best.get(recordKey(entry)) < entry.result.score)) invalid();
+  const progress = { records: cleanRecords, history: cleanHistory };
+  if (value.progress.pulseRecords !== undefined) {
+    if (!Array.isArray(value.progress.pulseRecords) || value.progress.pulseRecords.length > 256) invalid();
+    progress.pulseRecords = value.progress.pulseRecords.map(entry => ({ ...identityFrom(entry), pulse: pulseFrom(entry.pulse) }));
+    const pulseBest = new Map(progress.pulseRecords.map(entry => [pulseKey(entry), entry.pulse]));
+    if (pulseBest.size !== progress.pulseRecords.length || progress.pulseRecords.some(entry => !best.has(recordKey(entry)))) invalid();
+    for (const entry of cleanHistory.filter(entry => entry.pulse)) {
+      const best = pulseBest.get(pulseKey(entry));
+      if (!best || best.total !== entry.pulse.total || pulseBetter(entry.pulse, best)) invalid();
+    }
+  } else if (cleanHistory.some(entry => entry.pulse)) invalid();
   cleanHistory.sort((a, b) => Temporal.Instant.compare(b.playedAt, a.playedAt));
   return { format: 'tap-tap-web-progress', schemaVersion: 1, settings: settingsFrom(value.settings, DEFAULT_SETTINGS, true),
-    progress: { records: cleanRecords, history: cleanHistory } };
+    progress };
 }
 export function parseProgress(text) {
   if (typeof text !== 'string' || new TextEncoder().encode(text).length > IMPORT_LIMIT) throw new Error('Файл прогресса слишком большой.');
@@ -130,18 +157,26 @@ export function importProgress(storage, text) {
   storage.setItem(SAVE_KEY, JSON.stringify(snapshot));
   return snapshot;
 }
-export function recordAttempt(progress, { songId, level, result, playedAt, id, demo = false, tutorial = false,
+export function recordAttempt(progress, { songId, level, result, pulse, playedAt, id, demo = false, tutorial = false,
   chartVersion = CHART_VERSION, rulesVersion = RULES_VERSION }) {
   if (demo || tutorial) return progress;
   const identity = { songId, level, chartVersion, rulesVersion }, key = recordKey(identity);
   const previous = progress.records.find(entry => recordKey(entry) === key);
   const isRecord = !previous || result.score > previous.result.score;
-  const entry = entryFrom({ ...identity, result, previousScore: previous?.result.score ?? null, playedAt, id, isRecord }, true);
+  const entry = entryFrom({ ...identity, result, pulse, previousScore: previous?.result.score ?? null, playedAt, id, isRecord }, true);
   if (progress.history.some(attempt => attempt.id === id)) return progress;
   const records = isRecord ? [...progress.records.filter(item => recordKey(item) !== key),
     entryFrom(entry)] : progress.records;
   const history = [entry, ...progress.history].sort((a, b) => Temporal.Instant.compare(b.playedAt, a.playedAt)).slice(0, HISTORY_LIMIT);
-  return { records, history };
+  const next = { ...progress, records, history };
+  if (entry.pulse) {
+    const pulseRecords = progress.pulseRecords || [], pulseId = pulseKey(entry);
+    const previousPulse = pulseRecords.find(item => pulseKey(item) === pulseId);
+    if (previousPulse && previousPulse.pulse.total !== entry.pulse.total) invalid();
+    next.pulseRecords = !previousPulse || pulseBetter(entry.pulse, previousPulse.pulse)
+      ? [...pulseRecords.filter(item => pulseKey(item) !== pulseId), { ...identity, pulse: entry.pulse }] : pulseRecords;
+  }
+  return next;
 }
 export function currentRecords(progress) {
   return Object.fromEntries(progress.records.filter(entry => entry.chartVersion === CHART_VERSION && entry.rulesVersion === RULES_VERSION)

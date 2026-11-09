@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { mount, deferred } from './helpers/ui-harness.mjs';
-import { DEFAULT_SETTINGS, SAVE_KEY, recordAttempt, exportProgress } from '../dist/storage.js';
+import { DEFAULT_SETTINGS, SAVE_KEY, recordAttempt, exportProgress, IMPORT_LIMIT } from '../dist/storage.js';
 import { formatPercent } from '../dist/format.js';
 
 const catalog = JSON.parse(await readFile(new URL('../dist/assets/catalog.json', import.meta.url)));
@@ -75,7 +75,7 @@ test('bad and oversized imports never show confirmation or replace saves', async
   const ui = await mount(t); await ui.click('progress-open'); const original = ui.values.get(SAVE_KEY);
   await chooseFile(ui, '{'); assert.equal(ui.node('import-dialog').open, false);
   assert.match(ui.node('progress-message').textContent, /повреждён/);
-  await chooseFile(ui, '{}', 300000); assert.match(ui.node('progress-message').textContent, /256/);
+  await chooseFile(ui, '{}', IMPORT_LIMIT + 1); assert.match(ui.node('progress-message').textContent, /512/);
   assert.equal(ui.values.get(SAVE_KEY), original);
 });
 

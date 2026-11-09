@@ -243,3 +243,16 @@ body[data-reduced-motion="true"] .spinner { animation: none; }
 }
 .history-score-row { grid-column: 2; }
 @media (min-width: 370px) { .history-score-row { grid-column: auto; } }
+
+/* Pulse occupies its own strip, never the touch lanes. No extra motion or sound. */
+.pulse { flex: 0 0 76px; margin: 0 16px 8px; padding: 9px 12px; border: 1px solid #34383c; border-radius: 12px; background: #191c20; display: flex; flex-direction: column; justify-content: center; gap: 4px; }
+.pulse strong { color: #e9ede5; font-size: 12px; letter-spacing: .03em; }
+.pulse > span { color: #a9b0b5; font-size: 11px; }
+#pulse-progress-row { display: flex; align-items: center; gap: 10px; font-size: 10px; color: #b6beb0; }
+#pulse-progress { flex: 1; width: 0; height: 3px; }
+.pulse[data-outcome="captured"], .pulse[data-outcome="perfect"] { border-color: #799c39; background: #222b19; }
+.pulse[data-outcome="captured"] strong, .pulse[data-outcome="perfect"] strong { color: #c9ff56; }
+.pulse-summary { padding: 14px; border: 1px solid #3d4a2b; border-radius: 12px; background: #1c2218; color: #c9ff56; font-size: 13px; }
+.pulse-summary h3 { margin: 0 0 8px; }
+.pulse-summary small { color: #a9b0b5; }
+.history-score-row .history-pulse { color: #c9ff56; }

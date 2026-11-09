@@ -11,8 +11,8 @@
   <link rel="apple-touch-icon" href="assets/identity/icon-180.png">
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="apple-mobile-web-app-title" content="Tap Tap Web">
-  <link rel="stylesheet" href="style.css?v=0.4.0">
-  <script type="module" src="app.js?v=0.4.0"></script>
+  <link rel="stylesheet" href="style.css?v=0.5.0">
+  <script type="module" src="app.js?v=0.5.0"></script>
 </head>
 <body>
   <main class="layout">
@@ -40,6 +40,10 @@
         <div class="hud"><strong id="live-score">0</strong><div><small>Комбо</small><strong id="live-combo">0</strong></div></div>
         <div class="progress-row"><progress id="song-progress" max="1" value="0" aria-label="Прогресс трека"></progress><span id="time">0:00 / 0:00</span></div>
         <div class="mode-row"><span id="mode-label"></span><span id="audio-status" hidden></span><span id="multiplier">×1</span></div>
+        <section id="pulse" class="pulse" aria-label="Pulse" hidden>
+          <strong id="pulse-title" role="status"></strong><span id="pulse-detail"></span>
+          <div id="pulse-progress-row"><progress id="pulse-progress" max="1" value="0" aria-label="Завершённые ноты фрагмента"></progress><span id="pulse-notes"></span></div>
+        </section>
         <div class="playfield" id="playfield"><canvas id="canvas" width="640" height="960" aria-label="Три дорожки: левая D, средняя F, правая J"></canvas><div class="touch-lanes"><button data-lane="0" aria-label="Левая дорожка, D"></button><button data-lane="1" aria-label="Средняя дорожка, F"></button><button data-lane="2" aria-label="Правая дорожка, J"></button></div></div>
         <div class="game-footer"><button id="revenge" class="secondary" disabled><span id="revenge-label">REVENGE ×8</span><progress id="revenge-progress" max="50" value="0" aria-hidden="true"></progress></button></div><div id="game-stats" class="sr-only"></div>
       </section>
@@ -47,6 +51,7 @@
         <img id="result-art" class="result-art" alt=""><h3 id="result-heading"></h3><p id="result-artist"></p>
         <div class="score-caption" id="score-caption"></div><div id="final-score" class="final-score"></div><p id="record-delta" class="subtle" hidden></p><div id="result-rating"></div>
         <div class="result-summary"><div><strong id="result-accuracy"></strong><span>Точность</span></div><div><strong id="result-combo"></strong><span>Макс. комбо</span></div></div><p id="result-misses"></p>
+        <p id="result-pulse" class="pulse-summary" hidden></p>
         <details class="result-details"><summary>Подробности</summary><dl id="result-stats"></dl></details>
         <p id="calibration-result" hidden></p><button id="apply-calibration" class="primary" hidden>Применить поправку</button><button id="retry" class="primary">Ещё раз</button><button id="back-to-library" class="secondary">Выбрать трек</button>
       </section>
@@ -58,6 +63,7 @@
           <div id="progress-levels" class="progress-tabs" role="group" aria-label="Сложность"></div>
           <div id="personal-best"><p class="progress-caption">Личный рекорд</p><strong id="best-score" class="final-score"></strong><p id="best-delta" class="accent" hidden></p><div class="result-summary"><div><strong id="best-accuracy"></strong><span>Точность</span></div><div><strong id="best-combo"></strong><span>Макс. комбо</span></div></div></div>
           <div id="record-empty" class="progress-empty" hidden><h3>Рекорд впереди</h3><p class="subtle">Пройди эту карту, чтобы сохранить первый результат.</p></div>
+          <section id="best-pulse" class="pulse-summary" hidden><h3>Лучший Pulse</h3><p id="best-pulse-value"></p><small>За одну попытку · отдельно от рекорда очков</small></section>
           <section class="accuracy-section" aria-labelledby="accuracy-heading"><h3 id="accuracy-heading">Точность по попыткам</h3><p id="accuracy-caption" class="subtle"></p><div id="accuracy-plot"></div><p id="accuracy-empty" class="subtle"></p></section>
           <button id="progress-play" class="text-button">К выбранному треку</button>
           <section class="transfer-section" aria-labelledby="transfer-heading"><h3 id="transfer-heading">Твой прогресс — с тобой</h3><p class="subtle">Хранится только в этом браузере.</p><button id="progress-export" class="primary">Сохранить в файл</button><button id="progress-import" class="secondary">Восстановить из файла</button><input id="progress-file" type="file" accept=".json,application/json" hidden><p class="subtle">Настройки и прогресс. Без музыки и аккаунта.</p></section>
@@ -89,6 +95,6 @@
     <div class="settings-section"><label class="check" for="motion"><span>Меньше движения</span><input id="motion" type="checkbox" role="switch"></label><p class="subtle">Уменьшает движение фона и эффектов.</p></div>
     <p class="subtle">Настройки и рекорды — только в этом браузере.</p><button id="settings-close" class="primary">Готово</button>
   </dialog>
-  <dialog id="about-dialog" aria-labelledby="about-heading"><h2 id="about-heading">Об игре</h2><p>Неофициальный веб-перенос Tap Tap Revenge 4 на основе APK 4.5.</p><p>Музыка, карты и обложки — из оригинальной игры. Интерфейс и веб-движок написаны заново. Окна попадания, очки, бонусы удержания и длительность Revenge приближённые.</p><p>Tapulous и исполнители сохраняют права на оригинальные материалы.</p><h3>Как играть</h3><p>Нажимай на дорожки у колец. Длинные ноты удерживай. На клавиатуре — D / F / J. Стрелки встряхивания здесь нажимаются как обычные ноты. После 50 попаданий подряд можно включить Revenge ×8.</p><p>Для калибровки нажимай на среднюю дорожку или F в такт метроному, не ориентируясь на ноты.</p><button id="about-close" class="primary">Понятно</button></dialog>
+  <dialog id="about-dialog" aria-labelledby="about-heading"><h2 id="about-heading">Об игре</h2><p>Неофициальный веб-перенос Tap Tap Revenge 4 на основе APK 4.5.</p><p>Музыка, карты и обложки — из оригинальной игры. Интерфейс и веб-движок написаны заново. Окна попадания, очки, бонусы удержания и длительность Revenge приближённые.</p><p>Tapulous и исполнители сохраняют права на оригинальные материалы.</p><h3>Как играть</h3><p>Нажимай на дорожки у колец. Длинные ноты удерживай. На клавиатуре — D / F / J. Стрелки встряхивания здесь нажимаются как обычные ноты. После 50 попаданий подряд можно включить Revenge ×8.</p><h3>Pulse</h3><p>Бери фрагменты с точностью от <span id="pulse-target"></span>, без пропусков, лишних нажатий и срывов удержаний. Все попадания PERFECT — идеальный Pulse. Награды не меняют очки и Revenge; ошибка не отнимает уже взятые фрагменты.</p><p>Для калибровки нажимай на среднюю дорожку или F в такт метроному, не ориентируясь на ноты.</p><button id="about-close" class="primary">Понятно</button></dialog>
 </body>
 </html>

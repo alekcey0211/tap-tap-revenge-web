@@ -86,6 +86,7 @@ for (const compatibleAudio of [false, true]) {
     ui.tick(200);
     const result = Object.values(ui.records())[0];
     assert.equal(result.hits, 1); assert.equal(result.brokenHolds, 0); assert.equal(result.strays, 0);
+    assert.equal(ui.progress().history[0].pulse.perfect, 1);
   });
 
   test(`${mode}: unreclaimed hold breaks after resume grace; old pointer cannot keep it held`, async t => {
@@ -97,6 +98,7 @@ for (const compatibleAudio of [false, true]) {
     if (compatibleAudio) ui.native.instances[0].currentTime = 151;
     ui.tick(200);
     assert.equal(Object.values(ui.records())[0].brokenHolds, 1);
+    assert.equal(ui.progress().history[0].pulse.captured, 0);
   });
 }
 

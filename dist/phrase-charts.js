@@ -1,0 +1,8 @@
+// Hand-authored quarter-note boundaries from the original chart tempo grids.
+// No audio analysis, chart rewriting or runtime phrase detection.
+export const PHRASE_VERSION = 'phrases-v1';
+export const PULSE_CHARTS = {
+  '0734D2E4-7693-418B-82F8-C6D88A02A782': [11.999994, 25.411752, 36.705864, 47.999976, 59.294088, 70.5882, 81.882312, 93.176424],
+  'D0FE6721-1476-45C2-A8BA-0686488282BF': [14.769216, 29.538432, 44.307648, 59.076864, 73.84608, 88.615296, 103.384512, 114.461424, 121.846032],
+  'F522698F-40CC-4E05-9164-00CFFF8576B7': [12.97296, 24.86484, 36.75672, 49.72968, 62.70264, 75.6756, 84.32424, 97.2972, 109.18908],
+};
