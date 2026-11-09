@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { SAVE_KEY, currentRecords } from '../../dist/storage.js';
-import { SongAudio } from '../../dist/audio.js';
+import { SongAudio } from '../../dist/audio.js?v=0.3.1';
 
 let sequence = 0;
 export function deferred() {
@@ -11,7 +11,7 @@ export function deferred() {
 }
 
 // Minimal DOM/audio doubles. Browser layout and native input are checked separately.
-export async function mount(t, { records = {}, settings = {}, bootFailure = false, saved = null, storageFailure = false } = {}) {
+export async function mount(t, { records = {}, settings = {}, bootFailure = false, saved = null, storageFailure = false, chart = null } = {}) {
   const html = await readFile(new URL('../../dist/index.html', import.meta.url), 'utf8');
   const elements = new Map(), lanes = [], events = {}, frames = [], values = new Map();
   values.set('ttr-web-settings', JSON.stringify(settings));
@@ -55,10 +55,16 @@ export async function mount(t, { records = {}, settings = {}, bootFailure = fals
     addEventListener: (name, fn) => { events[name] = fn; },
   };
   const catalog = JSON.parse(await readFile(new URL('../../dist/assets/catalog.json', import.meta.url)));
-  const audio = { currentTime: 0, starts: [], resumeFailure: false, loadFailure: false, loadGate: null };
+  const audio = { currentTime: 0, starts: [], resumeFailure: false, loadFailure: false, loadGate: null, state: 'running', contexts: [], resumeGate: null };
   class AudioContext {
+    constructor() { audio.contexts.push(this); }
+    get state() { return audio.state; }
     get currentTime() { return audio.currentTime; }
-    resume() { return audio.resumeFailure ? Promise.reject(new Error('test unlock')) : Promise.resolve(); }
+    resume() {
+      if (audio.resumeFailure) return Promise.reject(new Error('test unlock'));
+      audio.state = 'running';
+      return audio.resumeGate?.promise || Promise.resolve();
+    }
     createBufferSource() { return { connect: n => n, disconnect() {}, stop() {}, start: (at, offset) => audio.starts.push({ at, offset }) }; }
     createGain() { return { gain: { value: 0, setTargetAtTime() {} }, connect() {}, disconnect() {} }; }
   }
@@ -68,6 +74,7 @@ export async function mount(t, { records = {}, settings = {}, bootFailure = fals
       this.currentTime = 0; this.duration = 150; this.readyState = 4; this.ended = false; this.paused = true;
       native.instances.push(this);
     }
+    addEventListener(name, fn) { this['on' + name] = fn; }
     play() {
       native.plays.push(this.currentTime); this.paused = false;
       return native.failure ? Promise.reject(new Error('test native playback')) : native.gate?.promise || Promise.resolve();
@@ -88,6 +95,7 @@ export async function mount(t, { records = {}, settings = {}, bootFailure = fals
         if (audio.loadFailure) return { ok: false };
         return { ok: true, blob: async () => new Blob(['music'], { type: 'audio/mp4' }) };
       }
+      if (chart && /assets\/tracks\/.*\/\d\.json$/.test(url)) return { ok: true, json: async () => chart };
       return { ok: true, json: async () => JSON.parse(await readFile(new URL('../../dist/' + url, import.meta.url))) };
     },
   };

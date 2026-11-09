@@ -7,6 +7,7 @@ function setup(t) {
   let now = 0;
   const media = { currentTime: 0, duration: 20, ended: false, paused: true, readyState: 4, seeking: false,
     plays: 0, loads: 0, gate: null, failure: null,
+    addEventListener(name, fn) { this['on' + name] = fn; },
     play() { this.plays++; this.paused = false; return this.failure ? Promise.reject(this.failure) : this.gate?.promise || Promise.resolve(); },
     pause() { this.paused = true; }, removeAttribute(name) { delete this[name]; }, load() { this.loads++; },
   };
@@ -105,4 +106,21 @@ test('synchronous media failure leaves no active playback', async t => {
   media.play = () => { throw new Error('synchronous play'); };
   await assert.rejects(audio.play(track), /synchronous/);
   assert.equal(audio.active, false); assert.equal(media.paused, true);
+});
+
+test('native pause/error events notify immediately, but own pauses and natural end do not', async t => {
+  const { audio, media, track } = setup(t); let interrupts = 0;
+  audio.oninterrupt = () => { interrupts++; audio.pause(); };
+  await audio.play(track); media.currentTime = 6;
+  media.paused = true; media.onpause();
+  assert.equal(interrupts, 1); assert.equal(audio.position, 6);
+  media.onpause(); assert.equal(interrupts, 1);
+  await audio.play(track, 6);
+  media.onpause(); // A queued pause event from stop(), delivered after play().
+  assert.equal(interrupts, 1);
+  media.error = { code: 2 }; media.onerror();
+  assert.equal(interrupts, 2); assert.equal(audio.position, 6);
+  media.error = null; await audio.play(track, 6);
+  media.ended = true; media.paused = true; media.onpause();
+  assert.equal(interrupts, 2);
 });

@@ -22,6 +22,9 @@ export class MediaSongAudio {
     if (this.track !== track) {
       this.dispose();
       this.media = this.createMedia();
+      const onInterruption = () => { if (this.interrupted) this.oninterrupt?.(); };
+      this.media.addEventListener('pause', onInterruption);
+      this.media.addEventListener('error', onInterruption);
       this.url = URL.createObjectURL(track.blob);
       this.media.src = this.url;
       this.media.preload = 'auto';

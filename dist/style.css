@@ -8,7 +8,10 @@
   --line: #37383a;
 }
 * { box-sizing: border-box; }
-body { margin: 0; min-width: 280px; }
+/* Keep vertical menu scrolling, but do not interpret game taps as page zoom. */
+html, body, dialog { touch-action: pan-y; }
+body { margin: 0; min-width: 280px; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
 button, input, select { font: inherit; }
 button { cursor: pointer; color: inherit; border: 0; touch-action: manipulation; }
 button:disabled { cursor: default; opacity: .45; }
@@ -69,7 +72,7 @@ body[data-screen="preparation"] .appbar h2 { font-size: 24px; }
 .mobile-help { text-align: center; color: var(--muted); font-size: 11px; line-height: 1.5; }
 .status { font-size: 14px; line-height: 1.5; color: #ffaba0; }
 .status:not(:empty) { padding: 16px 20px; }
-#game-screen { height: min(850px, calc(100dvh - 66px)); min-height: 420px; display: flex; flex-direction: column; padding: 18px 0 12px; }
+#game-screen { touch-action: none; height: min(850px, calc(100dvh - 66px)); min-height: 420px; display: flex; flex-direction: column; padding: 18px 0 12px; }
 .now-playing { display: flex; align-items: center; gap: 10px; padding: 0 20px; }
 .now-playing img { width: 48px; height: 48px; border-radius: 8px; object-fit: cover; }
 .now-playing > div { flex: 1; min-width: 0; }
@@ -218,7 +221,7 @@ body[data-reduced-motion="true"] .spinner { animation: none; }
 #progress-play { display: block; margin: 4px auto 0; }
 .history-filters { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
 .history-filters > div { min-width: 0; }
-.history-filters select { font-size: 13px; }
+.history-filters select { font-size: 16px; }
 .history-day { font-size: 13px !important; text-transform: uppercase; letter-spacing: 1px !important; margin-top: 24px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
 .history-row { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 10px; padding: 14px 0; border-bottom: 1px solid var(--line); }
 .history-row img { width: 48px; height: 48px; object-fit: cover; border-radius: 8px; }

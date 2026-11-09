@@ -15,8 +15,12 @@ export class SongAudio {
     } catch {
       // This optional API must not prevent playback in browsers that reject it.
     }
-    this.context ??= new AudioContext({ latencyHint: 'interactive' });
+    if (!this.context || this.context.state === 'closed') {
+      this.context = new AudioContext({ latencyHint: 'interactive' });
+      this.context.onstatechange = () => { if (this.interrupted) this.oninterrupt?.(); };
+    }
     await this.context.resume();
+    if (this.context.state !== 'running') throw new Error('Audio context is not running');
   }
   async load(url) {
     if (this.buffers.has(url)) return this.buffers.get(url);
@@ -37,6 +41,7 @@ export class SongAudio {
     this.source.connect(this.gain).connect(this.context.destination);
     this.source.start(this.startAt, Math.min(offset, buffer.duration));
   }
+  get interrupted() { return Boolean(this.source) && this.context.state !== 'running'; }
   get countdown() { return this.source ? Math.max(0, this.startAt - this.context.currentTime) : 0; }
   get position() { return this.source ? this.offset + Math.max(0, this.context.currentTime - this.startAt) : this.offset; }
   pause() { const position = this.position; this.stop(); this.offset = position; return position; }

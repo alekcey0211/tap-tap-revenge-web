@@ -1,6 +1,6 @@
 import { Game } from './engine.js';
-import { SongAudio } from './audio.js';
-import { MediaSongAudio } from './media-audio.js?v=0.2.1';
+import { SongAudio } from './audio.js?v=0.3.1';
+import { MediaSongAudio } from './media-audio.js?v=0.3.1';
 import { Renderer } from './renderer.js?v=0.3.0';
 
 import { Temporal } from './temporal.js';
@@ -9,7 +9,7 @@ import { DEFAULT_SETTINGS, loadSave, saveSettings as writeSettings, recordAttemp
 import { ProgressView } from './progress.js?v=0.3.0';
 
 const $ = id => document.getElementById(id);
-const APP_VERSION = '0.3.0';
+const APP_VERSION = '0.3.1';
 if ($('app-version')) $('app-version').textContent = `v${APP_VERSION}`;
 const LEVELS = { 1: 'Легко', 2: 'Средне', 3: 'Сложно', 4: 'Экстрим' };
 const webAudio = new SongAudio(), mediaAudio = new MediaSongAudio();
@@ -105,7 +105,7 @@ function preparation(song, difficulty, error = false) {
   if (error) $('load-retry').focus({ preventScroll: true });
 }
 async function start(isDemo = false) {
-  if (!selected || ['loading', 'ready', 'starting'].includes(state)) return;
+  if (document.hidden || !selected || ['loading', 'ready', 'starting'].includes(state)) return;
   const id = ++requestId;
   const song = selected, difficulty = level;
   loadingRun = { song, level: difficulty, demo: isDemo };
@@ -134,7 +134,7 @@ async function start(isDemo = false) {
   } finally { if (id === requestId) $('play').disabled = false; }
 }
 async function beginRun() {
-  if (!pendingStart || !['loading', 'ready'].includes(state)) return;
+  if (document.hidden || !pendingStart || !['loading', 'ready'].includes(state)) return;
   const { id, chart, loadedBuffer, song, difficulty, isDemo } = pendingStart;
   pendingStart = null; state = 'starting'; $('load-begin').hidden = true;
   $('loading-indicator').hidden = false;
@@ -165,15 +165,15 @@ async function beginRun() {
 function gameTime() { return audio.position - settings.offset / 1000; }
 function pause(openDialog = true) {
   if (state !== 'playing' && state !== 'resuming') return;
-  if (state === 'resuming') { requestId++; audio.stop(); }
-  else pausePosition = audio.pause();
+  if (state === 'resuming') requestId++;
+  pausePosition = audio.pause();
   state = 'paused'; $('resume').disabled = false;
   game.held.fill(false); inputs.forEach(input => input.clear());
   $('pause-error').hidden = true;
   if (openDialog && !$('pause-dialog').open) $('pause-dialog').showModal();
 }
 async function resume() {
-  if (state !== 'paused') return;
+  if (document.hidden || state !== 'paused') return;
   const id = ++requestId;
   state = 'resuming'; $('resume').disabled = true;
   try {
@@ -246,12 +246,16 @@ function text(id, value) {
   const node = $(id);
   if (node.textContent !== String(value)) node.textContent = value;
 }
+function interruptPlayback() {
+  if (!['playing', 'resuming'].includes(state)) return;
+  pause();
+  $('pause-error').textContent = 'Воспроизведение остановилось. Нажми «Продолжить», чтобы включить музыку.';
+  $('pause-error').hidden = false;
+}
+webAudio.oninterrupt = mediaAudio.oninterrupt = interruptPlayback;
+
 function frame() {
-  if (state === 'playing' && audio.interrupted) {
-    pause();
-    $('pause-error').textContent = 'Воспроизведение остановилось. Нажми «Продолжить», чтобы включить музыку.';
-    $('pause-error').hidden = false;
-  }
+  if (state === 'playing' && audio.interrupted) interruptPlayback();
   if (game && ['playing', 'paused', 'resuming'].includes(state)) {
     const position = state === 'playing' ? audio.position : pausePosition;
     const time = position - settings.offset / 1000, countdown = state === 'playing' ? audio.countdown : 0;
@@ -291,7 +295,7 @@ $('demo').onclick = () => start(true);
 $('home').onclick = showLibrary;
 $('pause').onclick = () => pause();
 $('resume').onclick = resume;
-$('restart').onclick = () => { $('pause-dialog').close(); selected = run.song; level = run.level; return start(demo); };
+$('restart').onclick = () => { if (document.hidden) return; $('pause-dialog').close(); selected = run.song; level = run.level; return start(demo); };
 $('quit').onclick = showLibrary;
 $('retry').onclick = () => { selected = run.song; level = run.level; return start(demo); };
 $('back-to-library').onclick = showLibrary;
@@ -355,11 +359,12 @@ window.addEventListener('keydown', event => {
   if (event.code === 'Space') { event.preventDefault(); if (!demo && !audio.waiting && audio.countdown === 0) game.activateRevenge(gameTime()); }
 });
 window.addEventListener('keyup', event => { if (event.code in keys) up(keys[event.code], event.code); });
-document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) return;
+function leavePage() {
   if (['loading', 'ready', 'starting'].includes(state)) showLibrary(); else pause();
-});
-window.addEventListener('blur', () => pause());
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden) leavePage(); });
+window.addEventListener('pagehide', leavePage);
+window.addEventListener('blur', leavePage);
 
 progressView = new ProgressView({
   getProgress: () => progress, getSettings: () => settings, getWarning: () => saveWarning,

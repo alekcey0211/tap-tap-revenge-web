@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { SongAudio } from '../dist/audio.js';
 class FakeContext {
   currentTime = 10;
+  state = 'running';
   destination = {};
   createBufferSource() {
     return { connect: node => node, disconnect() {}, stop() {}, start(at, offset) { this.started = { at, offset }; } };
@@ -41,7 +42,7 @@ for (const support of ['supported', 'unavailable', 'rejected']) {
     try {
       Object.defineProperty(globalThis, 'navigator', { configurable: true, value: support === 'unavailable' ? {} : { audioSession } });
       Object.defineProperty(globalThis, 'AudioContext', { configurable: true, value: class {
-        constructor() { calls.push('create'); }
+        constructor() { this.state = 'running'; calls.push('create'); }
         resume() { calls.push('resume'); return Promise.resolve(); }
       } });
       const audio = new SongAudio();
@@ -60,3 +61,38 @@ for (const support of ['supported', 'unavailable', 'rejected']) {
     }
   });
 }
+
+test('context state changes notify interruptions only while a source is active', async t => {
+  class Context extends FakeContext { resume() { this.state = 'running'; return Promise.resolve(); } }
+  const original = Object.getOwnPropertyDescriptor(globalThis, 'AudioContext');
+  Object.defineProperty(globalThis, 'AudioContext', { configurable: true, value: Context });
+  t.after(() => original ? Object.defineProperty(globalThis, 'AudioContext', original) : delete globalThis.AudioContext);
+  const audio = new SongAudio(); let interrupts = 0;
+  audio.oninterrupt = () => { interrupts++; audio.pause(); };
+  await audio.unlock(); audio.play({ duration: 100 }); audio.context.currentTime = 18;
+  audio.context.state = 'interrupted'; audio.context.onstatechange();
+  assert.equal(interrupts, 1); assert.equal(audio.position, 5);
+  audio.context.state = 'suspended'; audio.context.onstatechange();
+  assert.equal(interrupts, 1);
+  await audio.unlock(); audio.play({ duration: 100 }, audio.position, 2);
+  audio.context.state = 'closed'; audio.context.onstatechange();
+  assert.equal(interrupts, 2); assert.equal(audio.position, 5);
+  const old = audio.context;
+  await audio.unlock();
+  assert.notEqual(audio.context, old);
+  audio.play({ duration: 100 }, audio.position, 2);
+  assert.equal(audio.source.started.offset, 5);
+});
+
+test('resolved resume is not success while the context remains interrupted', async t => {
+  class Context extends FakeContext {
+    state = 'interrupted';
+    resume() { return Promise.resolve(); }
+  }
+  const original = Object.getOwnPropertyDescriptor(globalThis, 'AudioContext');
+  Object.defineProperty(globalThis, 'AudioContext', { configurable: true, value: Context });
+  t.after(() => original ? Object.defineProperty(globalThis, 'AudioContext', original) : delete globalThis.AudioContext);
+  const audio = new SongAudio();
+  await assert.rejects(audio.unlock(), /not running/);
+  assert.equal(audio.source, null);
+});
