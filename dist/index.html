@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#080b10">
+  <meta name="description" content="Локальный веб-перенос Tap Tap Revenge 4 на основе данных APK 4.5.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; media-src 'self' blob:; object-src 'none'; base-uri 'none'">
+  <title>Tap Tap Revenge 4 · Web</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <main class="layout">
+    <aside class="intro">
+      <div class="edition">TAPULOUS · 2013 → WEB</div>
+      <img class="wordmark" src="assets/ui/logo.png" alt="Tap Tap Revenge 4">
+      <p>Три дорожки.<br>Тот самый ритм.</p>
+      <div class="instructions"><h2>Как играть</h2><p>Лови ноты, когда они достигают цветных колец. Длинные ноты удерживай до конца хвоста.</p>
+        <div class="key-row"><kbd>D</kbd><kbd>F</kbd><kbd>J</kbd></div>
+        <p>Или нажимай на дорожки пальцами.<br><kbd>Esc</kbd> — пауза · <kbd>Space</kbd> — Revenge.</p>
+        <p class="subtle">Стрелки встряхивания здесь нажимаются как обычные ноты. Revenge доступен после 50 попаданий подряд.</p>
+      </div>
+      <button id="about-open" class="text-button">Что перенесено из APK ↗</button>
+    </aside>
+    <div class="game-shell">
+      <header class="appbar"><button id="home" aria-label="На главный экран">⌂</button><img src="assets/ui/logo.png" alt="Tap Tap Revenge 4"><button id="settings-open" aria-label="Настройки">⚙</button></header>
+      <section id="library" class="screen">
+        <div class="library-heading"><span>MY MUSIC</span><span class="badge">OFFLINE</span></div>
+        <div class="selected-art"><img id="hero-art" alt=""><div><small id="hero-artist"></small><h1 id="hero-title">Загрузка…</h1><span id="hero-meta"></span></div></div>
+        <div id="tracks" role="group" aria-label="Выбрать трек"></div>
+        <div class="difficulty-label">DIFFICULTY <span id="note-count"></span></div>
+        <div id="difficulties" role="group" aria-label="Сложность"></div>
+        <div class="play-strip"><button id="play" aria-label="Играть выбранный трек" disabled></button></div>
+        <div class="secondary-actions"><button id="demo" class="text-button" disabled>▶ Демо</button><button id="calibration" class="text-button" disabled>♫ Калибровка</button></div>
+        <p id="record" class="record"></p><p class="mobile-help">Нажимай на дорожки у цветных колец.<br>Длинные ноты удерживай. На клавиатуре — D / F / J.</p>
+      </section>
+      <section id="game-screen" class="screen" hidden>
+        <div class="now-playing"><div><strong id="now-title"></strong><small id="now-artist"></small></div><button id="pause" aria-label="Пауза">Ⅱ</button></div>
+        <div class="playfield" id="playfield">
+          <canvas id="canvas" width="640" height="960" aria-label="Игровое поле: D — левая, F — средняя, J — правая дорожка"></canvas>
+          <div class="touch-lanes"><button data-lane="0" aria-label="Левая дорожка, D"></button><button data-lane="1" aria-label="Средняя дорожка, F"></button><button data-lane="2" aria-label="Правая дорожка, J"></button></div>
+        </div>
+        <div class="game-footer"><span id="time">0:00 / 0:00</span><span id="mode-label"></span><button id="revenge" disabled>REVENGE ×8</button></div>
+        <div id="game-stats" class="sr-only"></div>
+      </section>
+      <section id="results" class="screen result-screen" hidden aria-labelledby="result-heading">
+        <div class="library-heading">TRACK COMPLETE</div><img id="result-art" class="result-art" alt=""><h1 id="result-heading"></h1><p id="result-artist"></p>
+        <div class="score-caption" id="score-caption">YOUR SCORE</div><div id="final-score" class="final-score"></div><div id="result-rating"></div>
+        <dl id="result-stats"></dl><p id="calibration-result" hidden></p><button id="apply-calibration" class="primary" hidden>Применить поправку</button>
+        <button id="retry" class="primary">PLAY AGAIN</button><button id="back-to-library" class="secondary">MY MUSIC</button>
+      </section>
+      <p id="status" role="status" class="status"></p>
+    </div>
+    <aside class="details"><div class="edition">LOCAL RESTORATION / 01</div><h2>Из оригинала</h2><div class="detail-row"><b>03</b><span>встроенных трека</span></div><div class="detail-row"><b>12</b><span>карт сложности</span></div><div class="detail-row"><b>TTRDJ</b><span>оригинальная тема</span></div><p class="subtle">Музыка, карты нот, обложки и графика извлечены из APK 4.5. Без регистрации и запросов к старым серверам.</p><div class="live-indicator">● Локальная версия</div></aside>
+  </main>
+  <footer class="page-footer">Неофициальный локальный перенос · Tapulous и исполнители сохраняют права на оригинальные материалы.</footer>
+  <dialog id="pause-dialog"><h2>PAUSED</h2><p>Ритм подождёт.</p><button id="resume" class="primary">RESUME</button><button id="restart" class="secondary">RESTART</button><button id="quit" class="text-button">Вернуться к трекам</button></dialog>
+  <dialog id="settings-dialog"><h2>Настройки</h2><label for="volume">Громкость <output id="volume-value">75%</output></label><input id="volume" type="range" min="0" max="100" value="75"><label for="offset">Задержка нот, мс</label><input id="offset" type="number" min="-500" max="500" step="5" value="0"><p class="subtle">Положительное значение сдвигает ноты позже относительно звука. Для Bluetooth-наушников может понадобиться калибровка.</p><label class="check"><input id="motion" type="checkbox"> Уменьшить движение фона</label><p class="subtle">Настройки и рекорды сохраняются только в этом браузере. Для калибровки выбери «Калибровка» в списке треков и нажимай F на звуки метронома.</p><button id="settings-close" class="primary">Готово</button></dialog>
+  <dialog id="about-dialog"><h2>Из APK в браузер</h2><p>Основа — Tap Tap Revenge 4, версия 4.5, пакет com.tapulous.taptaprevenge4.</p><p>Перенесены три встроенных сокращённых трека, двенадцать карт сложности, калибровочный трек, обложки, текстуры TTRDJ, траектории и время пролёта нот из Lua-темы.</p><p>Веб-движок написан заново. Окна попадания, очки, бонусы удержания и длительность Revenge приближённые. Уровни множителя 2× / 3× / 4× и порог Revenge восстановлены из нативного кода.</p><p>Магазин, аккаунты, чат, сетевые рейтинги, мультиплеер и загружаемый каталог не восстановлены. Оригинальный HTML/JS, рекламные и аналитические SDK не запускаются.</p><button id="about-close" class="primary">Понятно</button></dialog>
+</body>
+</html>

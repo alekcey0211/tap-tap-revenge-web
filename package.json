@@ -1,0 +1,11 @@
+{
+  "name": "tap-tap-revenge-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node scripts/serve.mjs",
+    "start:lan": "node scripts/serve.mjs --lan",
+    "test": "node --test tests/*.test.mjs",
+    "prepare:assets": "python3 scripts/extract.py"
+  }
+}
