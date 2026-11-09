@@ -6,6 +6,7 @@
     "start": "node scripts/serve.mjs",
     "start:lan": "node scripts/serve.mjs --lan",
     "test": "node --test tests/*.test.mjs",
+    "prepare:offline": "node scripts/build-offline.mjs",
     "prepare:assets": "python3 scripts/extract.py"
   }
 }

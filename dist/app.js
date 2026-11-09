@@ -1,3 +1,4 @@
+import { OfflineView } from './offline-view.js?v=0.4.0';
 import { Game } from './engine.js';
 import { SongAudio } from './audio.js?v=0.3.1';
 import { MediaSongAudio } from './media-audio.js?v=0.3.1';
@@ -9,7 +10,7 @@ import { DEFAULT_SETTINGS, loadSave, saveSettings as writeSettings, recordAttemp
 import { ProgressView } from './progress.js?v=0.3.0';
 
 const $ = id => document.getElementById(id);
-const APP_VERSION = '0.3.1';
+const APP_VERSION = '0.4.0';
 if ($('app-version')) $('app-version').textContent = `v${APP_VERSION}`;
 const LEVELS = { 1: 'Легко', 2: 'Средне', 3: 'Сложно', 4: 'Экстрим' };
 const webAudio = new SongAudio(), mediaAudio = new MediaSongAudio();
@@ -24,6 +25,7 @@ const loaded = loadSave(browserStorage, { ...DEFAULT_SETTINGS, motion: matchMedi
 const settings = loaded.settings;
 let progress = loaded.progress, records = currentRecords(progress), saveWarning = loaded.warning, storageWritable = loaded.writable;
 let progressView;
+const offlineView = new OfflineView();
 function saveSettings() {
   if (storageWritable) {
     try { writeSettings(browserStorage, settings, progress); }
@@ -49,6 +51,7 @@ function showLibrary() {
 }
 function refresh() {
   if (!selected) return;
+  offlineView.select(selected);
   $('hero-art').src = artwork(selected);
   $('hero-title').textContent = selected.title;
   $('hero-artist').textContent = selected.artist;
@@ -131,6 +134,8 @@ async function start(isDemo = false) {
   } catch {
     if (id !== requestId) return;
     state = 'load-error'; audio.stop(); preparation(song, difficulty, true);
+    $('preparation-description').textContent = 'Попробуй ещё раз или выбери другой трек. Без сети доступны только заранее скачанные треки.';
+    if (globalThis.navigator?.onLine === false) $('preparation-description').textContent = 'Не удалось запустить трек без сети. Проверь скачивание в разделе «Установка и офлайн». Если трек скачан, попробуй ещё раз или включи «Совместимый звук».';
   } finally { if (id === requestId) $('play').disabled = false; }
 }
 async function beginRun() {
@@ -396,3 +401,4 @@ async function initialize() {
   }
 }
 await initialize();
+void offlineView.initialize();

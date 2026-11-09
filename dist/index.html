@@ -7,9 +7,12 @@
   <meta name="description" content="Три дорожки, любимая музыка и точность каждого попадания.">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; media-src 'self' blob:; object-src 'none'; base-uri 'none'">
   <title>Tap Tap Revenge · Web</title>
-  <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="style.css?v=0.3.1">
-  <script type="module" src="app.js?v=0.3.1"></script>
+  <link rel="icon" href="assets/identity/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/identity/icon-180.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="apple-mobile-web-app-title" content="Tap Tap Web">
+  <link rel="stylesheet" href="style.css?v=0.4.0">
+  <script type="module" src="app.js?v=0.4.0"></script>
 </head>
 <body>
   <main class="layout">
@@ -29,6 +32,7 @@
         <p id="record" class="record"></p><button id="play" class="primary" disabled><span aria-hidden="true">▶</span> Играть</button>
         <div class="secondary-actions"><button id="demo" class="text-button" disabled>Демо</button><button id="calibration" class="text-button" disabled>Калибровка</button><button id="about-open" class="text-button">Об игре</button></div>
         <button id="progress-open" class="settings-link" disabled>Мой прогресс <span aria-hidden="true">›</span></button>
+        <button id="offline-open" class="settings-link">Установка и офлайн <span aria-hidden="true">›</span></button>
         <p class="mobile-help">Лови ноты у колец. Длинные — удерживай.</p>
       </section>
       <section id="game-screen" class="screen" hidden aria-label="Игра">
@@ -69,6 +73,13 @@
       <p id="status" role="status" class="status"></p>
     </div>
   </main>
+  <dialog id="offline-dialog" aria-labelledby="offline-heading">
+    <h2 id="offline-heading" tabindex="-1">Игра с собой</h2>
+    <section class="settings-section"><h3>На домашнем экране</h3><p>На iPhone открой игру в Safari: «Поделиться» → «На экран Домой». Если доступен переключатель «Открывать как веб-приложение», включи его.</p><p>После установки открой игру с новой иконки с интернетом и скачай нужные треки именно там. Настройки и прогресс между браузером и приложением могут не переноситься: используй файл из «Моего прогресса».</p></section>
+    <section class="settings-section"><h3 id="offline-track"></h3><p id="offline-state" role="status">Для скачивания дождись подготовки офлайна.</p><button id="offline-download" class="primary" disabled>Скачать для офлайна</button><button id="offline-remove" class="secondary" hidden>Удалить скачанный трек</button><p>Музыка, обложка и все сложности выбранного трека. Удаление скачивания не удаляет рекорды. Другой трек можно выбрать в библиотеке.</p></section>
+    <section class="settings-section"><h3>Версия и обновления</h3><p id="update-status" role="status">Готовим игру для офлайна…</p><button id="update-check" class="secondary" disabled>Проверить обновления</button><p>Браузер может освободить место и удалить скачанное. Перед поездкой проверь запуск без сети; прогресс сохраняй в файл.</p></section>
+    <button id="offline-close" class="primary">Готово</button>
+  </dialog>
   <dialog id="pause-dialog" aria-labelledby="pause-heading"><span class="pause-symbol" aria-hidden="true">Ⅱ</span><h2 id="pause-heading">Пауза</h2><p>Ритм подождёт.</p><p id="pause-track"></p><p id="pause-error" role="status" hidden></p><button id="resume" class="primary">Продолжить</button><button id="restart" class="secondary">Начать заново</button><button id="quit" class="text-button">К трекам</button></dialog>
   <dialog id="import-dialog" aria-labelledby="import-heading"><h2 id="import-heading">Восстановить прогресс?</h2><p id="import-summary"></p><p>Файл заменит текущие рекорды, историю и настройки, включая режим звука. Сначала сохрани текущий прогресс, если хочешь оставить копию.</p><p id="import-error" class="save-warning" role="status" hidden></p><button id="import-confirm" class="primary">Заменить прогресс</button><button id="import-cancel" class="secondary">Отмена</button></dialog>
   <dialog id="settings-dialog" aria-labelledby="settings-heading">
