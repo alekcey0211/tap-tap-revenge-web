@@ -1,3 +1,4 @@
+import { artwork } from './artwork.js';
 import { PULSE_RULES } from './phrase-progress.js';
 import { PHRASE_VERSION } from './phrase-charts.js';
 import { pulseSummary } from './pulse-view.js';
@@ -76,7 +77,7 @@ export class ProgressView {
   renderRecords() {
     const { song, level } = this;
     $('progress-song').value = song.id;
-    $('progress-art').src = `assets/tracks/${song.id}/artwork.png`;
+    $('progress-art').src = artwork(song);
     $('progress-artist').textContent = song.artist;
     $('progress-levels').replaceChildren(...Object.entries(LEVELS).map(([value, title]) => {
       const button = node('button', title); button.disabled = !song.levels[value];
@@ -134,7 +135,7 @@ export class ProgressView {
       if (label !== day) { $('history-list').append(node('h3', label, 'history-day')); day = label; }
       const song = this.songs.find(item => item.id === entry.songId);
       const row = node('article', undefined, 'history-row');
-      const img = node('img'); img.alt = ''; img.src = song ? `assets/tracks/${song.id}/artwork.png` : 'assets/ui/logo.png';
+      const img = node('img'); img.alt = ''; img.src = song ? artwork(song) : 'assets/ui/logo.png';
       const detail = node('div'); detail.append(node('h4', song?.title || 'Трек из другого каталога'),
         node('p', `${LEVELS[entry.level]} · ${formatAttemptTime(entry.playedAt, timeZone)}`));
       if (entry.chartVersion !== CHART_VERSION || entry.rulesVersion !== RULES_VERSION) detail.append(node('p', 'Другая версия карты или правил'));

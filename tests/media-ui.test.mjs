@@ -9,22 +9,22 @@ test('compatible setting persists, keeps normal volume and never autoplays after
   const ui = await mount(t, options);
   assert.equal(ui.node('compatible-audio').checked, true);
   assert.equal(ui.node('volume').disabled, true);
-  await ui.click('play');
-  assert.equal(ui.node('load-begin').hidden, false);
-  assert.equal(ui.document.activeElement, ui.node('load-begin'));
+  await ui.openSong();
+  assert.equal(ui.node('play').disabled, false);
+  assert.equal(ui.document.body.dataset.screen, 'song-screen');
   assert.equal(ui.native.plays.length, 0); assert.equal(ui.audio.starts.length, 0);
-  await ui.click('load-cancel');
+  await ui.click('home');
   ui.node('compatible-audio').onchange({ target: { checked: false } });
   assert.equal(ui.node('volume').disabled, false); assert.equal(ui.node('volume').value, 35);
   assert.equal(ui.settings().compatibleAudio, false);
-  await ui.click('play'); assert.equal(ui.audio.starts.length, 1);
+  await ui.start(); assert.equal(ui.audio.starts.length, 1);
 });
 
-test('ready click calls native play immediately and waits for its promise before showing game', async t => {
-  const ui = await mount(t, options); await ui.click('play');
-  ui.native.gate = deferred(); const started = ui.click('load-begin');
+test('ready click calls native play immediately and shows the stage while waiting without advancing score', async t => {
+  const ui = await mount(t, options); await ui.openSong();
+  ui.native.gate = deferred(); const started = ui.click('play');
   assert.equal(ui.native.plays.length, 1);
-  assert.equal(ui.document.body.dataset.screen, 'preparation');
+  assert.equal(ui.document.body.dataset.screen, 'game-screen');
   ui.native.gate.resolve(); await started;
   assert.equal(ui.document.body.dataset.screen, 'game-screen');
   ui.native.instances[0].currentTime = 5; ui.tick(1000);
@@ -34,13 +34,13 @@ test('ready click calls native play immediately and waits for its promise before
 
 test('native loading and pending playback can be cancelled without resurrecting game', async t => {
   const ui = await mount(t, options);
-  ui.audio.loadGate = deferred(); const loading = ui.click('play');
-  await ui.click('load-cancel'); ui.audio.loadGate.resolve(); await loading;
+  ui.audio.loadGate = deferred(); const loading = ui.openSong();
+  await ui.click('home'); ui.audio.loadGate.resolve(); await loading;
   assert.equal(ui.document.body.dataset.screen, 'library');
-  ui.audio.loadGate = null; await ui.click('play');
-  const gate = deferred(); ui.native.gate = gate; const started = ui.click('load-begin');
-  await ui.click('load-cancel');
-  ui.native.gate = null; await ui.click('demo'); await ui.click('load-begin');
+  ui.audio.loadGate = null; await ui.openSong();
+  const gate = deferred(); ui.native.gate = gate; const started = ui.click('play');
+  ui.events.pagehide();
+  ui.native.gate = null; await ui.start('demo');
   gate.reject(new Error('stale')); await started;
   assert.equal(ui.document.body.dataset.screen, 'game-screen');
   assert.match(ui.node('mode-label').textContent, /ДЕМО/);
@@ -49,17 +49,17 @@ test('native loading and pending playback can be cancelled without resurrecting 
 
 test('native play failure offers retry, preserving difficulty and demo', async t => {
   const ui = await mount(t, options);
-  ui.node('difficulties').children[2].onclick(); await ui.click('demo');
-  ui.native.failure = true; await ui.click('load-begin');
-  assert.equal(ui.node('preparation').dataset.error, 'true');
-  assert.match(ui.node('preparation-heading').textContent, /включить музыку/);
-  ui.native.failure = false; await ui.click('load-retry');
-  assert.match(ui.node('preparation-artist').textContent, /Сложно/);
-  await ui.click('load-begin'); assert.match(ui.node('mode-label').textContent, /ДЕМО/);
+  await ui.openSong(); await ui.node('difficulties').children[2].onclick();
+  ui.native.failure = true; await ui.click('demo');
+  assert.equal(ui.document.body.dataset.screen, 'song-screen');
+  assert.match(ui.node('song-status').textContent, /включить звук/);
+  assert.equal(ui.node('difficulties').children[2].attrs['aria-pressed'], 'true');
+  ui.native.failure = false; await ui.click('demo');
+  assert.match(ui.node('mode-label').textContent, /ДЕМО/);
 });
 
 test('native pause/resume uses the exact position and supports retry and interruption', async t => {
-  const ui = await mount(t, options); await ui.click('play'); await ui.click('load-begin');
+  const ui = await mount(t, options); await ui.start();
   const media = ui.native.instances[0]; media.currentTime = 12; ui.tick(12);
   await ui.click('pause'); assert.equal(media.paused, true);
   ui.native.failure = true; await ui.click('resume'); assert.equal(ui.node('pause-error').hidden, false);
@@ -70,11 +70,12 @@ test('native pause/resume uses the exact position and supports retry and interru
   await ui.click('resume'); assert.equal(ui.native.plays.at(-1), 15);
 });
 
-test('background cancels native ready/start and pending resume without a late restart', async t => {
-  const ui = await mount(t, options); await ui.click('play');
+test('background keeps prepared native song silent and pending resume without a late restart', async t => {
+  const ui = await mount(t, options); await ui.openSong();
   ui.document.hidden = true; ui.events.visibilitychange();
-  assert.equal(ui.document.body.dataset.screen, 'library');
-  ui.document.hidden = false; await ui.click('play'); await ui.click('load-begin');
+  assert.equal(ui.document.body.dataset.screen, 'song-screen');
+  assert.equal(ui.native.plays.length, 0);
+  ui.document.hidden = false; await ui.start();
   const media = ui.native.instances[0]; media.currentTime = 9; await ui.click('pause');
   const gate = deferred(); ui.native.gate = gate; const resuming = ui.click('resume');
   ui.document.hidden = true; ui.events.visibilitychange(); gate.resolve(); await resuming;
@@ -84,7 +85,7 @@ test('background cancels native ready/start and pending resume without a late re
 });
 
 test('buffering freezes scoring and ignores new presses', async t => {
-  const ui = await mount(t, options); await ui.click('play'); await ui.click('load-begin');
+  const ui = await mount(t, options); await ui.start();
   const media = ui.native.instances[0]; media.currentTime = 3; media.readyState = 2; ui.tick(1000);
   const score = ui.node('game-stats').textContent;
   ui.lanes[0].onclick({ detail: 0 }); ui.tick(9000);
@@ -97,7 +98,7 @@ for (const mode of ['play', 'demo', 'calibration']) {
   test(`native ${mode} reaches results and preserves record rules`, async t => {
     const ui = await mount(t, options);
     if (mode === 'calibration') await ui.click('calibration');
-    await ui.click(mode === 'demo' ? 'demo' : 'play'); await ui.click('load-begin');
+    await ui.start(mode === 'demo' ? 'demo' : 'play');
     const song = ui.catalog.find(song => Boolean(song.tutorial) === (mode === 'calibration'));
     const chart = JSON.parse(await readFile(new URL('../dist/assets/tracks/' + song.id + '/1.json', import.meta.url)));
     const media = ui.native.instances[0];
@@ -114,8 +115,8 @@ for (const mode of ['play', 'demo', 'calibration']) {
 }
 
 test('hiding the page during native start stops audio even when play resolves late', async t => {
-  const ui = await mount(t, options); await ui.click('play');
-  const gate = deferred(); ui.native.gate = gate; const started = ui.click('load-begin');
+  const ui = await mount(t, options); await ui.openSong();
+  const gate = deferred(); ui.native.gate = gate; const started = ui.click('play');
   ui.document.hidden = true; ui.events.visibilitychange(); gate.resolve(); await started;
   assert.equal(ui.document.body.dataset.screen, 'library');
   assert.equal(ui.native.instances[0].paused, true);

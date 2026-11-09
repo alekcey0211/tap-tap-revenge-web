@@ -20,9 +20,9 @@ test('library selects all existing tracks and four difficulties; persisted setti
   assert.equal(ui.node('volume').value, 35);
   assert.equal(ui.node('offset').value, 25);
   assert.equal(ui.document.body.dataset.reducedMotion, 'true');
-  ui.selectedTrack('House Music').onclick();
+  await ui.selectedTrack('House Music').onclick();
   assert.equal(ui.node('hero-title').textContent, 'House Music');
-  ui.node('difficulties').children[3].onclick();
+  await ui.node('difficulties').children[3].onclick();
   assert.equal(ui.node('difficulties').children[3].attrs['aria-pressed'], 'true');
   assert.equal(ui.document.activeElement, ui.node('difficulties').children[3]);
 });
@@ -30,10 +30,10 @@ test('library selects all existing tracks and four difficulties; persisted setti
 test('cancelling a pending load cannot start audio or replace the library later', async t => {
   const ui = await mount(t);
   ui.audio.loadGate = deferred();
-  const start = ui.click('play');
+  const start = ui.openSong();
   await Promise.resolve();
-  assert.equal(ui.document.body.dataset.screen, 'preparation');
-  await ui.click('load-cancel');
+  assert.equal(ui.document.body.dataset.screen, 'song-screen');
+  await ui.click('home');
   ui.audio.loadGate.resolve();
   await start;
   assert.equal(ui.document.body.dataset.screen, 'library');
@@ -43,25 +43,27 @@ test('cancelling a pending load cannot start audio or replace the library later'
 test('a cancelled failed load cannot overwrite a newer successful start', async t => {
   const ui = await mount(t);
   const gate = deferred(); ui.audio.loadGate = gate;
-  const old = ui.click('play'); await new Promise(setImmediate);
-  await ui.click('load-cancel');
+  const old = ui.openSong(); await new Promise(setImmediate);
+  await ui.click('home');
   ui.audio.loadGate = null;
-  await ui.click('play');
+  await ui.start();
   gate.reject(new Error('stale load'));
   await old;
   assert.equal(ui.document.body.dataset.screen, 'game-screen');
   assert.equal(ui.audio.starts.length, 1);
 });
 
-test('track load failure has retry and cancellation; retry preserves demo mode', async t => {
+test('track load failure stays on song detail; retry prepares it without autoplay', async t => {
   const ui = await mount(t);
   ui.audio.loadFailure = true;
-  await ui.click('demo');
-  assert.equal(ui.node('preparation').dataset.error, 'true');
-  assert.equal(ui.node('load-retry').hidden, false);
-  assert.doesNotMatch(ui.node('preparation-heading').textContent, /test network|npm|APK/);
+  await ui.openSong();
+  assert.equal(ui.document.body.dataset.screen, 'song-screen');
+  assert.equal(ui.node('song-load-retry').hidden, false);
+  assert.doesNotMatch(ui.node('song-status').textContent, /test network|npm|APK/);
   ui.audio.loadFailure = false;
-  await ui.click('load-retry');
+  await ui.click('song-load-retry');
+  assert.equal(ui.audio.starts.length, 0);
+  await ui.click('demo');
   assert.equal(ui.document.body.dataset.screen, 'game-screen');
   assert.match(ui.node('mode-label').textContent, /ДЕМО/);
 });
@@ -78,7 +80,7 @@ test('initialization failure can be retried without an unusable library button',
 
 test('pause and retrying an unlock failure resume the same audio position', async t => {
   const ui = await mount(t);
-  await ui.click('play'); ui.tick(13);
+  await ui.start(); ui.tick(13);
   await ui.click('pause');
   assert.equal(ui.node('pause-dialog').open, true);
   ui.audio.resumeFailure = true;
@@ -88,18 +90,18 @@ test('pause and retrying an unlock failure resume the same audio position', asyn
   ui.audio.resumeFailure = false; ui.audio.currentTime = 20;
   await ui.click('resume');
   assert.equal(ui.node('pause-dialog').open, false);
-  assert.deepEqual(ui.audio.starts.at(-1), { at: 22, offset: 10 });
+  assert.deepEqual(ui.audio.starts.at(-1), { at: 22, offset: 13 });
 });
 
-test('settings calibration opens the tutorial and keyboard focus returns to play', async t => {
+test('settings calibration opens the tutorial and keyboard focus stays on the song screen', async t => {
   const ui = await mount(t);
   await ui.click('settings-open');
   assert.equal(ui.node('settings-dialog').open, true);
   await ui.click('settings-calibration');
   assert.equal(ui.node('settings-dialog').open, false);
-  assert.equal(ui.document.activeElement, ui.node('play'));
+  assert.equal(ui.document.activeElement, ui.node('home'));
   assert.match(ui.node('status').textContent, /среднюю дорожку/);
-  await ui.click('play');
+  await ui.start();
   assert.match(ui.node('mode-label').textContent, /КАЛИБРОВКА/);
   ui.tick(154);
   assert.match(ui.node('score-caption').textContent, /БЕЗ РЕКОРДА/);
@@ -109,7 +111,7 @@ test('settings calibration opens the tutorial and keyboard focus returns to play
 
 test('demo results cannot write records or award a personal full combo', async t => {
   const ui = await mount(t);
-  await ui.click('demo'); ui.tick(154);
+  await ui.start('demo'); ui.tick(154);
   assert.equal(ui.document.body.dataset.screen, 'results');
   assert.match(ui.node('score-caption').textContent, /ДЕМО/);
   assert.notEqual(ui.node('result-rating').textContent, 'FULL COMBO');
@@ -125,8 +127,8 @@ test('real play reports delta from the previous record and preserves it on a wor
   const key = song.id + ':1';
   // The app and this test read the same original chart; play its first note through input.
   const chart = JSON.parse(await readFile(new URL('../dist/assets/tracks/' + song.id + '/1.json', import.meta.url)));
-  await ui.click('play');
-  ui.tick(chart[0].time + 3);
+  await ui.start();
+  ui.tick(chart[0].time);
   ui.lanes[chart[0].lane].onclick({ detail: 0 });
   ui.tick(154);
   const saved = ui.records()[key];
@@ -146,7 +148,7 @@ test('record improvement displays the correct delta', async t => {
     result: { score: 10, accuracy: 1 }, id: crypto.randomUUID(), playedAt: '2026-11-09T19:00:00Z' });
   const ui = await mount(t, { saved: JSON.parse(exportProgress(DEFAULT_SETTINGS, progress)) });
   const chart = JSON.parse(await readFile(new URL('../dist/assets/tracks/' + song.id + '/1.json', import.meta.url)));
-  await ui.click('play'); ui.tick(chart[0].time + 3);
+  await ui.start(); ui.tick(chart[0].time);
   ui.lanes[chart[0].lane].onclick({ detail: 0 }); ui.tick(154);
   assert.equal(ui.node('record-delta').hidden, false);
   assert.equal(ui.node('record-delta').textContent, '+90 к рекорду');
@@ -155,7 +157,7 @@ test('record improvement displays the correct delta', async t => {
 test('hiding the page during loading cancels the pending start', async t => {
   const ui = await mount(t);
   ui.audio.loadGate = deferred();
-  const start = ui.click('play'); await Promise.resolve();
+  const start = ui.openSong(); await Promise.resolve();
   ui.document.hidden = true; ui.events.visibilitychange();
   ui.audio.loadGate.resolve(); await start;
   assert.equal(ui.document.body.dataset.screen, 'library');
@@ -167,9 +169,9 @@ test('calibration uses real hits, offers a correction and never writes a record'
   await ui.click('calibration');
   const song = ui.catalog.find(song => song.tutorial);
   const chart = JSON.parse(await readFile(new URL('../dist/assets/tracks/' + song.id + '/1.json', import.meta.url)));
-  await ui.click('play');
+  await ui.start();
   for (const note of chart.slice(0, 8)) {
-    ui.tick(note.time + 3 + .025);
+    ui.tick(note.time + .025);
     ui.lanes[note.lane].onclick({ detail: 0 });
   }
   ui.tick(154);

@@ -48,18 +48,18 @@ export class Renderer {
   renderStage(time, revenge, reducedMotion) {
     const c = this.ctx;
     // A perspective runway, moving with the song clock; it freezes on pause.
-    c.strokeStyle = revenge ? '#91e6ad40' : '#7794b322'; c.lineWidth = 1;
+    c.strokeStyle = revenge ? '#ffb96a38' : '#a57add18'; c.lineWidth = 1;
     for (let i = 0; i < 9; i++) {
       const phase = reducedMotion ? i / 9 : ((i / 9 + Math.max(0, time) * .12) % 1);
       const depth = phase * phase, y = 53 + depth * 350;
       c.beginPath(); c.moveTo(148 - depth * 140, y); c.lineTo(172 + depth * 140, y); c.stroke();
     }
-    c.strokeStyle = revenge ? '#c9ff56' : '#49e6ef60'; c.lineWidth = revenge ? 3 : 1;
+    c.strokeStyle = revenge ? '#ffb86b' : '#ad82ff77'; c.lineWidth = revenge ? 3 : 1;
     c.beginPath(); c.moveTo(3, 447); c.lineTo(3, 65); c.lineTo(24, 48);
     c.moveTo(317, 447); c.lineTo(317, 65); c.lineTo(296, 48); c.stroke();
     if (revenge) {
-      c.fillStyle = '#c9ff5626'; c.fillRect(80, 4, 160, 44);
-      c.fillStyle = '#c9ff56'; c.fillRect(80, 4, 160, 2);
+      c.fillStyle = '#ffb86b26'; c.fillRect(80, 4, 160, 44);
+      c.fillStyle = '#ffb86b'; c.fillRect(80, 4, 160, 2);
     }
   }
   renderJudgments(effects, width, height, dpr, reducedMotion) {
@@ -89,7 +89,7 @@ export class Renderer {
     for (const side of [0, 1]) {
       const x = side ? 320 : 0;
       const gradient = c.createLinearGradient(x, 0, x + (side ? -18 : 18), 0);
-      gradient.addColorStop(0, '#c9ff56'); gradient.addColorStop(1, '#c9ff5600');
+      gradient.addColorStop(0, '#ffa65a'); gradient.addColorStop(1, '#ffa65a00');
       c.globalAlpha = .18 + impact * .26;
       c.fillStyle = gradient; c.fillRect(side ? 302 : 0, 52, 18, 396);
       // Bright zigzags stay in an 18px edge strip, never across note heads.
@@ -103,11 +103,11 @@ export class Renderer {
       }
       c.lineJoin = 'round';
       c.globalAlpha = .65 + impact * .3;
-      c.strokeStyle = '#c9ff56'; c.lineWidth = 4 + impact * 2;
-      c.shadowColor = '#c9ff56'; c.shadowBlur = reducedMotion ? 0 : 10 + impact * 8; c.stroke();
-      c.shadowBlur = 0; c.strokeStyle = '#f1ffe3'; c.lineWidth = 1.2 + impact; c.stroke();
+      c.strokeStyle = '#ffa65a'; c.lineWidth = 4 + impact * 2;
+      c.shadowColor = '#ffa65a'; c.shadowBlur = reducedMotion ? 0 : 10 + impact * 8; c.stroke();
+      c.shadowBlur = 0; c.strokeStyle = '#fff0d7'; c.lineWidth = 1.2 + impact; c.stroke();
       if (!reducedMotion) {
-        c.strokeStyle = '#c9ff56'; c.lineWidth = 1.5;
+        c.strokeStyle = '#ffa65a'; c.lineWidth = 1.5;
         for (let i = 0; i < 5; i++) {
           const y = 440 - ((time * 95 + i * 75) % 375);
           const edge = side ? 307 : 13, direction = side ? -1 : 1;
@@ -163,7 +163,7 @@ export class Renderer {
     const c = this.ctx;
     const rising = transition && transition.to > transition.from;
     const swell = !reducedMotion && rising ? Math.sin(Math.min(1, transition.age / .3) * Math.PI) : 0;
-    const color = multiplier === 8 ? '#c9ff56' : rising ? '#49e6ef' : '#b5b5b0';
+    const color = multiplier === 8 ? '#ffc78b' : rising ? '#49e6ef' : '#b5b5b0';
     // The banner stays above y=53, where note travel starts.
     if (transition) {
       c.globalAlpha = reducedMotion ? 1 : Math.min(1, (1.1 - transition.age) / .25);
@@ -185,7 +185,7 @@ export class Renderer {
     c.clearRect(0, 0, 320, 480);
     const effects = this.effects.frame(game.multiplier(time), time);
     const revenge = effects.multiplier === 8;
-    c.fillStyle = revenge ? '#123b32' : '#10151e'; c.fillRect(0, 0, 320, 480);
+    c.fillStyle = revenge ? '#4d202433' : '#0b071c55'; c.fillRect(0, 0, 320, 480);
     this.renderStage(time, revenge, reducedMotion);
     this.renderEnergy(effects, reducedMotion, time);
     for (let lane = 0; lane < 3; lane++) {
@@ -201,7 +201,7 @@ export class Renderer {
         const [px, py] = stagePosition(this.paths, lane, i / 36);
         if (!i) c.moveTo(px, py); else c.lineTo(px, py);
       }
-      c.strokeStyle = revenge ? '#c9ff56bb' : COLORS[lane] + '80'; c.lineWidth = revenge ? 2 : 1.2; c.stroke();
+      c.strokeStyle = revenge ? '#ffb86bbb' : COLORS[lane] + '80'; c.lineWidth = revenge ? 2 : 1.2; c.stroke();
       c.beginPath(); c.ellipse(x, 422, 31, 24, 0, 0, Math.PI * 2);
       c.fillStyle = COLORS[lane] + (revenge ? '45' : '22'); c.fill();
       const judgment = effects.judgments[lane];

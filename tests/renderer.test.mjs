@@ -123,7 +123,7 @@ test('x8 changes the whole field even with reduced motion and ends on expiry or 
   renderer.render(game, 15, '4', 100, 0, true);
   game.revengeReady = true; game.activateRevenge(15); game.press(0, 16);
   renderer.render(game, 16, '4', 100, 0, true);
-  assert.deepEqual(backgrounds, ['#10151e', '#123b32', '#10151e', '#10151e']);
+  assert.deepEqual(backgrounds, ['#0b071c55', '#4d202433', '#0b071c55', '#0b071c55']);
 });
 
 test('x8 lightning is confined to edges, moves with song time and stays static with reduced motion', () => {

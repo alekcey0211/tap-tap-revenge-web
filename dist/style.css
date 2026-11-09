@@ -2,10 +2,10 @@
   color-scheme: dark;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: #f3f2ee;
-  background: #101113;
-  --accent: #c9ff56;
-  --muted: #b5b5b0;
-  --line: #37383a;
+  background: #090819;
+  --accent: #ffab61;
+  --muted: #c4bddb;
+  --line: #554175;
 }
 * { box-sizing: border-box; }
 /* Keep vertical menu scrolling, but do not interpret game taps as page zoom. */
@@ -35,7 +35,7 @@ kbd { padding: 3px 8px; border: 1px solid var(--line); border-radius: 6px; font:
 .key-row kbd:nth-child(1) { color: #ff6868; }
 .key-row kbd:nth-child(2) { color: var(--accent); }
 .key-row kbd:nth-child(3) { color: #49e6ef; }
-.game-shell { min-width: 0; background: #101113; border: 1px solid var(--line); border-radius: 28px; overflow: hidden; box-shadow: 0 20px 80px #0005; }
+.game-shell { min-width: 0; background: #090819; border: 1px solid var(--line); border-radius: 28px; overflow: hidden; box-shadow: 0 20px 80px #0005; }
 .appbar { display: flex; align-items: center; gap: 4px; padding: 16px 16px 0; min-height: 64px; }
 .appbar h2 { flex: 1; min-width: 0; font-size: 30px; }
 body[data-screen="preparation"] .appbar h2 { font-size: 24px; }
@@ -48,7 +48,7 @@ body[data-screen="preparation"] .appbar h2 { font-size: 24px; }
 #hero-meta { font-size: 13px; margin-top: 0; }
 #tracks { border-top: 1px solid var(--line); margin-top: 18px; }
 .track { width: 100%; display: flex; align-items: center; gap: 12px; text-align: left; padding: 10px 0; background: none; border-bottom: 1px solid var(--line); min-height: 68px; }
-.track[aria-pressed="true"] { display: none; }
+
 .track img { width: 46px; height: 46px; object-fit: cover; border-radius: 8px; }
 .track > span { flex: 1; min-width: 0; }
 .track strong, .track small { display: block; overflow-wrap: anywhere; }
@@ -59,10 +59,10 @@ body[data-screen="preparation"] .appbar h2 { font-size: 24px; }
 #note-count { color: var(--muted); text-transform: none; letter-spacing: 0; }
 #difficulties { display: flex; border: 1px solid #626366; border-radius: 10px; }
 #difficulties button { min-width: 0; flex: 1; min-height: 48px; padding: 8px 3px; font-size: 12px; background: none; border-radius: 9px; }
-#difficulties button[aria-pressed="true"] { background: var(--accent); color: #101113; font-weight: 700; }
+#difficulties button[aria-pressed="true"] { background: var(--accent); color: #090819; font-weight: 700; }
 .record { color: var(--muted); font-size: 13px; margin: 12px 0; min-height: 18px; }
 .primary, .secondary { display: block; width: 100%; min-height: 52px; padding: 12px 16px; font-size: 17px; font-weight: 700; border-radius: 12px; line-height: 1.3; }
-.primary { color: #101113; background: var(--accent); }
+.primary { color: #090819; background: var(--accent); }
 .secondary { border: 1px solid #7d7f80; background: none; }
 .primary + .secondary, .secondary + .primary { margin-top: 10px; }
 #play { font-size: 21px; }
@@ -100,8 +100,8 @@ canvas { display: block; width: 100%; height: 100%; position: absolute; inset: 0
 .game-footer { padding: 0 20px; }
 #revenge { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; font-size: 15px; }
 #revenge-progress { width: 34%; height: 9px; }
-dialog { color: #f3f2ee; background: #151618; border: 1px solid #5b5c5e; border-radius: 24px; width: min(420px, calc(100vw - 32px)); padding: 24px; max-height: calc(100dvh - 32px); overflow: auto; box-shadow: 0 24px 80px #0008; }
-dialog::backdrop { background: #050608aa; }
+dialog { color: #f3f2ee; background: #161029; border: 1px solid #5b5c5e; border-radius: 24px; width: min(420px, calc(100vw - 32px)); padding: 24px; max-height: calc(100dvh - 32px); overflow: auto; box-shadow: 0 24px 80px #0008; }
+dialog::backdrop { background: #070515cc; }
 dialog h2 { margin-bottom: 18px; }
 dialog p { color: var(--muted); line-height: 1.5; font-size: 14px; margin: 10px 0; }
 dialog h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; }
@@ -118,20 +118,20 @@ output { float: right; }
 input[type="range"] { width: 100%; height: 48px; margin: 0; accent-color: var(--accent); }
 .offset-row { display: flex; align-items: center; gap: 10px; }
 .offset-row label { flex: 1; }
-input[type="number"] { width: 94px; min-height: 48px; border: 1px solid #7d7f80; background: #101113; border-radius: 9px; text-align: center; font-size: 20px; color: #f3f2ee; }
+input[type="number"] { width: 94px; min-height: 48px; border: 1px solid #7d7f80; background: #090819; border-radius: 9px; text-align: center; font-size: 20px; color: #f3f2ee; }
 .settings-link { display: flex; justify-content: space-between; align-items: center; min-height: 48px; width: 100%; padding: 4px 0; background: none; font-size: 16px; font-weight: 600; }
 .settings-link span { font-size: 28px; }
 .check { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 48px; }
 .check input { appearance: none; width: 52px; height: 32px; border: 1px solid #848683; border-radius: 20px; background: #414342; flex-shrink: 0; margin: 0; position: relative; }
 .check input::after { content: ""; position: absolute; left: 3px; top: 3px; width: 24px; height: 24px; border-radius: 50%; background: #f3f2ee; }
 .check input:checked { background: var(--accent); border-color: var(--accent); }
-.check input:checked::after { left: 23px; background: #101113; }
+.check input:checked::after { left: 23px; background: #090819; }
 .result-screen { text-align: center; padding-top: 22px; padding-bottom: 24px; }
 .result-art { width: 146px; height: 146px; object-fit: cover; border-radius: 16px; margin-bottom: 18px; }
 .result-screen h3 { font-size: 28px; line-height: 1.12; letter-spacing: -.6px; }
 #result-artist { color: var(--muted); font-size: 14px; margin-top: 8px; }
 .score-caption { display: inline-block; margin-top: 22px; color: var(--muted); font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: 6px; }
-.score-caption[data-record="true"] { color: #101113; background: var(--accent); }
+.score-caption[data-record="true"] { color: #090819; background: var(--accent); }
 .final-score { font-size: clamp(42px, 10vw, 58px); font-weight: 800; letter-spacing: -2px; line-height: 1.2; font-variant-numeric: tabular-nums; }
 #record-delta { margin-top: 4px; }
 #result-rating { font-size: 22px; font-weight: 700; font-style: italic; color: var(--accent); margin: 24px 0 20px; }
@@ -195,15 +195,15 @@ body[data-reduced-motion="true"] .spinner { animation: none; }
   .mode-row { padding-top: 4px; }
 }
 
-/* Progress shares the music library's spacing and graphite/lime palette. */
+/* Progress shares the concert menu palette. */
 .progress-screen { padding-top: 12px; padding-bottom: 24px; }
 .progress-tabs { display: flex; border: 1px solid #626366; border-radius: 10px; margin-bottom: 20px; }
 .progress-tabs button { flex: 1; min-width: 0; min-height: 48px; padding: 8px 4px; background: none; border-radius: 9px; font-size: 14px; }
-.progress-tabs button[aria-pressed="true"] { color: #101113; background: var(--accent); font-weight: 700; }
+.progress-tabs button[aria-pressed="true"] { color: #090819; background: var(--accent); font-weight: 700; }
 .progress-song { display: flex; align-items: center; gap: 12px; margin: 20px 0; }
 .progress-song img { width: 56px; height: 56px; object-fit: cover; border-radius: 10px; }
 .progress-song > div { flex: 1; min-width: 0; }
-.progress-screen select { display: block; width: 100%; min-height: 48px; color: inherit; background: #101113; border: 1px solid #626366; border-radius: 9px; padding: 8px; text-overflow: ellipsis; }
+.progress-screen select { display: block; width: 100%; min-height: 48px; color: inherit; background: #090819; border: 1px solid #626366; border-radius: 9px; padding: 8px; text-overflow: ellipsis; }
 .progress-song select { font-size: 17px; font-weight: 700; }
 #progress-levels button { font-size: 12px; }
 .progress-caption { text-transform: uppercase; font-size: 12px; font-weight: 700; letter-spacing: 1px; }
@@ -227,7 +227,7 @@ body[data-reduced-motion="true"] .spinner { animation: none; }
 .history-row p { font-size: 12px; line-height: 1.5; color: var(--muted); }
 .history-score-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .history-score-row strong { font-size: 24px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-.history-badge { color: #101113; background: var(--accent); font-size: 10px; font-weight: 700; padding: 3px 6px; border-radius: 4px; }
+.history-badge { color: #090819; background: var(--accent); font-size: 10px; font-weight: 700; padding: 3px 6px; border-radius: 4px; }
 .history-help { margin-top: 20px; }
 .progress-empty { padding: 28px 0; text-align: center; }
 .progress-empty p { margin-top: 10px; }
@@ -260,37 +260,8 @@ body[data-reduced-motion="true"] .spinner { animation: none; }
 #multiplier[data-level="2"] { color: #49e6ef; background: #49e6ef16; }
 #multiplier[data-level="3"] { color: #9beaaf; background: #9beaaf16; }
 #multiplier[data-level="4"] { color: #c9ff56; background: #c9ff5622; }
-#multiplier[data-level="8"] { color: #101113; background: #c9ff56; box-shadow: 0 0 14px #c9ff5644; }
+#multiplier[data-level="8"] { color: #090819; background: #c9ff56; box-shadow: 0 0 14px #c9ff5644; }
 body[data-reduced-motion="true"] #multiplier { box-shadow: none; }
-
-/* The stage is an instrument panel, not another library card. Geometry stays fixed. */
-#game-screen { background: linear-gradient(160deg, #1d2834, #10151e 40%); }
-#game-screen[data-energy="active"] { background: linear-gradient(160deg, #365236, #123b32 60%); }
-#game-screen .now-playing img { border: 1px solid #829a9a; box-shadow: 0 4px 12px #0006; }
-#game-screen .hud { font-style: italic; text-shadow: 0 2px 0 #0008; }
-#game-screen[data-energy="active"] #live-score { color: #e6ffb1; }
-#game-screen .pulse { border-radius: 3px 12px 3px 12px; border-left: 3px solid #738ba3; background: #15202c; }
-#game-screen .pulse[data-outcome="captured"], #game-screen .pulse[data-outcome="perfect"] { border-left-color: var(--accent); background: #24371c; }
-#game-screen .game-footer { padding-top: 4px; }
-#game-screen #revenge { border-radius: 4px 14px 4px 14px; background: #15202c; }
-#game-screen[data-energy="active"] #revenge { color: #e6ffb1; background: #284b2d; border-color: #c9ff56; }
-body:not([data-reduced-motion="true"]) .primary,
-body:not([data-reduced-motion="true"]) .track { transition: transform 120ms ease, filter 120ms ease; }
-body:not([data-reduced-motion="true"]) .primary:active:not(:disabled) { transform: scale(.97); }
-body:not([data-reduced-motion="true"]) .track:active { transform: translateX(4px); }
-body:not([data-reduced-motion="true"]) #library:not([hidden]) .selected-art,
-body:not([data-reduced-motion="true"]) #results:not([hidden]) .result-art { animation: card-enter 320ms ease-out both; }
-body:not([data-reduced-motion="true"]) dialog[open] { animation: panel-enter 180ms ease-out both; }
-body:not([data-reduced-motion="true"]) #multiplier[data-level="2"],
-body:not([data-reduced-motion="true"]) #multiplier[data-level="3"],
-body:not([data-reduced-motion="true"]) #multiplier[data-level="4"],
-body:not([data-reduced-motion="true"]) #multiplier[data-level="8"] { animation: multiplier-enter 220ms ease-out; }
-@keyframes card-enter { from { opacity: 0; transform: translateY(12px) scale(.97); } to { opacity: 1; transform: none; } }
-@keyframes panel-enter { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
-@keyframes multiplier-enter { from { transform: scale(1.25); } to { transform: scale(1); } }
-@media (prefers-reduced-motion: reduce) {
-  .primary, .track, .selected-art, .result-art, dialog[open], #revenge, #multiplier { animation: none !important; transition: none !important; }
-}
 
 #revenge { color: var(--muted); border-color: var(--line); }
 #progress-rules { margin-top: 8px; }
@@ -298,3 +269,107 @@ body:not([data-reduced-motion="true"]) #multiplier[data-level="8"] { animation: 
 
 #revenge-label { font-size: 13px; white-space: nowrap; }
 #revenge-progress { flex: 0 0 25%; width: 25%; }
+
+/* One persistent venue connects the catalogue, song and performance. */
+.game-shell { position: relative; isolation: isolate; min-height: 760px; background: #090819 url("assets/scene/concert.jpg") center top / 100% auto no-repeat; border-color: #52417f; box-shadow: 0 24px 100px #0009, 0 0 60px #593bc322; }
+.game-shell::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: linear-gradient(#0a072324, #10082755 35%, #10091be8 75%); }
+.appbar { padding-bottom: 10px; }
+.appbar h2 { font-weight: 800; text-shadow: 0 0 24px #c8a9ff88; }
+.icon-button { background: #1b123466; border: 1px solid #c5b6ff33; }
+.appbar .icon-button { flex-basis: 48px; width: 48px; height: 48px; font-size: 25px; }
+.catalog-caption { display: flex; justify-content: space-between; font-size: 11px; letter-spacing: .05em; margin: 0 0 14px; }
+#tracks { display: grid; gap: 14px; border: 0; margin: 0; }
+.track { position: relative; overflow: hidden; min-height: 116px; padding: 20px; border: 1px solid #9384d16b; border-radius: 18px; background: #16102a; box-shadow: 0 12px 24px #0005; }
+.track img { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 0; object-fit: cover; opacity: .75; }
+.track::after { content: ""; position: absolute; inset: 0; background: linear-gradient(0deg, #120b22f2, #160e2d33 95%); }
+.track > span, .track em { position: relative; z-index: 1; align-self: end; }
+.track strong { font-size: 22px; font-weight: 800; letter-spacing: -.4px; text-shadow: 0 2px 12px #000; }
+.track small { color: #ebe0ff; font-size: 12px; }
+.track em { color: #e0d4f8; font-family: inherit; }
+.track:first-child { aspect-ratio: 1.12; border: 1px solid #ffb36f; box-shadow: 0 0 22px #ed843c30, 0 12px 30px #0008; }
+.track:first-child img { opacity: 1; }
+.track:first-child strong { font-size: 34px; }
+.library-nav { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px; padding-top: 16px; }
+.library-nav .text-button { font-size: 12px; }
+body[data-screen="song-screen"] #screen-title { font-size: 17px; text-align: center; color: var(--muted); }
+.song-screen { text-align: center; padding-top: 8px; }
+.selected-art h3 { font-size: 32px; font-weight: 800; text-shadow: 0 0 20px #b68cff77; }
+.selected-art p { color: #dbd1ee; font-size: 13px; }
+.album-stage { position: relative; perspective: 900px; padding: 24px 0 32px; }
+.album-stage::after { content: ""; position: absolute; z-index: -1; bottom: 6px; left: 10%; width: 80%; height: 36px; border-radius: 50%; border: 1px solid #bc94ff99; background: radial-gradient(ellipse, #b06bff66, #6c34d522 62%, transparent 72%); box-shadow: 0 0 22px #8041de55; }
+.album-stage img { display: block; width: clamp(170px, 57vw, 238px); max-width: 76%; aspect-ratio: 1; object-fit: cover; margin: auto; border-radius: 12px; border: 1px solid #ffd1a6bd; box-shadow: 0 12px 28px #0009, 0 0 30px #ff98552b; transform: rotateY(-8deg) rotateZ(-2deg); }
+#hero-meta { font-size: 12px; }
+.song-controls { padding-top: 6px; }
+.difficulty-label { color: #eee2ff; text-align: left; margin-top: 18px; }
+#difficulties { border: 0; gap: 6px; }
+#difficulties button { background: linear-gradient(#392657, #201432); border: 1px solid #9577bd77; border-radius: 10px; font-weight: 600; }
+#difficulties button[aria-pressed="true"] { color: #fff7ec; border-color: #ffd3a8; background: linear-gradient(#cf743d, #9e452a); box-shadow: 0 0 14px #ff9d4d44, inset 0 1px 0 #ffe7be77; }
+.record { font-size: 12px; margin: 12px 0 6px; }
+.song-status { color: var(--muted); font-size: 11px; line-height: 1.45; min-height: 32px; margin-bottom: 10px; }
+.primary { color: #fff9ef; border: 1px solid #ffd5a2; background: linear-gradient(180deg, #eeaa65, #d47138 55%, #b34f27); border-radius: 14px; text-shadow: 0 1px 2px #742d25; box-shadow: inset 0 1px 0 #ffeccbaa, 0 5px 0 #642b38, 0 0 24px #f5893c33; }
+.secondary { background: linear-gradient(#35244d, #201430); border-color: #b292d477; border-radius: 14px; }
+#demo, #offline-open { display: block; width: 100%; min-height: 48px; font-size: 12px; }
+#demo { margin-top: 12px; }
+#offline-open { color: #c7aee7; }
+#game-screen { background: linear-gradient(#100a2644, #0a081b55); }
+#game-screen[data-energy="active"] { background: linear-gradient(#d9742922, #28102c66); }
+.now-playing { gap: 8px; }
+.now-playing img { width: 36px; height: 36px; border: 1px solid #a786c4; }
+.now-playing strong { font-size: 14px; }
+.now-playing small { font-size: 11px; }
+#pause { width: 48px; height: 48px; flex-basis: 48px; border-color: #a78ac477; }
+.hud { padding-top: 12px; padding-bottom: 10px; }
+#live-score { font-size: 34px; text-shadow: 0 0 20px #d6b8ff66; }
+#live-combo { font-size: 22px; }
+#game-screen[data-energy="active"] #live-score { color: #ffe1b8; text-shadow: 0 0 20px #fa9b5688; }
+.mode-row { padding-top: 6px; padding-bottom: 6px; font-size: 10px; }
+#game-screen .pulse { flex-basis: 62px; margin-bottom: 0; padding: 6px 10px; gap: 3px; border-color: #b38cdb55; background: linear-gradient(90deg, #3c2458cc, #21132dcc); }
+#game-screen .pulse[data-outcome="captured"], #game-screen .pulse[data-outcome="perfect"] { border-color: #ffb86c; background: #442b30bb; }
+.pulse[data-outcome="captured"] strong, .pulse[data-outcome="perfect"] strong { color: #ffd2a4; }
+.pulse-summary { color: #ffd2a4; border-color: #a7766244; background: #38233b99; }
+.pulse > span, #pulse-progress-row { color: #d5c5e8; }
+#multiplier[data-level="8"] { color: #fff8e8; background: #b25b30; box-shadow: 0 0 18px #ff9e5e77; }
+#game-screen #revenge { min-height: 42px; padding: 8px 12px; background: #261634aa; border-color: #9576b455; }
+#game-screen[data-energy="active"] #revenge { color: #ffe4b8; border-color: #ffc28b; background: #6a342ecc; box-shadow: 0 0 20px #ff8f3a33; }
+.result-art { border: 1px solid #ffc390; box-shadow: 0 0 32px #bc65ff44, 0 10px 30px #0008; }
+.final-score { color: #ffbf76; text-shadow: 0 0 24px #ff8e4855; }
+.result-summary { background: #2b1a3c99; border: 1px solid #8b679055; border-radius: 14px; padding: 18px 4px; }
+.result-summary strong { font-size: 27px; }
+#result-rating { letter-spacing: .08em; text-shadow: 0 0 18px #ffad5377; }
+.result-screen { padding-top: 16px; }
+dialog { background: linear-gradient(150deg, #2e1c49, #100d20 65%); border-color: #b594d277; box-shadow: 0 20px 90px #000b, 0 0 30px #8554c733; }
+.progress-tabs, .progress-screen select { border-color: #926bbd77; }
+body:not([data-reduced-motion="true"]) button { transition: transform 120ms ease, filter 120ms ease; }
+body:not([data-reduced-motion="true"]) button:active:not(:disabled) { transform: scale(.97); }
+body:not([data-reduced-motion="true"]) #song-screen:not([hidden]) .album-stage img { animation: album-float 5s ease-in-out infinite; }
+body:not([data-reduced-motion="true"]) #library:not([hidden]) .track,
+body:not([data-reduced-motion="true"]) #results:not([hidden]) .result-art { animation: card-enter 350ms ease-out both; }
+body:not([data-reduced-motion="true"]) dialog[open] { animation: card-enter 180ms ease-out both; }
+body:not([data-reduced-motion="true"]) #multiplier[data-level="8"] { animation: multiplier-enter 260ms ease-out; }
+#song-screen[data-departing="true"] { position: absolute; z-index: 3; top: 74px; left: 0; right: 0; pointer-events: none; animation: song-depart 340ms ease-in both; }
+#song-screen[data-departing="true"] .album-stage img { animation: none !important; }
+@keyframes song-depart { to { opacity: 0; transform: translateY(-28px) scale(1.05); } }
+@keyframes album-float { 50% { transform: translateY(-7px) rotateY(5deg) rotateZ(1deg); } }
+@keyframes card-enter { from { opacity: 0; transform: translateY(12px) scale(.98); } to { opacity: 1; transform: none; } }
+@keyframes multiplier-enter { from { transform: scale(1.25); } to { transform: scale(1); } }
+body[data-reduced-motion="true"] *, body[data-reduced-motion="true"] *::after { animation: none !important; transition: none !important; }
+@media (prefers-reduced-motion: reduce) { *, *::after { animation: none !important; transition: none !important; } }
+@media (max-width: 760px) {
+  .game-shell { min-height: 100svh; }
+  #song-screen[data-departing="true"] { top: calc(70px + env(safe-area-inset-top)); }
+}
+@media (max-height: 700px) {
+  .album-stage { padding: 14px 0 22px; }
+  .album-stage img { width: 170px; }
+  .selected-art h3 { font-size: 27px; }
+  .song-controls { padding-top: 0; }
+  .song-status { min-height: 16px; }
+  #game-screen .pulse { flex-basis: 54px; }
+  .hud { padding-top: 6px; }
+  #live-score { font-size: 28px; }
+}
+/* The venue cover has its detail at the top, not in the deliberately empty runway. */
+img[src$="scene/concert.jpg"] { object-position: center top; }
+
+body:not([data-reduced-motion="true"]) .playfield { animation: stage-reveal 340ms ease-out both; }
+@keyframes stage-reveal { from { opacity: .15; } to { opacity: 1; } }

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#101113">
+  <meta name="theme-color" content="#090819">
   <meta name="description" content="Три дорожки, любимая музыка и точность каждого попадания.">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; media-src 'self' blob:; object-src 'none'; base-uri 'none'">
   <title>Tap Tap Revenge · Web</title>
@@ -11,8 +11,8 @@
   <link rel="apple-touch-icon" href="assets/identity/icon-180.png">
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="apple-mobile-web-app-title" content="Tap Tap Web">
-  <link rel="stylesheet" href="style.css?v=0.6.0">
-  <script type="module" src="app.js?v=0.6.0"></script>
+  <link rel="stylesheet" href="style.css?v=0.7.0">
+  <script type="module" src="app.js?v=0.7.0"></script>
 </head>
 <body>
   <main class="layout">
@@ -24,16 +24,21 @@
     </aside>
     <div class="game-shell">
       <header class="appbar" id="appbar"><button id="home" class="icon-button" aria-label="К трекам" hidden>‹</button><h2 id="screen-title">Музыка</h2><button id="settings-open" class="icon-button" aria-label="Настройки">⚙</button></header>
-      <section id="library" class="screen" aria-label="Выбор трека">
+      <section id="library" class="screen library" aria-label="Выбор трека">
         <p class="catalog-caption"><span id="catalog-count"></span> · <span id="app-version" title="Версия приложения"></span></p>
-        <div class="selected-art"><img id="hero-art" alt=""><h3 id="hero-title">Загрузка…</h3><p id="hero-artist"></p><p id="hero-meta"></p></div>
         <div id="tracks" role="group" aria-label="Выбрать трек"></div>
-        <div class="difficulty-label"><span>Сложность</span><span id="note-count"></span></div><div id="difficulties" role="group" aria-label="Сложность"></div>
-        <p id="record" class="record"></p><button id="play" class="primary" disabled><span aria-hidden="true">▶</span> Играть</button>
-        <div class="secondary-actions"><button id="demo" class="text-button" disabled>Демо</button><button id="calibration" class="text-button" disabled>Калибровка</button><button id="about-open" class="text-button">Об игре</button></div>
-        <button id="progress-open" class="settings-link" disabled>Мой прогресс <span aria-hidden="true">›</span></button>
-        <button id="offline-open" class="settings-link">Установка и офлайн <span aria-hidden="true">›</span></button>
-        <p class="mobile-help">Лови ноты у колец. Длинные — удерживай.</p>
+        <nav class="library-nav" aria-label="Разделы игры"><button id="progress-open" class="text-button" disabled>↗ Мой прогресс</button><button id="about-open" class="text-button">Об игре</button><button id="calibration" class="text-button" disabled>Калибровка</button></nav>
+      </section>
+      <section id="song-screen" class="screen song-screen" hidden aria-labelledby="hero-title">
+        <div class="selected-art"><h3 id="hero-title"></h3><p id="hero-artist"></p><div class="album-stage"><img id="hero-art" alt=""></div><p id="hero-meta"></p></div>
+        <div class="song-controls">
+          <div class="difficulty-label"><span>Сложность</span><span id="note-count"></span></div><div id="difficulties" role="group" aria-label="Сложность"></div>
+          <p id="record" class="record"></p>
+          <p id="song-status" class="song-status" role="status"></p><button id="song-load-retry" class="text-button" hidden>Повторить загрузку</button>
+          <button id="play" class="primary" disabled><span aria-hidden="true">▶</span><span id="play-label">Играть</span></button>
+          <button id="demo" class="text-button" disabled>▷ Демо · без рекорда</button>
+          <button id="offline-open" class="text-button">↓ Установка и офлайн</button>
+        </div>
       </section>
       <section id="game-screen" class="screen" hidden aria-label="Игра">
         <div class="now-playing"><img id="now-art" alt=""><div><strong id="now-title"></strong><small id="now-artist"></small></div><button id="pause" class="icon-button" aria-label="Пауза">Ⅱ</button></div>

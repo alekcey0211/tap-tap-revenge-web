@@ -1,3 +1,4 @@
+import { artwork } from '../dist/artwork.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -25,9 +26,9 @@ test('original track is explicitly synthesized, maps fit its grid and holds neve
 
 for (const compatibleAudio of [false, true]) test(`new track can be selected and starts with Pulse (${compatibleAudio})`, async t => {
   const ui = await mount(t, { settings: { compatibleAudio } });
-  ui.selectedTrack('Neon Circuit').onclick();
+  await ui.selectedTrack('Neon Circuit').onclick();
   assert.equal(ui.node('hero-title').textContent, 'Neon Circuit');
-  await ui.click('play'); if (compatibleAudio) await ui.click('load-begin');
+  await ui.start();
   ui.tick(0);
   assert.equal(ui.document.body.dataset.screen, 'game-screen');
   assert.equal(ui.node('pulse').hidden, false);
@@ -37,11 +38,11 @@ for (const compatibleAudio of [false, true]) test(`new track can be selected and
 for (const [songId, title] of [['neon-circuit-v1', 'Neon Circuit'], ['overdrive-v1', 'Overdrive']])
 for (const compatibleAudio of [false, true]) test(`ordinary ${title} results include artwork and survive save reload (${compatibleAudio})`, async t => {
   const ui = await mount(t, { settings: { compatibleAudio } });
-  ui.selectedTrack(title).onclick(); await ui.click('play');
-  if (compatibleAudio) { await ui.click('load-begin'); ui.native.instances[0].currentTime = 151; }
+  await ui.selectedTrack(title).onclick(); await ui.start();
+  if (compatibleAudio) { ui.native.instances[0].currentTime = 151; }
   assert.doesNotThrow(() => ui.tick(200));
   assert.equal(ui.document.body.dataset.screen, 'results');
-  assert.equal(ui.node('result-art').src, `assets/tracks/${songId}/artwork.png`);
+  assert.equal(ui.node('result-art').src, artwork({ id: songId }));
   assert.equal(ui.node('result-heading').textContent, title);
   assert.equal(ui.progress().history.length, 1);
   const { parseProgress, exportProgress } = await import('../dist/storage.js');

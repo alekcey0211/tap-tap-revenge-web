@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { HitEffects } from '../dist/hit-effects.js';
 import { Game } from '../dist/engine.js';
 import { mount } from './helpers/ui-harness.mjs';
-import { Renderer } from '../dist/renderer.js?v=0.6.0';
+import { Renderer } from '../dist/renderer.js?v=0.7.0';
 
 const note = { lane: 1, judgment: 'PERFECT' };
 test('only successful heads generate bursts; effects use song time and bounded memory', () => {
@@ -47,8 +47,8 @@ for (const compatibleAudio of [false, true]) {
     let renderer;
     const original = Renderer.prototype.render;
     t.mock.method(Renderer.prototype, 'render', function (...args) { renderer = this; return original.apply(this, args); });
-    await ui.click('play'); if (compatibleAudio) await ui.click('load-begin');
-    function tick(position) { if (compatibleAudio) ui.native.instances.at(-1).currentTime = position; ui.tick(compatibleAudio ? position : position + 3); }
+    await ui.start();
+    function tick(position) { if (compatibleAudio) ui.native.instances.at(-1).currentTime = position; ui.tick(position); }
     tick(1); ui.lanes[0].onpointerdown(pointer);
     ui.lanes[0].onpointerdown({ ...pointer, pointerId: 2 }); // Same held lane, no second judgment.
     assert.equal(renderer.effects.hits.length, 1);
@@ -58,7 +58,7 @@ for (const compatibleAudio of [false, true]) {
     tick(3); ui.lanes[1].onpointerdown(pointer);
     await ui.click('pause'); const frozen = structuredClone(renderer.effects);
     ui.tick(1000); assert.deepEqual(structuredClone(renderer.effects), frozen);
-    await ui.click('restart'); if (compatibleAudio) await ui.click('load-begin');
+    await ui.click('restart');
     assert.equal(renderer.effects.hits.length, 0);
     assert.equal(ui.progress().history.length, 0);
     assert.equal(compatibleAudio ? ui.native.plays.length : ui.audio.starts.length, 2);

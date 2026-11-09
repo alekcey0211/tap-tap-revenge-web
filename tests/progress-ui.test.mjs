@@ -40,7 +40,7 @@ test('record screen displays best, delta and percent formatting; chart uses only
   assert.equal(ui.node('accuracy-plot').children[0].children.length, 6);
   ui.node('progress-levels').children[1].onclick();
   assert.equal(ui.node('record-empty').hidden, false); assert.equal(ui.node('accuracy-plot').children.length, 0);
-  await ui.click('progress-play'); assert.equal(ui.document.body.dataset.screen, 'library');
+  await ui.click('progress-play'); assert.equal(ui.document.body.dataset.screen, 'song-screen');
   assert.equal(ui.node('difficulties').children[1].attrs['aria-pressed'], 'true');
 });
 
@@ -111,7 +111,7 @@ test('legacy keys remain unchanged after new results; displayed percentages use 
   const ui = await mount(t, { settings: { volume: 75, compatibleAudio: true } });
   const oldSettings = ui.values.get('ttr-web-settings'), oldRecords = ui.values.get('ttr-web-records');
   assert.equal(ui.node('volume-value').value, '75\u00a0%');
-  await ui.click('play'); await ui.click('load-begin');
+  await ui.start();
   const media = ui.native.instances[0]; media.currentTime = 150; media.ended = true; media.paused = true;
   ui.tick(0); ui.native.now = 1000; ui.tick(0);
   assert.equal(ui.progress().history.length, 1); assert.equal(ui.node('result-accuracy').textContent, '0\u00a0%');
@@ -121,7 +121,7 @@ test('legacy keys remain unchanged after new results; displayed percentages use 
 
 test('session-only mode warns and can still display newly completed attempts', async t => {
   const ui = await mount(t, { storageFailure: true, settings: { compatibleAudio: true } });
-  await ui.click('play'); await ui.click('load-begin');
+  await ui.start();
   const media = ui.native.instances[0]; media.currentTime = 150; media.ended = true; media.paused = true;
   ui.tick(0); ui.native.now = 1000; ui.tick(0); await ui.click('back-to-library'); await ui.click('progress-open');
   assert.equal(ui.node('save-warning').hidden, false); assert.equal(ui.node('personal-best').hidden, false);

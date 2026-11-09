@@ -8,23 +8,23 @@ const chart = [{ time: 1, lane: 0, duration: 0 }, { time: 13, lane: 1, duration:
 for (const compatibleAudio of [false, true]) {
   test(`Pulse in ${compatibleAudio ? 'compatible' : 'Web Audio'} mode: pause, score, history and retry`, async t => {
     const ui = await mount(t, { settings: { compatibleAudio }, chart });
-    await ui.click('play'); if (compatibleAudio) {
+    await ui.openSong(); if (compatibleAudio) {
       const gate = deferred(); ui.native.gate = gate;
-      const begin = ui.click('load-begin');
+      const begin = ui.click('play');
       assert.equal(ui.native.plays.length, 1, 'play called in gesture before promise resolves');
       assert.equal(ui.audio.contexts.length, 0, 'no AudioContext in compatible mode');
       gate.resolve(); await begin; ui.native.gate = null;
-    }
+    } else await ui.click('play');
     function advance(position, afterResume = false) {
       if (compatibleAudio) ui.native.instances.at(-1).currentTime = position;
-      ui.tick(compatibleAudio ? position : position + (afterResume ? 5 : 3));
+      ui.tick(compatibleAudio ? position : position + (afterResume ? 2 : 0));
     }
     advance(1); ui.lanes[0].onpointerdown(pointer); ui.lanes[0].onpointerup(pointer);
     advance(12); assert.equal(ui.node('pulse').dataset.outcome, 'perfect');
     await ui.click('pause'); const title = ui.node('pulse-title').textContent;
     ui.tick(999); assert.equal(ui.node('pulse-title').textContent, title); assert.equal(ui.progress().history.length, 0);
     // Resume context starts from the current mocked clock. Restore it to pause time.
-    ui.audio.currentTime = 15; await ui.click('resume');
+    ui.audio.currentTime = 12; await ui.click('resume');
     advance(13, true); ui.lanes[1].onpointerdown(pointer); ui.lanes[1].onpointerup(pointer);
     advance(151, true);
     const attempt = ui.progress().history[0];
@@ -36,7 +36,7 @@ for (const compatibleAudio of [false, true]) {
     await ui.click('history-tab');
     const row = ui.node('history-list').children.find(node => node.tagName === 'ARTICLE');
     assert.ok(row.children.at(-1).children.some(node => node.textContent.includes('Pulse:')));
-    await ui.click('home'); await ui.click('play'); if (compatibleAudio) await ui.click('load-begin');
+    await ui.click('home'); await ui.start();
     assert.equal(ui.node('pulse').dataset.outcome, 'active');
     await ui.click('pause'); await ui.click('quit'); assert.equal(ui.progress().history.length, 1);
   });
@@ -45,14 +45,14 @@ test('old records survive a worse score with a new Pulse result; demo and calibr
   const id = '0734D2E4-7693-418B-82F8-C6D88A02A782';
   const old = { score: 98765, accuracy: 98, bestStreak: 100 };
   const ui = await mount(t, { chart, records: { [id + ':1']: old }, settings: { compatibleAudio: true } });
-  await ui.click('play'); await ui.click('load-begin'); ui.native.instances.at(-1).currentTime = 151; ui.tick(151);
+  await ui.start(); ui.native.instances.at(-1).currentTime = 151; ui.tick(151);
   assert.deepEqual(ui.progress().records.find(record => record.rulesVersion === 'web-v1').result, old);
   assert.equal(ui.progress().records.length, 2); assert.equal(ui.progress().history[0].pulse.captured, 0);
   const saved = structuredClone(ui.progress());
   for (const mode of ['demo', 'calibration']) {
     await ui.click('back-to-library');
-    await ui.click(mode); if (mode === 'calibration') await ui.click('play');
-    await ui.click('load-begin'); assert.equal(ui.node('pulse').hidden, true);
+    if (mode === 'calibration') { await ui.click(mode); await ui.start(); } else await ui.start('demo');
+    assert.equal(ui.node('pulse').hidden, true);
     ui.native.instances.at(-1).currentTime = 151; ui.tick(151);
     assert.equal(ui.node('result-pulse').hidden, true); assert.deepEqual(ui.progress(), saved);
   }
@@ -69,7 +69,7 @@ test('Pulse uses Intl percentages and handles all verdicts without hiding the pl
 });
 test('buffering does not advance Pulse or accept inputs; restart discards the unfinished run', async t => {
   const ui = await mount(t, { chart, settings: { compatibleAudio: true } });
-  await ui.click('play'); await ui.click('load-begin');
+  await ui.start();
   const media = ui.native.instances.at(-1); media.currentTime = 1; ui.tick(1);
   ui.lanes[0].onpointerdown(pointer); ui.lanes[0].onpointerup(pointer);
   media.readyState = 2; media.currentTime = 12; ui.tick(12);
@@ -77,7 +77,7 @@ test('buffering does not advance Pulse or accept inputs; restart discards the un
   ui.lanes[2].onpointerdown(pointer); ui.lanes[2].onpointerup(pointer);
   media.readyState = 4; ui.tick(12);
   assert.equal(ui.node('pulse').dataset.outcome, 'perfect');
-  await ui.click('pause'); await ui.click('restart'); await ui.click('load-begin');
+  await ui.click('pause'); await ui.click('restart');
   assert.equal(ui.node('pulse').dataset.outcome, 'active'); assert.equal(ui.progress().history.length, 0);
   ui.native.instances.at(-1).currentTime = 151; ui.tick(151);
   assert.equal(ui.progress().history[0].pulse.captured, 0); assert.equal(ui.progress().history.length, 1);

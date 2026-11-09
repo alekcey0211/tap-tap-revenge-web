@@ -1,3 +1,4 @@
+import { artwork } from './artwork.js';
 import { PhraseProgress } from './phrase-progress.js';
 import { PULSE_CHARTS } from './phrase-charts.js';
 import { renderPulse, pulseSummary } from './pulse-view.js';
@@ -5,22 +6,22 @@ import { OfflineView } from './offline-view.js?v=0.4.0';
 import { Game } from './engine.js';
 import { SongAudio } from './audio.js?v=0.5.3';
 import { MediaSongAudio } from './media-audio.js?v=0.3.1';
-import { Renderer } from './renderer.js?v=0.6.0';
+import { Renderer } from './renderer.js?v=0.7.0';
 
 import { Temporal } from './temporal.js';
 import { formatNumber, formatPercent, formatSigned, formatTime, formatCount } from './format.js?v=0.3.0';
 import { DEFAULT_SETTINGS, loadSave, saveSettings as writeSettings, recordAttempt, currentRecords, importProgress } from './storage.js?v=0.6.0';
-import { ProgressView } from './progress.js?v=0.6.0';
+import { ProgressView } from './progress.js?v=0.7.0';
 
 const $ = id => document.getElementById(id);
-const APP_VERSION = '0.6.0';
+const APP_VERSION = '0.7.0';
 if ($('app-version')) $('app-version').textContent = `v${APP_VERSION}`;
 $('pulse-target').textContent = formatPercent(90);
 const LEVELS = { 1: 'Легко', 2: 'Средне', 3: 'Сложно', 4: 'Экстрим' };
 const webAudio = new SongAudio(), mediaAudio = new MediaSongAudio();
-let audio = webAudio, pendingStart = null;
+let audio = webAudio, readyTrack = null, preparedAudio = null;
 let catalog, selected, level = '1', renderer, game, buffer, pulse;
-let state = 'boot', demo = false, run = null, loadingRun = null, requestId = 0, pausePosition = 0;
+let state = 'boot', demo = false, run = null, requestId = 0, pausePosition = 0;
 let resumeGrace = -Infinity, demoActions = [], demoIndex = 0, calibrationOffset = null;
 const inputs = [new Set(), new Set(), new Set()];
 let browserStorage;
@@ -37,21 +38,21 @@ function saveSettings() {
   }
   if (saveWarning) $('status').textContent = saveWarning;
 }
-function artwork(song) { return song.tutorial ? 'assets/ui/logo.png' : `assets/tracks/${song.id}/artwork.png`; }
 function show(screen) {
-  for (const name of ['library', 'game-screen', 'results', 'preparation', 'progress-screen']) $(name).hidden = name !== screen;
+  $('song-screen').dataset.departing = 'false'; $('song-screen').inert = false;
+  for (const name of ['library', 'song-screen', 'game-screen', 'results', 'preparation', 'progress-screen']) $(name).hidden = name !== screen;
   document.body.dataset.screen = screen;
   $('appbar').hidden = screen === 'game-screen';
-  $('home').hidden = !['results', 'progress-screen'].includes(screen);
+  $('home').hidden = !['song-screen', 'results', 'progress-screen'].includes(screen);
   $('settings-open').hidden = ['preparation', 'progress-screen'].includes(screen);
-  $('screen-title').textContent = screen === 'progress-screen' ? 'Прогресс' : screen === 'results' ? 'Результат' : screen === 'preparation' ? 'Подготовка трека' : 'Музыка';
+  $('screen-title').textContent = screen === 'progress-screen' ? 'Прогресс' : screen === 'results' ? 'Результат' : screen === 'preparation' ? 'Подготовка трека' : screen === 'song-screen' ? 'Песня' : 'Музыка';
   $('status').textContent = '';
 }
 function showLibrary() {
   requestId++; progressView?.close();
-  audio.stop(); mediaAudio.dispose(); pendingStart = null; state = 'library'; inputs.forEach(input => input.clear());
+  audio.stop(); mediaAudio.dispose(); readyTrack = null; preparedAudio = null; state = 'library'; inputs.forEach(input => input.clear());
   for (const dialog of document.querySelectorAll('dialog[open]')) dialog.close();
-  show('library'); refresh(); if (saveWarning) $('status').textContent = saveWarning; $('play').focus({ preventScroll: true });
+  show('library'); refresh(); if (saveWarning) $('status').textContent = saveWarning; $('tracks').children[0]?.focus({ preventScroll: true });
 }
 function refresh() {
   if (!selected) return;
@@ -61,7 +62,7 @@ function refresh() {
   $('hero-artist').textContent = selected.artist;
   $('hero-meta').textContent = `${formatTime(selected.duration)} · ${selected.genre}`;
   $('tracks').replaceChildren();
-  for (const song of catalog.filter(song => !song.tutorial)) {
+  for (const song of [...catalog.filter(song => !song.tutorial)].sort((a, b) => Number(b.id === 'overdrive-v1') - Number(a.id === 'overdrive-v1') || Number(b.id === 'neon-circuit-v1') - Number(a.id === 'neon-circuit-v1'))) {
     const button = document.createElement('button'); button.className = 'track';
     button.setAttribute('aria-pressed', String(song.id === selected.id));
     const img = document.createElement('img'); img.src = artwork(song); img.alt = '';
@@ -69,20 +70,20 @@ function refresh() {
     title.textContent = song.title; artist.textContent = song.artist; text.append(title, artist);
     const duration = document.createElement('em'); duration.textContent = formatTime(song.duration);
     button.append(img, text, duration);
-    button.onclick = () => { selected = song; if (!song.levels[level]) level = '1'; refresh(); $('play').focus({ preventScroll: true }); };
+    button.onclick = () => openSong(song);
     $('tracks').append(button);
   }
   $('difficulties').replaceChildren();
   for (const [value, name] of Object.entries(LEVELS)) {
     const button = document.createElement('button'); button.textContent = name;
     button.setAttribute('aria-pressed', String(level === value)); button.disabled = !selected.levels[value];
-    button.onclick = () => { level = value; refresh(); $('difficulties').children[Number(value) - 1].focus({ preventScroll: true }); }; $('difficulties').append(button);
+    button.onclick = () => { level = value; const loading = prepareSong(); $('difficulties').children[Number(value) - 1].focus({ preventScroll: true }); return loading; }; $('difficulties').append(button);
   }
   $('note-count').textContent = formatCount(selected.levels[level].notes, { one: 'нота', few: 'ноты', many: 'нот', other: 'ноты' });
   const best = records[`${selected.id}:${level}`];
   $('record').textContent = Number.isFinite(best?.score) && Number.isFinite(best?.accuracy) ? `Рекорд ${formatNumber(best.score)} · ${formatPercent(best.accuracy)}` : progress.records.some(entry => entry.songId === selected.id && entry.level === level)
     ? 'Новые правила ×8. Прежний рекорд — в «Мой прогресс».' : 'Рекорд ещё не установлен';
-  $('play').disabled = false; $('demo').disabled = false; $('calibration').disabled = false;
+  $('calibration').disabled = false;
   $('settings-calibration').disabled = false; $('progress-open').disabled = false;
 }
 async function json(url) {
@@ -112,44 +113,65 @@ function preparation(song, difficulty, error = false) {
     : (song ? 'Игра начнётся после загрузки.' : 'Готовим список треков.');
   if (error) $('load-retry').focus({ preventScroll: true });
 }
-async function start(isDemo = false) {
-  if (document.hidden || !selected || ['loading', 'ready', 'starting'].includes(state)) return;
-  const id = ++requestId;
-  const song = selected, difficulty = level;
-  loadingRun = { song, level: difficulty, demo: isDemo };
-  audio.stop(); mediaAudio.dispose(); pendingStart = null;
+function openSong(song = selected) {
+  if (document.hidden || !song) return;
+  selected = song; if (!song.levels[level]) level = '1';
+  show('song-screen'); $('home').focus({ preventScroll: true });
+  return prepareSong();
+}
+async function prepareSong() {
+  const id = ++requestId, song = selected, difficulty = level;
+  audio.stop(); mediaAudio.dispose(); readyTrack = null;
   audio = settings.compatibleAudio ? mediaAudio : webAudio;
-  $('play').disabled = true; state = 'loading'; preparation(song, difficulty);
-  $('load-cancel').focus({ preventScroll: true });
+  const output = audio;
+  state = 'song-loading'; refresh();
+  $('play').disabled = true; $('demo').disabled = true; $('play-label').textContent = 'Готовим трек…';
+  $('song-load-retry').hidden = true; $('song-status').textContent = 'Загружаем музыку и карту. Звук начнётся только после «Играть».';
   try {
-    // Web Audio unlock stays in the original gesture. Native playback gets its own button after loading.
-    if (audio === webAudio) await audio.unlock();
+    // Selecting a song is a gesture; Web Audio unlocks silently, native mode never creates a context.
+    if (output === webAudio) await output.unlock();
     if (id !== requestId) return;
+    if (!preparedAudio || preparedAudio.songId !== song.id || preparedAudio.output !== output) {
+      preparedAudio = { songId: song.id, output, promise: output.load(`assets/tracks/${song.id}/audio.m4a`, song.duration) };
+    }
     const [chart, loadedBuffer] = await Promise.all([
-      json(`assets/tracks/${song.id}/${difficulty}.json`), audio.load(`assets/tracks/${song.id}/audio.m4a`, song.duration),
+      json(`assets/tracks/${song.id}/${difficulty}.json`), preparedAudio.promise,
     ]);
     if (id !== requestId) return;
-    pendingStart = { id, chart, loadedBuffer, song, difficulty, isDemo };
-    if (audio === mediaAudio) {
-      state = 'ready'; $('loading-indicator').hidden = true; $('load-begin').hidden = false;
-      $('preparation-heading').textContent = 'Трек готов';
-      $('preparation-description').textContent = 'Совместимый звук. Громкость — кнопками телефона. После нажатия музыка начнётся сразу, без отсчёта.';
-      $('load-begin').focus({ preventScroll: true });
-    } else await beginRun();
+    readyTrack = { chart, loadedBuffer, song, difficulty, output };
+    state = 'song-ready'; $('play').disabled = false; $('demo').disabled = false;
+    $('play-label').textContent = 'Играть';
+    $('song-status').textContent = output === mediaAudio ? 'Готово · совместимый звук' : 'Готово к выступлению';
   } catch {
     if (id !== requestId) return;
-    state = 'load-error'; audio.stop(); preparation(song, difficulty, true);
-    $('preparation-description').textContent = 'Попробуй ещё раз или выбери другой трек. Без сети доступны только заранее скачанные треки.';
-    if (globalThis.navigator?.onLine === false) $('preparation-description').textContent = 'Не удалось запустить трек без сети. Проверь скачивание в разделе «Установка и офлайн». Если трек скачан, попробуй ещё раз или включи «Совместимый звук».';
-  } finally { if (id === requestId) $('play').disabled = false; }
+    preparedAudio = null; state = 'song-error'; $('play-label').textContent = 'Играть';
+    $('song-load-retry').hidden = false;
+    $('song-status').textContent = 'Не удалось подготовить трек. Повтори загрузку. Без сети доступны заранее скачанные песни.';
+  }
 }
-async function beginRun() {
-  if (document.hidden || !pendingStart || !['loading', 'ready'].includes(state)) return;
-  const { id, chart, loadedBuffer, song, difficulty, isDemo } = pendingStart;
-  pendingStart = null; state = 'starting'; $('load-begin').hidden = true;
-  $('loading-indicator').hidden = false;
-  $('preparation-heading').textContent = 'Включаем музыку…';
+function stageEntrance() {
+  if (settings.motion || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  // The real song panel leaves over the same background; it never blocks game taps or focus.
+  $('song-screen').hidden = false; $('song-screen').inert = true;
+  $('song-screen').dataset.departing = 'true';
+}
+$('song-screen').onanimationend = event => {
+  if (event.target === $('song-screen') && $('song-screen').dataset.departing === 'true') {
+    $('song-screen').hidden = true; $('song-screen').inert = false; $('song-screen').dataset.departing = 'false';
+  }
+};
+async function start(isDemo = false) {
+  if (document.hidden || !['song-ready', 'results', 'paused'].includes(state)) return;
+  const expected = settings.compatibleAudio ? mediaAudio : webAudio;
+  if (!readyTrack || readyTrack.song.id !== selected.id || readyTrack.difficulty !== level || readyTrack.output !== expected) return openSong(selected);
+  const fromSong = state === 'song-ready';
+  const { chart, loadedBuffer, song, difficulty, output } = readyTrack;
+  const id = ++requestId;
+  audio = output; state = 'starting'; $('play').disabled = true; $('demo').disabled = true;
   try {
+    // Native play below remains before any await. The Web Audio branch resumes from this same click.
+    if (audio === webAudio) await audio.unlock();
+    if (id !== requestId) return;
     renderer.effects.reset();
     game = new Game(chart, { automaticRevenge: true }); buffer = loadedBuffer; demo = isDemo; run = { song, level: difficulty };
     pulse = !demo && !song.tutorial && PULSE_CHARTS[song.id] ? new PhraseProgress(game.notes, PULSE_CHARTS[song.id]) : null;
@@ -160,23 +182,31 @@ async function beginRun() {
       .sort((a, b) => a.time - b.time || Number(a.down) - Number(b.down));
     demoIndex = 0; resumeGrace = -Infinity;
     audio.setVolume(settings.volume / 100);
-    // Native play is invoked before the first await, directly from the ready button.
-    await audio.play(buffer);
-    if (id !== requestId) return;
-    state = 'playing';
-    show('game-screen'); $('now-title').textContent = song.title; $('now-artist').textContent = song.artist;
-    $('now-art').src = artwork(song);
+    const playback = audio.play(buffer, 0, 0);
+    show('game-screen'); if (fromSong) stageEntrance();
+    $('now-title').textContent = song.title; $('now-artist').textContent = song.artist; $('now-art').src = artwork(song);
     $('pause-track').textContent = `${song.title} · ${LEVELS[difficulty]}`;
     $('mode-label').textContent = demo ? 'ДЕМО · без рекорда' : song.tutorial ? 'КАЛИБРОВКА · без рекорда' : LEVELS[difficulty];
     $('pause').focus({ preventScroll: true });
+    await playback;
+    if (id !== requestId) return;
+    state = 'playing';
   } catch {
     if (id !== requestId) return;
-    state = 'load-error'; audio.stop(); preparation(song, difficulty, true);
-    $('preparation-heading').textContent = 'Не удалось включить музыку';
+    audio.stop(); state = 'song-ready'; show('song-screen');
+    $('play').disabled = false; $('demo').disabled = false; $('play-label').textContent = 'Играть';
+    $('song-status').textContent = 'Не удалось включить звук. Нажми «Играть», чтобы попробовать снова.';
   }
 }
 function gameTime() { return audio.position - settings.offset / 1000; }
 function pause(openDialog = true) {
+  if (state === 'starting') {
+    requestId++; audio.stop(); state = 'song-ready'; show('song-screen');
+    $('play').disabled = false; $('demo').disabled = false; $('play-label').textContent = 'Играть';
+    $('song-status').textContent = 'Запуск остановлен. Нажми «Играть», чтобы начать снова.';
+    $('play').focus({ preventScroll: true });
+    return;
+  }
   if (state !== 'playing' && state !== 'resuming') return;
   if (state === 'resuming') requestId++;
   pausePosition = audio.pause();
@@ -287,8 +317,8 @@ webAudio.oninterrupt = mediaAudio.oninterrupt = interruptPlayback;
 
 function frame() {
   if (state === 'playing' && audio.interrupted) interruptPlayback();
-  if (game && ['playing', 'paused', 'resuming'].includes(state)) {
-    const position = state === 'playing' ? audio.position : pausePosition;
+  if (game && ['starting', 'playing', 'paused', 'resuming'].includes(state)) {
+    const position = state === 'playing' ? audio.position : state === 'starting' ? 0 : pausePosition;
     const time = position - settings.offset / 1000, countdown = state === 'playing' ? audio.countdown : 0;
     if (state === 'playing' && countdown === 0 && !audio.waiting) {
       if (demo) {
@@ -325,7 +355,7 @@ function frame() {
   requestAnimationFrame(frame);
 }
 
-$('load-begin').onclick = beginRun;
+$('song-load-retry').onclick = prepareSong;
 $('play').onclick = () => start(false);
 $('demo').onclick = () => start(true);
 $('home').onclick = showLibrary;
@@ -337,17 +367,15 @@ $('retry').onclick = () => { selected = run.song; level = run.level; return star
 $('back-to-library').onclick = showLibrary;
 function selectCalibration() {
   showLibrary();
-  selected = catalog.find(song => song.tutorial); level = '1'; refresh();
+  selected = catalog.find(song => song.tutorial); level = '1';
+  const loading = openSong(selected);
   $('status').textContent = 'Нажимай среднюю дорожку или F в такт метроному. Первые ноты начинаются на 12-й секунде.';
+  return loading;
 }
 $('calibration').onclick = selectCalibration;
 $('settings-calibration').onclick = selectCalibration;
 $('load-cancel').onclick = showLibrary;
-$('load-retry').onclick = () => {
-  if (!catalog) return initialize();
-  selected = loadingRun.song; level = loadingRun.level;
-  return start(loadingRun.demo);
-};
+$('load-retry').onclick = initialize;
 $('apply-calibration').onclick = () => { settings.offset = calibrationOffset; $('offset').value = calibrationOffset; saveSettings(); $('apply-calibration').hidden = true; $('calibration-result').textContent = `Применена поправка ${formatNumber(calibrationOffset)} мс.`; };
 $('settings-open').onclick = () => { pause(false); $('settings-dialog').showModal(); };
 function closeSettings() { $('settings-dialog').close(); if (state === 'paused') $('pause-dialog').showModal(); }
@@ -370,6 +398,7 @@ $('compatible-audio').onchange = event => {
   settings.compatibleAudio = event.target.checked;
   $('volume').disabled = settings.compatibleAudio;
   saveSettings();
+  if (['song-ready', 'song-loading', 'song-error'].includes(state)) return prepareSong();
 };
 $('volume').oninput = event => { settings.volume = Number(event.target.value); $('volume-value').value = formatPercent(settings.volume); audio.setVolume(settings.volume / 100); saveSettings(); };
 $('offset').onchange = event => { const value = Number(event.target.value); settings.offset = Number.isFinite(value) ? Math.max(-500, Math.min(500, value)) : 0; event.target.value = settings.offset; saveSettings(); };
@@ -394,7 +423,7 @@ window.addEventListener('keydown', event => {
 });
 window.addEventListener('keyup', event => { if (event.code in keys) up(keys[event.code], event.code); });
 function leavePage() {
-  if (['loading', 'ready', 'starting'].includes(state)) showLibrary(); else pause();
+  if (['song-loading', 'starting'].includes(state)) showLibrary(); else pause();
 }
 document.addEventListener('visibilitychange', () => { if (document.hidden) leavePage(); });
 window.addEventListener('pagehide', leavePage);
@@ -402,7 +431,7 @@ window.addEventListener('blur', leavePage);
 
 progressView = new ProgressView({
   getProgress: () => progress, getSettings: () => settings, getWarning: () => saveWarning,
-  onSelect: (song, difficulty) => { selected = song; level = difficulty; showLibrary(); },
+  onSelect: (song, difficulty) => { level = difficulty; progressView.close(); return openSong(song); },
   onImport: text => {
     const snapshot = importProgress(browserStorage, text);
     progress = snapshot.progress; records = currentRecords(progress); Object.assign(settings, snapshot.settings);

@@ -55,7 +55,7 @@ export async function mount(t, { records = {}, settings = {}, bootFailure = fals
     addEventListener: (name, fn) => { events[name] = fn; },
   };
   const catalog = JSON.parse(await readFile(new URL('../../dist/assets/catalog.json', import.meta.url)));
-  const audio = { currentTime: 0, starts: [], resumeFailure: false, loadFailure: false, loadGate: null, state: 'running', contexts: [], resumeGate: null };
+  const audio = { currentTime: 0, starts: [], loads: [], resumeFailure: false, loadFailure: false, loadGate: null, state: 'running', contexts: [], resumeGate: null };
   class AudioContext {
     constructor() { audio.contexts.push(this); }
     get state() { return audio.state; }
@@ -92,6 +92,7 @@ export async function mount(t, { records = {}, settings = {}, bootFailure = fals
     fetch: async url => {
       if (bootFailure && url === 'assets/catalog.json') return { ok: false };
       if (url.endsWith('.m4a')) {
+        audio.loads.push(url);
         if (audio.loadGate) await audio.loadGate.promise;
         if (audio.loadFailure) return { ok: false };
         return { ok: true, blob: async () => new Blob(['music'], { type: 'audio/mp4' }) };
@@ -105,7 +106,8 @@ export async function mount(t, { records = {}, settings = {}, bootFailure = fals
     Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
     t.after(() => descriptor ? Object.defineProperty(globalThis, key, descriptor) : delete globalThis[key]);
   }
-  t.mock.method(SongAudio.prototype, 'load', async () => {
+  t.mock.method(SongAudio.prototype, 'load', async url => {
+    audio.loads.push(url);
     if (audio.loadGate) await audio.loadGate.promise;
     if (audio.loadFailure) throw new Error('test network error');
     return { duration: 150 };
@@ -114,6 +116,14 @@ export async function mount(t, { records = {}, settings = {}, bootFailure = fals
   const node = id => document.getElementById(id);
   return {
     node, audio, native, catalog, document, lanes, values, events, detail,
+    openSong(title = catalog.find(song => !song.tutorial).title) {
+      return node('tracks').children.find(button => button.children[1].children[0].textContent === title).onclick();
+    },
+    // Explicit navigation helper for gameplay regressions, not a replacement for click().
+    async start(mode = 'play') {
+      if (document.body.dataset.screen === 'library') await this.openSong();
+      await this.click(mode);
+    },
     click: async id => { assert.equal(node(id).disabled, false, id); await node(id).onclick(); },
     tick(time) { audio.currentTime = time; const callback = frames.shift(); assert.ok(callback); callback(); },
     setBootFailure(value) { bootFailure = value; },
