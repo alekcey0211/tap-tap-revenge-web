@@ -3,6 +3,14 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { mount, deferred } from './helpers/ui-harness.mjs';
 
+test('library shows the running app version matching the entry asset version', async t => {
+  const ui = await mount(t);
+  const version = ui.node('app-version').textContent;
+  assert.match(version, /^v\d+\.\d+\.\d+$/);
+  const html = await readFile(new URL('../dist/index.html', import.meta.url), 'utf8');
+  assert.ok(html.includes(`src="app.js?v=${version.slice(1)}"`));
+});
+
 test('library selects all existing tracks and four difficulties; persisted settings survive', async t => {
   const ui = await mount(t, { settings: { volume: 35, offset: 25, motion: true } });
   assert.equal(ui.document.body.dataset.screen, 'library');

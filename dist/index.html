@@ -9,7 +9,7 @@
   <title>Tap Tap Revenge · Web</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="style.css?v=0.2.0">
-  <script type="module" src="app.js?v=0.2.1"></script>
+  <script type="module" src="app.js?v=0.2.2"></script>
 </head>
 <body>
   <main class="layout">
@@ -22,7 +22,7 @@
     <div class="game-shell">
       <header class="appbar" id="appbar"><button id="home" class="icon-button" aria-label="К трекам" hidden>‹</button><h2 id="screen-title">Музыка</h2><button id="settings-open" class="icon-button" aria-label="Настройки">⚙</button></header>
       <section id="library" class="screen" aria-label="Выбор трека">
-        <p class="catalog-caption">3 трека · 12 карт</p>
+        <p class="catalog-caption">3 трека · 12 карт · <span id="app-version" title="Версия приложения"></span></p>
         <div class="selected-art"><img id="hero-art" alt=""><h3 id="hero-title">Загрузка…</h3><p id="hero-artist"></p><p id="hero-meta"></p></div>
         <div id="tracks" role="group" aria-label="Выбрать трек"></div>
         <div class="difficulty-label"><span>Сложность</span><span id="note-count"></span></div><div id="difficulties" role="group" aria-label="Сложность"></div>

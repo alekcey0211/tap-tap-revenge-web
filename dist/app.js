@@ -4,6 +4,8 @@ import { MediaSongAudio } from './media-audio.js?v=0.2.1';
 import { Renderer } from './renderer.js?v=0.2.0';
 
 const $ = id => document.getElementById(id);
+const APP_VERSION = '0.2.2';
+$('app-version').textContent = `v${APP_VERSION}`;
 const LEVELS = { 1: 'Легко', 2: 'Средне', 3: 'Сложно', 4: 'Экстрим' };
 const webAudio = new SongAudio(), mediaAudio = new MediaSongAudio();
 let audio = webAudio, pendingStart = null;
