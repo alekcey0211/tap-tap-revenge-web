@@ -1,0 +1,8 @@
+source/
+output/
+.DS_Store
+__pycache__/
+*.apk
+*.log
+.env
+.env.*
