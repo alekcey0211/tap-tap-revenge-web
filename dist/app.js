@@ -1,20 +1,23 @@
 import { Game } from './engine.js';
 import { SongAudio } from './audio.js';
+import { MediaSongAudio } from './media-audio.js?v=0.2.1';
 import { Renderer } from './renderer.js?v=0.2.0';
 
 const $ = id => document.getElementById(id);
 const LEVELS = { 1: 'Легко', 2: 'Средне', 3: 'Сложно', 4: 'Экстрим' };
-const audio = new SongAudio();
+const webAudio = new SongAudio(), mediaAudio = new MediaSongAudio();
+let audio = webAudio, pendingStart = null;
 let catalog, selected, level = '1', renderer, game, buffer;
 let state = 'boot', demo = false, run = null, loadingRun = null, requestId = 0, pausePosition = 0;
 let resumeGrace = -Infinity, demoActions = [], demoIndex = 0, calibrationOffset = null;
 const inputs = [new Set(), new Set(), new Set()];
-const settings = { volume: 75, offset: 0, motion: matchMedia('(prefers-reduced-motion: reduce)').matches };
+const settings = { compatibleAudio: false, volume: 75, offset: 0, motion: matchMedia('(prefers-reduced-motion: reduce)').matches };
 let records = {};
 try {
   const saved = JSON.parse(localStorage.getItem('ttr-web-settings') || '{}');
   if (Number.isFinite(saved.volume)) settings.volume = Math.max(0, Math.min(100, saved.volume));
   if (Number.isFinite(saved.offset)) settings.offset = Math.max(-500, Math.min(500, saved.offset));
+  if (typeof saved.compatibleAudio === 'boolean') settings.compatibleAudio = saved.compatibleAudio;
   if (typeof saved.motion === 'boolean') settings.motion = saved.motion;
   records = JSON.parse(localStorage.getItem('ttr-web-records') || '{}') || {};
 } catch { /* Storage is optional, including private browsing. */ }
@@ -34,7 +37,7 @@ function show(screen) {
 }
 function showLibrary() {
   requestId++;
-  audio.stop(); state = 'library'; inputs.forEach(input => input.clear());
+  audio.stop(); mediaAudio.dispose(); pendingStart = null; state = 'library'; inputs.forEach(input => input.clear());
   for (const dialog of document.querySelectorAll('dialog[open]')) dialog.close();
   show('library'); refresh(); $('play').focus({ preventScroll: true });
 }
@@ -85,6 +88,7 @@ function preparation(song, difficulty, error = false) {
   $('loading-indicator').hidden = error;
   $('error-icon').hidden = !error;
   $('load-retry').hidden = !error;
+  $('load-begin').hidden = true;
   $('load-cancel').hidden = !catalog;
   $('preparation-heading').textContent = error
     ? (song ? 'Не удалось загрузить трек' : 'Не удалось загрузить игру')
@@ -95,64 +99,94 @@ function preparation(song, difficulty, error = false) {
   if (error) $('load-retry').focus({ preventScroll: true });
 }
 async function start(isDemo = false) {
-  if (!selected || state === 'loading') return;
+  if (!selected || ['loading', 'ready', 'starting'].includes(state)) return;
   const id = ++requestId;
   const song = selected, difficulty = level;
   loadingRun = { song, level: difficulty, demo: isDemo };
-  audio.stop();
+  audio.stop(); mediaAudio.dispose(); pendingStart = null;
+  audio = settings.compatibleAudio ? mediaAudio : webAudio;
   $('play').disabled = true; state = 'loading'; preparation(song, difficulty);
   $('load-cancel').focus({ preventScroll: true });
   try {
-    // AudioContext is resumed synchronously from the user's gesture, before fetching.
-    await audio.unlock();
+    // Web Audio unlock stays in the original gesture. Native playback gets its own button after loading.
+    if (audio === webAudio) await audio.unlock();
     if (id !== requestId) return;
     const [chart, loadedBuffer] = await Promise.all([
-      json(`assets/tracks/${song.id}/${difficulty}.json`), audio.load(`assets/tracks/${song.id}/audio.m4a`),
+      json(`assets/tracks/${song.id}/${difficulty}.json`), audio.load(`assets/tracks/${song.id}/audio.m4a`, song.duration),
     ]);
     if (id !== requestId) return;
+    pendingStart = { id, chart, loadedBuffer, song, difficulty, isDemo };
+    if (audio === mediaAudio) {
+      state = 'ready'; $('loading-indicator').hidden = true; $('load-begin').hidden = false;
+      $('preparation-heading').textContent = 'Трек готов';
+      $('preparation-description').textContent = 'Совместимый звук. Громкость — кнопками телефона. После нажатия музыка начнётся сразу, без отсчёта.';
+      $('load-begin').focus({ preventScroll: true });
+    } else await beginRun();
+  } catch {
+    if (id !== requestId) return;
+    state = 'load-error'; audio.stop(); preparation(song, difficulty, true);
+  } finally { if (id === requestId) $('play').disabled = false; }
+}
+async function beginRun() {
+  if (!pendingStart || !['loading', 'ready'].includes(state)) return;
+  const { id, chart, loadedBuffer, song, difficulty, isDemo } = pendingStart;
+  pendingStart = null; state = 'starting'; $('load-begin').hidden = true;
+  $('loading-indicator').hidden = false;
+  $('preparation-heading').textContent = 'Включаем музыку…';
+  try {
     game = new Game(chart); buffer = loadedBuffer; demo = isDemo; run = { song, level: difficulty };
     inputs.forEach(input => input.clear());
     demoActions = chart.flatMap(note => [{ time: note.time, lane: note.lane, down: true },
       { time: note.time + (note.duration || 0.035), lane: note.lane, down: false }])
       .sort((a, b) => a.time - b.time || Number(a.down) - Number(b.down));
     demoIndex = 0; resumeGrace = -Infinity;
-    audio.setVolume(settings.volume / 100); audio.play(buffer); state = 'playing';
+    audio.setVolume(settings.volume / 100);
+    // Native play is invoked before the first await, directly from the ready button.
+    await audio.play(buffer);
+    if (id !== requestId) return;
+    state = 'playing';
     show('game-screen'); $('now-title').textContent = song.title; $('now-artist').textContent = song.artist;
     $('now-art').src = artwork(song);
     $('pause-track').textContent = `${song.title} · ${LEVELS[difficulty]}`;
     $('mode-label').textContent = demo ? 'ДЕМО · без рекорда' : song.tutorial ? 'КАЛИБРОВКА · без рекорда' : LEVELS[difficulty];
     $('pause').focus({ preventScroll: true });
-  } catch (error) {
+  } catch {
     if (id !== requestId) return;
     state = 'load-error'; audio.stop(); preparation(song, difficulty, true);
-  } finally { if (id === requestId) $('play').disabled = false; }
+    $('preparation-heading').textContent = 'Не удалось включить музыку';
+  }
 }
 function gameTime() { return audio.position - settings.offset / 1000; }
 function pause(openDialog = true) {
-  if (state !== 'playing') return;
-  pausePosition = audio.pause(); state = 'paused';
+  if (state !== 'playing' && state !== 'resuming') return;
+  if (state === 'resuming') { requestId++; audio.stop(); }
+  else pausePosition = audio.pause();
+  state = 'paused'; $('resume').disabled = false;
   game.held.fill(false); inputs.forEach(input => input.clear());
   $('pause-error').hidden = true;
-  if (openDialog) $('pause-dialog').showModal();
+  if (openDialog && !$('pause-dialog').open) $('pause-dialog').showModal();
 }
 async function resume() {
   if (state !== 'paused') return;
-  const id = requestId;
+  const id = ++requestId;
+  state = 'resuming'; $('resume').disabled = true;
   try {
-    await audio.unlock();
-    if (state !== 'paused' || id !== requestId) return;
-    $('pause-dialog').close();
-    audio.play(buffer, pausePosition, 2); state = 'playing';
+    if (audio === webAudio) await audio.unlock();
+    if (state !== 'resuming' || id !== requestId) return;
+    await audio.play(buffer, pausePosition, 2);
+    if (state !== 'resuming' || id !== requestId) return;
+    $('pause-dialog').close(); state = 'playing';
     resumeGrace = pausePosition - settings.offset / 1000 + .3;
     $('pause').focus({ preventScroll: true });
   } catch {
-    if (state !== 'paused' || id !== requestId) return;
+    if (id !== requestId) return;
+    audio.stop(); state = 'paused';
     $('pause-error').textContent = 'Не удалось включить звук. Нажми «Продолжить», чтобы попробовать ещё раз.';
     $('pause-error').hidden = false;
-  }
+  } finally { if (id === requestId) $('resume').disabled = false; }
 }
 function down(lane, source) {
-  if (state !== 'playing' || demo || audio.countdown > 0) return;
+  if (state !== 'playing' || demo || audio.countdown > 0 || audio.waiting) return;
   const wasHeld = inputs[lane].size > 0; inputs[lane].add(source);
   if (!wasHeld) game.press(lane, gameTime());
 }
@@ -206,9 +240,15 @@ function text(id, value) {
   if (node.textContent !== String(value)) node.textContent = value;
 }
 function frame() {
-  if (game && (state === 'playing' || state === 'paused')) {
-    const time = gameTime(), countdown = state === 'playing' ? audio.countdown : 0;
-    if (state === 'playing' && countdown === 0) {
+  if (state === 'playing' && audio.interrupted) {
+    pause();
+    $('pause-error').textContent = 'Воспроизведение остановилось. Нажми «Продолжить», чтобы включить музыку.';
+    $('pause-error').hidden = false;
+  }
+  if (game && ['playing', 'paused', 'resuming'].includes(state)) {
+    const position = state === 'playing' ? audio.position : pausePosition;
+    const time = position - settings.offset / 1000, countdown = state === 'playing' ? audio.countdown : 0;
+    if (state === 'playing' && countdown === 0 && !audio.waiting) {
       if (demo) {
         while (demoIndex < demoActions.length && demoActions[demoIndex].time <= time) {
           const action = demoActions[demoIndex++];
@@ -222,20 +262,23 @@ function frame() {
       game.update(time);
     }
     renderer.render(game, time, run.level, buffer.duration, countdown, settings.motion);
-    text('time', `${formatTime(audio.position)} / ${formatTime(buffer.duration)}`);
+    text('time', `${formatTime(position)} / ${formatTime(buffer.duration)}`);
     text('live-score', game.score.toLocaleString('ru-RU'));
     text('live-combo', game.streak);
     text('multiplier', `×${game.multiplier(time)}`);
-    $('song-progress').value = Math.min(1, Math.max(0, audio.position / buffer.duration));
+    $('song-progress').value = Math.min(1, Math.max(0, position / buffer.duration));
     $('revenge-progress').value = time < game.revengeUntil ? Math.max(0, (game.revengeUntil - time) / 15 * 50) : Math.min(50, game.streak);
-    $('revenge').disabled = !game.revengeReady || demo || countdown > 0 || state !== 'playing';
+    $('revenge').disabled = !game.revengeReady || demo || countdown > 0 || Boolean(audio.waiting) || state !== 'playing';
     text('revenge-label', time < game.revengeUntil ? `×8 · ${Math.ceil(game.revengeUntil - time)} с` : 'REVENGE ×8');
+    $('audio-status').hidden = audio !== mediaAudio;
+    text('audio-status', audio.waiting ? 'Ожидаем звук…' : 'Совместимый звук');
     text('game-stats', `Очки: ${game.score}; попадания: ${game.hits}; пропуски: ${game.misses}`);
     if (state === 'playing' && audio.position > buffer.duration + Math.max(0, settings.offset / 1000) + .3) finish();
   }
   requestAnimationFrame(frame);
 }
 
+$('load-begin').onclick = beginRun;
 $('play').onclick = () => start(false);
 $('demo').onclick = () => start(true);
 $('home').onclick = showLibrary;
@@ -245,7 +288,7 @@ $('restart').onclick = () => { $('pause-dialog').close(); selected = run.song; l
 $('quit').onclick = showLibrary;
 $('retry').onclick = () => { selected = run.song; level = run.level; return start(demo); };
 $('back-to-library').onclick = showLibrary;
-$('revenge').onclick = () => game.activateRevenge(gameTime());
+$('revenge').onclick = () => { if (state === 'playing' && !demo && !audio.waiting && audio.countdown === 0) game.activateRevenge(gameTime()); };
 function selectCalibration() {
   showLibrary();
   selected = catalog.find(song => song.tutorial); level = '1'; refresh();
@@ -269,6 +312,13 @@ $('about-open').onclick = () => { pause(false); $('about-dialog').showModal(); }
 function closeAbout() { $('about-dialog').close(); if (state === 'paused') $('pause-dialog').showModal(); }
 $('about-close').onclick = closeAbout;
 $('about-dialog').oncancel = event => { event.preventDefault(); closeAbout(); };
+$('compatible-audio').checked = settings.compatibleAudio;
+$('volume').disabled = settings.compatibleAudio;
+$('compatible-audio').onchange = event => {
+  settings.compatibleAudio = event.target.checked;
+  $('volume').disabled = settings.compatibleAudio;
+  saveSettings();
+};
 $('volume').value = settings.volume; $('volume-value').value = `${settings.volume}%`;
 $('offset').value = settings.offset; $('motion').checked = settings.motion;
 $('volume').oninput = event => { settings.volume = Number(event.target.value); $('volume-value').value = `${settings.volume}%`; audio.setVolume(settings.volume / 100); saveSettings(); };
@@ -291,12 +341,12 @@ window.addEventListener('keydown', event => {
   if (state !== 'playing') return;
   if (event.code in keys) { event.preventDefault(); down(keys[event.code], event.code); }
   if (event.code === 'Escape') { event.preventDefault(); pause(); }
-  if (event.code === 'Space') { event.preventDefault(); if (!demo && audio.countdown === 0) game.activateRevenge(gameTime()); }
+  if (event.code === 'Space') { event.preventDefault(); if (!demo && !audio.waiting && audio.countdown === 0) game.activateRevenge(gameTime()); }
 });
 window.addEventListener('keyup', event => { if (event.code in keys) up(keys[event.code], event.code); });
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) return;
-  if (state === 'loading') showLibrary(); else pause();
+  if (['loading', 'ready', 'starting'].includes(state)) showLibrary(); else pause();
 });
 window.addEventListener('blur', () => pause());
 

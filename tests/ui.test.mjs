@@ -176,6 +176,6 @@ test('settings edits retain the existing storage keys and update reduced motion'
   const target = { value: '999' };
   ui.node('offset').onchange({ target });
   assert.equal(target.value, 500);
-  assert.deepEqual(JSON.parse(ui.values.get('ttr-web-settings')), { volume: 42, offset: 500, motion: true });
+  assert.deepEqual(JSON.parse(ui.values.get('ttr-web-settings')), { compatibleAudio: false, volume: 42, offset: 500, motion: true });
   assert.equal(ui.document.body.dataset.reducedMotion, 'true');
 });

@@ -9,7 +9,7 @@
   <title>Tap Tap Revenge · Web</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="style.css?v=0.2.0">
-  <script type="module" src="app.js?v=0.2.0"></script>
+  <script type="module" src="app.js?v=0.2.1"></script>
 </head>
 <body>
   <main class="layout">
@@ -34,7 +34,7 @@
         <div class="now-playing"><img id="now-art" alt=""><div><strong id="now-title"></strong><small id="now-artist"></small></div><button id="pause" class="icon-button" aria-label="Пауза">Ⅱ</button></div>
         <div class="hud"><strong id="live-score">0</strong><div><small>Комбо</small><strong id="live-combo">0</strong></div></div>
         <div class="progress-row"><progress id="song-progress" max="1" value="0" aria-label="Прогресс трека"></progress><span id="time">0:00 / 0:00</span></div>
-        <div class="mode-row"><span id="mode-label"></span><span id="multiplier">×1</span></div>
+        <div class="mode-row"><span id="mode-label"></span><span id="audio-status" hidden></span><span id="multiplier">×1</span></div>
         <div class="playfield" id="playfield"><canvas id="canvas" width="640" height="960" aria-label="Три дорожки: левая D, средняя F, правая J"></canvas><div class="touch-lanes"><button data-lane="0" aria-label="Левая дорожка, D"></button><button data-lane="1" aria-label="Средняя дорожка, F"></button><button data-lane="2" aria-label="Правая дорожка, J"></button></div></div>
         <div class="game-footer"><button id="revenge" class="secondary" disabled><span id="revenge-label">REVENGE ×8</span><progress id="revenge-progress" max="50" value="0" aria-hidden="true"></progress></button></div><div id="game-stats" class="sr-only"></div>
       </section>
@@ -48,7 +48,7 @@
       <section id="preparation" class="screen preparation" hidden aria-label="Подготовка трека">
         <div id="preparation-track"><img id="preparation-art" alt=""><h3 id="preparation-title"></h3><p id="preparation-artist"></p></div>
         <div class="preparation-message" role="status"><div id="loading-indicator" class="spinner" aria-hidden="true"></div><div id="error-icon" aria-hidden="true" hidden>!</div><h3 id="preparation-heading">Загружаем трек…</h3><p id="preparation-description">Игра начнётся после загрузки.</p></div>
-        <div class="preparation-actions"><button id="load-retry" class="primary" hidden>Повторить загрузку</button><button id="load-cancel" class="secondary">К трекам</button></div>
+        <div class="preparation-actions"><button id="load-begin" class="primary" hidden>Начать со звуком</button><button id="load-retry" class="primary" hidden>Повторить загрузку</button><button id="load-cancel" class="secondary">К трекам</button></div>
       </section>
       <p id="status" role="status" class="status"></p>
     </div>
@@ -56,7 +56,7 @@
   <dialog id="pause-dialog" aria-labelledby="pause-heading"><span class="pause-symbol" aria-hidden="true">Ⅱ</span><h2 id="pause-heading">Пауза</h2><p>Ритм подождёт.</p><p id="pause-track"></p><p id="pause-error" role="status" hidden></p><button id="resume" class="primary">Продолжить</button><button id="restart" class="secondary">Начать заново</button><button id="quit" class="text-button">К трекам</button></dialog>
   <dialog id="settings-dialog" aria-labelledby="settings-heading">
     <h2 id="settings-heading">Настройки</h2>
-    <div class="settings-section"><h3>Звук</h3><label for="volume">Громкость <output id="volume-value">75%</output></label><input id="volume" type="range" min="0" max="100" value="75"></div>
+    <div class="settings-section"><h3>Звук</h3><label class="check" for="compatible-audio"><span>Совместимый звук</span><input id="compatible-audio" type="checkbox" role="switch" aria-describedby="compatible-help"></label><p id="compatible-help" class="subtle">Включи, если музыка не слышна. Используется обычный аудиоплеер, громкость — кнопками телефона. Старт и продолжение без отсчёта. Режим применяется со следующего запуска трека.</p><label for="volume">Громкость <output id="volume-value">75%</output></label><input id="volume" type="range" min="0" max="100" value="75"></div>
     <div class="settings-section"><h3>Синхронизация</h3><div class="offset-row"><label for="offset">Сдвиг нот</label><input id="offset" type="number" min="-500" max="500" step="5" value="0" aria-describedby="offset-help"><span>мс</span></div><p id="offset-help" class="subtle">Положительное значение — ноты позже. Для Bluetooth-наушников настрой синхронизацию.</p><button id="settings-calibration" class="settings-link" disabled>Калибровка <span aria-hidden="true">›</span></button></div>
     <div class="settings-section"><label class="check" for="motion"><span>Меньше движения</span><input id="motion" type="checkbox" role="switch"></label><p class="subtle">Уменьшает движение фона и эффектов.</p></div>
     <p class="subtle">Настройки и рекорды — только в этом браузере.</p><button id="settings-close" class="primary">Готово</button>

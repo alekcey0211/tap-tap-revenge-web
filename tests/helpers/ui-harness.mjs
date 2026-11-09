@@ -57,13 +57,32 @@ export async function mount(t, { records = {}, settings = {}, bootFailure = fals
     createBufferSource() { return { connect: n => n, disconnect() {}, stop() {}, start: (at, offset) => audio.starts.push({ at, offset }) }; }
     createGain() { return { gain: { value: 0, setTargetAtTime() {} }, connect() {}, disconnect() {} }; }
   }
+  const native = { instances: [], plays: [], gate: null, failure: false, now: 0 };
+  class Audio {
+    constructor() {
+      this.currentTime = 0; this.duration = 150; this.readyState = 4; this.ended = false; this.paused = true;
+      native.instances.push(this);
+    }
+    play() {
+      native.plays.push(this.currentTime); this.paused = false;
+      return native.failure ? Promise.reject(new Error('test native playback')) : native.gate?.promise || Promise.resolve();
+    }
+    pause() { this.paused = true; }
+    removeAttribute(name) { delete this[name]; }
+    load() {}
+  }
   const globals = {
     document, window: { addEventListener: (name, fn) => { events[name] = fn; } },
-    AudioContext, matchMedia: () => ({ matches: false }),
+    AudioContext, Audio, performance: { now: () => native.now }, matchMedia: () => ({ matches: false }),
     requestAnimationFrame: callback => { frames.push(callback); },
     localStorage: { getItem: key => values.get(key) || null, setItem: (key, value) => values.set(key, value) },
     fetch: async url => {
       if (bootFailure && url === 'assets/catalog.json') return { ok: false };
+      if (url.endsWith('.m4a')) {
+        if (audio.loadGate) await audio.loadGate.promise;
+        if (audio.loadFailure) return { ok: false };
+        return { ok: true, blob: async () => new Blob(['music'], { type: 'audio/mp4' }) };
+      }
       return { ok: true, json: async () => JSON.parse(await readFile(new URL('../../dist/' + url, import.meta.url))) };
     },
   };
@@ -80,7 +99,7 @@ export async function mount(t, { records = {}, settings = {}, bootFailure = fals
   await import('../../dist/app.js?ui-test=' + sequence++);
   const node = id => document.getElementById(id);
   return {
-    node, audio, catalog, document, lanes, values, events, detail,
+    node, audio, native, catalog, document, lanes, values, events, detail,
     click: async id => { assert.equal(node(id).disabled, false, id); await node(id).onclick(); },
     tick(time) { audio.currentTime = time; const callback = frames.shift(); assert.ok(callback); callback(); },
     setBootFailure(value) { bootFailure = value; },
