@@ -256,3 +256,11 @@ body[data-reduced-motion="true"] .spinner { animation: none; }
 .pulse-summary h3 { margin: 0 0 8px; }
 .pulse-summary small { color: #a9b0b5; }
 .history-score-row .history-pulse { color: #c9ff56; }
+
+/* Fixed-size score badge: changes never move the playfield or touch targets. */
+#multiplier { min-width: 46px; text-align: center; border-radius: 6px; padding: 1px 5px; line-height: 22px; font-variant-numeric: tabular-nums; }
+#multiplier[data-level="2"] { color: #49e6ef; background: #49e6ef16; }
+#multiplier[data-level="3"] { color: #9beaaf; background: #9beaaf16; }
+#multiplier[data-level="4"] { color: #c9ff56; background: #c9ff5622; }
+#multiplier[data-level="8"] { color: #101113; background: #c9ff56; box-shadow: 0 0 14px #c9ff5644; }
+body[data-reduced-motion="true"] #multiplier { box-shadow: none; }

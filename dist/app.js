@@ -5,7 +5,7 @@ import { OfflineView } from './offline-view.js?v=0.4.0';
 import { Game } from './engine.js';
 import { SongAudio } from './audio.js?v=0.3.1';
 import { MediaSongAudio } from './media-audio.js?v=0.3.1';
-import { Renderer } from './renderer.js?v=0.3.0';
+import { Renderer } from './renderer.js?v=0.5.1';
 
 import { Temporal } from './temporal.js';
 import { formatNumber, formatPercent, formatSigned, formatTime, formatCount } from './format.js?v=0.3.0';
@@ -13,7 +13,7 @@ import { DEFAULT_SETTINGS, loadSave, saveSettings as writeSettings, recordAttemp
 import { ProgressView } from './progress.js?v=0.5.0';
 
 const $ = id => document.getElementById(id);
-const APP_VERSION = '0.5.0';
+const APP_VERSION = '0.5.1';
 if ($('app-version')) $('app-version').textContent = `v${APP_VERSION}`;
 $('pulse-target').textContent = formatPercent(90);
 const LEVELS = { 1: 'Легко', 2: 'Средне', 3: 'Сложно', 4: 'Экстрим' };
@@ -149,6 +149,7 @@ async function beginRun() {
   $('loading-indicator').hidden = false;
   $('preparation-heading').textContent = 'Включаем музыку…';
   try {
+    renderer.effects.reset();
     game = new Game(chart); buffer = loadedBuffer; demo = isDemo; run = { song, level: difficulty };
     pulse = !demo && !song.tutorial && PULSE_CHARTS[song.id] ? new PhraseProgress(game.notes, PULSE_CHARTS[song.id]) : null;
     renderPulse(pulse?.view(0) ?? null);
@@ -207,7 +208,7 @@ function down(lane, source) {
   const wasHeld = inputs[lane].size > 0; inputs[lane].add(source);
   if (!wasHeld) {
     const time = gameTime();
-    game.press(lane, time);
+    renderer.effects.recordHit(game.press(lane, time), time, game.multiplier(time));
     pulse?.recordInput(time, game.strays);
   }
 }
@@ -281,7 +282,8 @@ function frame() {
       if (demo) {
         while (demoIndex < demoActions.length && demoActions[demoIndex].time <= time) {
           const action = demoActions[demoIndex++];
-          if (action.down) game.press(action.lane, action.time); else game.release(action.lane, action.time);
+          if (action.down) renderer.effects.recordHit(game.press(action.lane, action.time), action.time, game.multiplier(action.time));
+          else game.release(action.lane, action.time);
         }
         if (game.revengeReady) game.activateRevenge(time);
       } else if (time >= resumeGrace && resumeGrace !== -Infinity) {
@@ -296,7 +298,9 @@ function frame() {
     text('time', `${formatTime(position)} / ${formatTime(buffer.duration)}`);
     text('live-score', formatNumber(game.score));
     text('live-combo', formatNumber(game.streak));
-    text('multiplier', `×${formatNumber(game.multiplier(time))}`);
+    const multiplier = game.multiplier(time);
+    text('multiplier', `×${formatNumber(multiplier)}`);
+    $('multiplier').dataset.level = String(multiplier);
     $('song-progress').value = Math.min(1, Math.max(0, position / buffer.duration));
     $('revenge-progress').value = time < game.revengeUntil ? Math.max(0, (game.revengeUntil - time) / 15 * 50) : Math.min(50, game.streak);
     $('revenge').disabled = !game.revengeReady || demo || countdown > 0 || Boolean(audio.waiting) || state !== 'playing';
