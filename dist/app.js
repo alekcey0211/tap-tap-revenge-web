@@ -1,6 +1,6 @@
 import { Game } from './engine.js';
 import { SongAudio } from './audio.js';
-import { Renderer } from './renderer.js';
+import { Renderer } from './renderer.js?v=0.2.0';
 
 const $ = id => document.getElementById(id);
 const LEVELS = { 1: 'Легко', 2: 'Средне', 3: 'Сложно', 4: 'Экстрим' };
