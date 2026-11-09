@@ -90,7 +90,7 @@ test('buffering freezes scoring and ignores new presses', async t => {
   ui.lanes[0].onclick({ detail: 0 }); ui.tick(9000);
   assert.equal(ui.node('game-stats').textContent, score);
   assert.equal(ui.node('audio-status').textContent, 'Ожидаем звук…');
-  assert.equal(ui.node('revenge').disabled, true);
+  assert.equal(ui.node('revenge').tagName, 'DIV');
 });
 
 for (const mode of ['play', 'demo', 'calibration']) {

@@ -33,3 +33,20 @@ for (const compatibleAudio of [false, true]) test(`new track can be selected and
   assert.equal(ui.node('pulse').hidden, false);
   assert.equal(ui.progress().history.length, 0);
 });
+
+for (const [songId, title] of [['neon-circuit-v1', 'Neon Circuit'], ['overdrive-v1', 'Overdrive']])
+for (const compatibleAudio of [false, true]) test(`ordinary ${title} results include artwork and survive save reload (${compatibleAudio})`, async t => {
+  const ui = await mount(t, { settings: { compatibleAudio } });
+  ui.selectedTrack(title).onclick(); await ui.click('play');
+  if (compatibleAudio) { await ui.click('load-begin'); ui.native.instances[0].currentTime = 151; }
+  assert.doesNotThrow(() => ui.tick(200));
+  assert.equal(ui.document.body.dataset.screen, 'results');
+  assert.equal(ui.node('result-art').src, `assets/tracks/${songId}/artwork.png`);
+  assert.equal(ui.node('result-heading').textContent, title);
+  assert.equal(ui.progress().history.length, 1);
+  const { parseProgress, exportProgress } = await import('../dist/storage.js');
+  const restored = parseProgress(exportProgress(ui.settings(), ui.progress()));
+  assert.equal(restored.progress.history[0].songId, songId);
+  await ui.click('back-to-library'); await ui.click('progress-open');
+  assert.equal(ui.node('personal-best').hidden, false);
+});

@@ -5,13 +5,15 @@ import { spawnSync } from 'node:child_process';
 import { deflateSync } from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 
-const root = new URL('../', import.meta.url), id = 'neon-circuit-v1';
+const intense = process.argv.includes('--overdrive');
+const root = new URL('../', import.meta.url), id = intense ? 'overdrive-v1' : 'neon-circuit-v1';
+const bpm = intense ? 150 : 128;
 const target = new URL(`dist/assets/tracks/${id}/`, root);
-const scratch = new URL('output/neon-circuit/', root);
+const scratch = new URL(`output/${id}/`, root);
 await mkdir(target, { recursive: true }); await mkdir(scratch, { recursive: true });
-const rate = 44100, beat = 60 / 128, bars = 32, duration = bars * 4 * beat + 2;
+const rate = 44100, beat = 60 / bpm, bars = intense ? 40 : 32, duration = bars * 4 * beat + 2;
 const length = Math.round(duration * rate), left = new Float32Array(length), right = new Float32Array(length);
-let seed = 173;
+let seed = intense ? 941 : 173;
 function noise() { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 2147483648 - 1; }
 const hz = midi => 440 * 2 ** ((midi - 69) / 12);
 function add(at, seconds, sample, gain = 1, pan = 0) {
@@ -39,21 +41,27 @@ function bass(at, midi, seconds = beat * .4) {
   const f = hz(midi);
   add(at, seconds, (t, p) => {
     const wave = Math.sin(2 * Math.PI * f * t) + .28 * Math.sin(4 * Math.PI * f * t) + .12 * Math.sin(6 * Math.PI * f * t);
-    return wave * Math.min(1, t * 180) * Math.min(1, (1 - p) * 12) * Math.exp(-t * 3);
-  }, .29);
+    const grit = intense ? .18 * Math.sin(8 * Math.PI * f * t) + .12 * Math.sin(12 * Math.PI * f * t) : 0;
+    return (wave + grit) * Math.min(1, t * 180) * Math.min(1, (1 - p) * 12) * Math.exp(-t * 3);
+  }, intense ? .36 : .29);
 }
 function pluck(at, midi, accent = 1, pan = 0) {
   const f = hz(midi);
   add(at, .45, t => Math.sin(2 * Math.PI * f * t + 1.3 * Math.exp(-t * 18) * Math.sin(4 * Math.PI * f * t))
     * Math.exp(-t * 9) * Math.min(1, t * 500), .19 * accent, pan);
 }
-const roots = [45, 41, 48, 43], melody = [0, 7, 12, 7, 3, 10, 7, 15];
+const roots = intense ? [50, 46, 53, 48] : [45, 41, 48, 43];
+const melody = intense ? [0, 0, 7, 10, 12, 7, 3, 10] : [0, 7, 12, 7, 3, 10, 7, 15];
 for (let bar = 0; bar < bars; bar++) {
   const rootNote = roots[Math.floor(bar / 2) % 4], start = bar * 4 * beat;
-  const breakdown = bar >= 12 && bar < 16, intro = bar < 4, outro = bar >= 28;
+  const breakdown = bar >= 12 && bar < 16, intro = bar < 4, outro = bar >= bars - 4;
   for (let b = 0; b < 4; b++) {
     if (!breakdown || b === 0) kick(start + b * beat, intro ? .8 : 1);
     if (!intro && !breakdown && b % 2) snare(start + b * beat);
+    if (intense && !intro && !breakdown) {
+      hat(start + (b + .75) * beat);
+      if (b === 2 && bar % 2) kick(start + (b + .75) * beat, .7);
+    }
     hat(start + (b + .5) * beat, !intro && !breakdown);
     if (!intro && !outro) hat(start + b * beat);
     if (!breakdown) {
@@ -61,7 +69,7 @@ for (let bar = 0; bar < bars; bar++) {
       if (!intro && !outro) bass(start + (b + .75) * beat, rootNote, beat * .2);
     }
   }
-  const chord = [rootNote + 12, rootNote + (rootNote === 45 ? 15 : 16), rootNote + 19];
+  const chord = [rootNote + 12, rootNote + (rootNote === roots[0] ? 15 : 16), rootNote + 19];
   for (const [index, midi] of chord.entries()) {
     const f = hz(midi), chordDuration = 4 * beat;
     add(start, chordDuration, (t, p) => (Math.sin(2 * Math.PI * f * t) + .3 * Math.sin(2 * Math.PI * f * 1.003 * t))
@@ -74,7 +82,7 @@ for (let bar = 0; bar < bars; bar++) {
     const interval = melody[(step + (bar % 4 === 3 ? 2 : 0)) % 8];
     pluck(start + step * beat / 2, rootNote + 24 + interval, breakdown ? .65 : 1, (step % 3 - 1) * .35);
   }
-  if ([11, 15, 27].includes(bar)) {
+  if ([11, 15, bars - 5].includes(bar)) {
     for (let step = 0; step < 8; step++) snare(start + (3 + step / 8) * beat);
   }
 }
@@ -91,15 +99,15 @@ for (let i = 0; i < length; i++) {
   peak = Math.max(peak, Math.abs(left[i]), Math.abs(right[i]));
 }
 for (let i = 0; i < length; i++) {
-  pcm.writeInt16LE(Math.round(left[i] / peak * .89 * 32767), i * 4);
-  pcm.writeInt16LE(Math.round(right[i] / peak * .89 * 32767), i * 4 + 2);
+  pcm.writeInt16LE(Math.round(left[i] / peak * (intense ? .65 : .89) * 32767), i * 4);
+  pcm.writeInt16LE(Math.round(right[i] / peak * (intense ? .65 : .89) * 32767), i * 4 + 2);
 }
 const wav = Buffer.alloc(44);
 wav.write('RIFF'); wav.writeUInt32LE(36 + pcm.length, 4); wav.write('WAVEfmt ', 8);
 wav.writeUInt32LE(16, 16); wav.writeUInt16LE(1, 20); wav.writeUInt16LE(2, 22);
 wav.writeUInt32LE(rate, 24); wav.writeUInt32LE(rate * 4, 28); wav.writeUInt16LE(4, 32); wav.writeUInt16LE(16, 34);
 wav.write('data', 36); wav.writeUInt32LE(pcm.length, 40);
-const wavPath = fileURLToPath(new URL('neon-circuit.wav', scratch));
+const wavPath = fileURLToPath(new URL(`${id}.wav`, scratch));
 await writeFile(wavPath, Buffer.concat([wav, pcm]));
 const encoded = spawnSync('ffmpeg', ['-y', '-v', 'error', '-i', wavPath, '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', fileURLToPath(new URL('audio.m4a', target))], { encoding: 'utf8' });
 if (encoded.status !== 0) throw new Error(encoded.stderr || 'ffmpeg failed');
@@ -108,7 +116,7 @@ if (encoded.status !== 0) throw new Error(encoded.stderr || 'ffmpeg failed');
 const levels = {};
 for (let level = 1; level <= 4; level++) {
   const chart = [];
-  for (let bar = 2; bar < 31; bar++) {
+  for (let bar = 2; bar < bars - 1; bar++) {
     const breakdown = bar >= 12 && bar < 16;
     const count = level === 1 ? 2 : level === 2 || breakdown ? 4 : 8;
     for (let step = 0; step < count; step++) {
@@ -125,11 +133,11 @@ for (let level = 1; level <= 4; level++) {
 }
 // Code-native geometric cover: three luminous orbs and circuit traces.
 const size = 512, pixels = Buffer.alloc((size * 3 + 1) * size);
-const colors = [[255, 104, 104], [201, 255, 86], [73, 230, 239]];
+const colors = intense ? [[255, 120, 46], [212, 112, 255], [110, 231, 255]] : [[255, 104, 104], [201, 255, 86], [73, 230, 239]];
 for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
   let rgb = [12 + y / 80, 20 + y / 50, 31 + y / 70];
   for (let lane = 0; lane < 3; lane++) {
-    const cx = 128 + lane * 128, cy = 256 + (lane === 1 ? -50 : 30), d = Math.hypot(x - cx, y - cy);
+    const cx = 128 + lane * 128, cy = intense ? 180 + lane * 80 : 256 + (lane === 1 ? -50 : 30), d = Math.hypot(x - cx, y - cy);
     const ring = Math.exp(-(((d - 43) / 2.2) ** 2)), aura = .25 * Math.exp(-Math.max(0, d - 43) / 18);
     const orb = d < 39 ? .7 * Math.sqrt(1 - (d / 40) ** 2) : 0;
     const trace = Math.abs(x - cx) < 1.5 && y > cy + 44 && y < 460 ? .45 : 0;
@@ -150,8 +158,8 @@ function chunk(type, data) {
 const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(size); ihdr.writeUInt32BE(size, 4); ihdr[8] = 8; ihdr[9] = 2;
 await writeFile(new URL('artwork.png', target), Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', deflateSync(pixels)), chunk('IEND', Buffer.alloc(0))]));
 const catalogPath = new URL('dist/assets/catalog.json', root), catalog = JSON.parse(await readFile(catalogPath));
-const song = { id, title: 'Neon Circuit', artist: 'Pulse Lab · программный синтез', duration, tutorial: false, genre: 'Electro · оригинальный трек', levels };
+const song = { id, title: intense ? 'Overdrive' : 'Neon Circuit', artist: 'Pulse Lab · программный синтез', duration, tutorial: false, genre: intense ? 'Rave · оригинальный трек' : 'Electro · оригинальный трек', levels };
 const old = catalog.findIndex(song => song.id === id);
 if (old === -1) catalog.push(song); else catalog[old] = song;
 await writeFile(catalogPath, JSON.stringify(catalog, null, 2) + '\n');
-console.log(JSON.stringify({ id, bpm: 128, duration, levels }));
+console.log(JSON.stringify({ id, bpm, duration, levels }));

@@ -125,3 +125,38 @@ test('x8 changes the whole field even with reduced motion and ends on expiry or 
   renderer.render(game, 16, '4', 100, 0, true);
   assert.deepEqual(backgrounds, ['#10151e', '#123b32', '#10151e', '#10151e']);
 });
+
+test('x8 lightning is confined to edges, moves with song time and stays static with reduced motion', () => {
+  let path = [], bolts = [];
+  const context = new Proxy({}, { get: (_, name) => {
+    if (['createLinearGradient', 'createRadialGradient'].includes(name)) return () => ({ addColorStop() {} });
+    if (name === 'beginPath') return () => { path = []; };
+    if (name === 'moveTo' || name === 'lineTo') return (x, y) => path.push([x, y]);
+    if (name === 'stroke') return () => { if (path.length === 19) bolts.push([...path]); };
+    return () => {};
+  } });
+  const renderer = new Renderer({ clientWidth: 320, clientHeight: 270, getContext: () => context }, paths);
+  const game = new Game([], { automaticRevenge: true }); game.streak = 50;
+  const draw = (time, reduced) => { bolts = []; renderer.render(game, time, '4', 100, 0, reduced); return bolts; };
+  const first = draw(1, false);
+  assert.equal(first.length, 4, 'two edges, each with glow and bright core');
+  assert.ok(first.flat().every(([x, y]) => (x >= 0 && x <= 18 || x >= 302 && x <= 320) && y >= 66 && y <= 444));
+  assert.deepEqual(draw(1, false), first, 'paused song clock freezes lightning');
+  assert.notDeepEqual(draw(1.2, false), first);
+  assert.deepEqual(draw(1, true), draw(1.2, true));
+});
+
+test('a successful round head explodes into particles; stray taps and reduced motion do not', () => {
+  const arcs = [];
+  const context = new Proxy({}, { get: (_, name) => ['createLinearGradient', 'createRadialGradient'].includes(name)
+    ? () => ({ addColorStop() {} }) : name === 'arc' ? (...args) => arcs.push(args) : () => {} });
+  const renderer = new Renderer({ clientWidth: 390, clientHeight: 524, getContext: () => context }, paths);
+  const game = new Game([{ time: 1, lane: 0, duration: 0 }]);
+  renderer.effects.recordHit(game.press(0, 1), 1, 8);
+  renderer.render(game, 1.12, '4', 100);
+  assert.equal(arcs.length, 16);
+  assert.ok(arcs.every(([, , radius]) => radius > 0 && radius < 4), 'small fragments, not a second note head');
+  arcs.length = 0; renderer.render(game, 1.12, '4', 100, 0, true); assert.equal(arcs.length, 0);
+  renderer.effects.reset(); renderer.effects.recordHit(game.press(1, 1.2), 1.2, 1);
+  renderer.render(game, 1.3, '4', 100); assert.equal(arcs.length, 0);
+});

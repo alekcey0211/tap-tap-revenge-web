@@ -81,7 +81,7 @@ export class Renderer {
     }
     c.restore();
   }
-  renderEnergy(effects, reducedMotion) {
+  renderEnergy(effects, reducedMotion, time) {
     if (effects.multiplier !== 8) return;
     const c = this.ctx;
     const impact = reducedMotion ? 0 : Math.max(0, ...effects.hits.map(hit => 1 - hit.age / .6));
@@ -92,12 +92,27 @@ export class Renderer {
       gradient.addColorStop(0, '#c9ff56'); gradient.addColorStop(1, '#c9ff5600');
       c.globalAlpha = .18 + impact * .26;
       c.fillStyle = gradient; c.fillRect(side ? 302 : 0, 52, 18, 396);
+      // Bright zigzags stay in an 18px edge strip, never across note heads.
+      // Continuous deformation avoids alternating full-bright/full-dark flashes.
+      const phase = reducedMotion ? 0 : time * 9;
+      c.beginPath();
+      for (let i = 0; i <= 18; i++) {
+        const reach = 5 + (i % 2 ? 8 : 0) + Math.sin(phase + i * 2.1 + side * 1.7) * 3;
+        const px = side ? 320 - reach : reach, py = 66 + i * 21;
+        if (!i) c.moveTo(px, py); else c.lineTo(px, py);
+      }
+      c.lineJoin = 'round';
+      c.globalAlpha = .65 + impact * .3;
+      c.strokeStyle = '#c9ff56'; c.lineWidth = 4 + impact * 2;
+      c.shadowColor = '#c9ff56'; c.shadowBlur = reducedMotion ? 0 : 10 + impact * 8; c.stroke();
+      c.shadowBlur = 0; c.strokeStyle = '#f1ffe3'; c.lineWidth = 1.2 + impact; c.stroke();
       if (!reducedMotion) {
-        c.globalAlpha = .25 + impact * .35;
-        c.strokeStyle = '#c9ff56'; c.lineWidth = 2;
-        for (let i = 0; i < 4; i++) {
-          const y = 390 - i * 86 - impact * 26;
-          c.beginPath(); c.moveTo(side ? 314 : 6, y + 26); c.lineTo(side ? 314 : 6, y); c.stroke();
+        c.strokeStyle = '#c9ff56'; c.lineWidth = 1.5;
+        for (let i = 0; i < 5; i++) {
+          const y = 440 - ((time * 95 + i * 75) % 375);
+          const edge = side ? 307 : 13, direction = side ? -1 : 1;
+          c.beginPath(); c.moveTo(edge, y); c.lineTo(edge + direction * 5, y - 10);
+          c.lineTo(edge + direction * 2, y - 17); c.stroke();
         }
       }
     }
@@ -122,16 +137,22 @@ export class Renderer {
       const radius = reducedMotion ? 34 : 29 + (12 + power * 6) * Math.sqrt(progress);
       c.beginPath(); c.ellipse(x, 422, radius, radius * .72, 0, 0, Math.PI * 2); c.stroke();
       if (reducedMotion) continue;
-      const sparks = perfect ? hit.multiplier === 8 ? 12 : 8 : 4;
+      const sparks = perfect ? hit.multiplier === 8 ? 16 : 12 : 8;
       c.strokeStyle = COLORS[hit.lane]; c.lineWidth = perfect ? 2 : 1;
       for (let i = 0; i < sparks; i++) {
-        const angle = i * Math.PI * 2 / sparks + hit.lane * .4;
-        const distance = 22 + progress * (18 + power * 9);
+        const spread = .5 + .5 * Math.sin(i * 9.17 + hit.lane * 2.3);
+        const angle = i * Math.PI * 2 / sparks + hit.lane * .4 + Math.sin(i * 2.39) * .18;
+        const distance = (8 + Math.sqrt(progress) * (38 + power * 8)) * (.55 + spread * .45);
         const length = (perfect ? 8 : 5) * (1 - progress);
         c.beginPath();
         c.moveTo(x + Math.cos(angle) * distance, 422 + Math.sin(angle) * distance * .65);
         c.lineTo(x + Math.cos(angle) * (distance + length), 422 + Math.sin(angle) * (distance + length) * .65);
         c.stroke();
+        const particleRadius = (perfect ? 3.5 : 2.5) * (.55 + spread * .45) * (1 - progress);
+        c.beginPath();
+        c.arc(x + Math.cos(angle) * distance, 422 + Math.sin(angle) * distance * .65,
+          particleRadius, 0, Math.PI * 2);
+        c.fillStyle = i % 3 === 0 ? '#f5ffe9' : COLORS[hit.lane]; c.fill();
       }
     }
     c.globalAlpha = 1;
@@ -166,7 +187,7 @@ export class Renderer {
     const revenge = effects.multiplier === 8;
     c.fillStyle = revenge ? '#123b32' : '#10151e'; c.fillRect(0, 0, 320, 480);
     this.renderStage(time, revenge, reducedMotion);
-    this.renderEnergy(effects, reducedMotion);
+    this.renderEnergy(effects, reducedMotion, time);
     for (let lane = 0; lane < 3; lane++) {
       const [x] = stagePosition(this.paths, lane, 1);
       const glow = c.createLinearGradient(160, 53, x, 422);

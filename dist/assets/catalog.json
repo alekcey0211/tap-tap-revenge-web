@@ -133,5 +133,35 @@
         "shakes": 0
       }
     }
+  },
+  {
+    "id": "overdrive-v1",
+    "title": "Overdrive",
+    "artist": "Pulse Lab · программный синтез",
+    "duration": 66,
+    "tutorial": false,
+    "genre": "Rave · оригинальный трек",
+    "levels": {
+      "1": {
+        "notes": 74,
+        "holds": 4,
+        "shakes": 0
+      },
+      "2": {
+        "notes": 148,
+        "holds": 4,
+        "shakes": 0
+      },
+      "3": {
+        "notes": 280,
+        "holds": 4,
+        "shakes": 0
+      },
+      "4": {
+        "notes": 288,
+        "holds": 4,
+        "shakes": 0
+      }
+    }
   }
 ]

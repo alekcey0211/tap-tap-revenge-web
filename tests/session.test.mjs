@@ -167,3 +167,27 @@ test('Web Audio resume timeout restores an enabled pause button; late resolution
   assert.equal(ui.audio.starts.length, 2); assert.equal(ui.audio.starts.at(-1).offset, 3);
   gate.resolve(); await Promise.resolve(); assert.equal(ui.audio.starts.length, 2);
 });
+
+for (const compatibleAudio of [false, true]) test(`automatic x8 UI survives pause and resets on a real stray (${compatibleAudio})`, async t => {
+  const chart = Array.from({ length: 50 }, (_, i) => ({ time: i + 1, lane: 0, duration: 0 }));
+  const ui = await mount(t, { chart, settings: { compatibleAudio } });
+  await ui.click('play'); if (compatibleAudio) await ui.click('load-begin');
+  for (let i = 1; i <= 50; i++) {
+    if (compatibleAudio) ui.native.instances[0].currentTime = i;
+    ui.tick(compatibleAudio ? i : i + 3);
+    ui.lanes[0].onclick({ detail: 0 });
+  }
+  ui.tick(compatibleAudio ? 50 : 53);
+  assert.equal(ui.node('multiplier').textContent, '×8');
+  assert.equal(ui.node('revenge').tagName, 'DIV');
+  assert.equal(ui.node('game-screen').dataset.energy, 'active');
+  assert.match(ui.node('revenge-label').textContent, /ДО ОШИБКИ/);
+  await ui.click('pause'); ui.tick(1000); assert.equal(ui.node('multiplier').textContent, '×8');
+  await ui.click('resume');
+  if (compatibleAudio) ui.native.instances[0].currentTime = 70;
+  ui.tick(compatibleAudio ? 70 : 1022);
+  assert.equal(ui.node('multiplier').textContent, '×8');
+  ui.lanes[1].onclick({ detail: 0 }); ui.tick(compatibleAudio ? 70 : 1022);
+  assert.equal(ui.node('multiplier').textContent, '×1');
+  assert.equal(ui.node('game-screen').dataset.energy, 'charging');
+});

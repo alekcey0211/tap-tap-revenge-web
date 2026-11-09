@@ -4,7 +4,9 @@ export const TRAVEL = { 1: 2.7, 2: 2.15, 3: 1.8, 4: 1.4 };
 export const WINDOWS = [[0.045, 'PERFECT', 100], [0.09, 'GREAT', 80], [0.14, 'GOOD', 50], [HIT_WINDOW, 'OK', 20]];
 
 export class Game {
-  constructor(chart) {
+  // Manual mode remains available for archived v1 replay/baseline checks, not in the current UI.
+  constructor(chart, { automaticRevenge = false } = {}) {
+    this.automaticRevenge = automaticRevenge;
     this.notes = chart.map((note, index) => ({ ...note, index, state: 'pending' }));
     this.lanes = [0, 1, 2].map(lane => this.notes.filter(note => note.lane === lane));
     this.held = [false, false, false];
@@ -24,7 +26,7 @@ export class Game {
     this.errors = [];
   }
   multiplier(time) {
-    if (time < this.revengeUntil) return 8;
+    if (this.automaticRevenge ? this.streak >= 50 : time < this.revengeUntil) return 8;
     return this.streak >= 40 ? 4 : this.streak >= 30 ? 3 : this.streak >= 20 ? 2 : 1;
   }
   breakStreak() {
@@ -69,7 +71,7 @@ export class Game {
     this.counts[label]++;
     this.streak++;
     this.bestStreak = Math.max(this.bestStreak, this.streak);
-    if (this.streak >= 50 && time >= this.revengeUntil) this.revengeReady = true;
+    if (!this.automaticRevenge && this.streak >= 50 && time >= this.revengeUntil) this.revengeReady = true;
     this.errors.push(error);
     this.feedback = { text: label, time, color: label === 'PERFECT' ? '#68dfff' : '#dfffdb' };
     return note;
@@ -93,7 +95,7 @@ export class Game {
     }
   }
   activateRevenge(time) {
-    if (!this.revengeReady || time < this.revengeUntil) return false;
+    if (this.automaticRevenge || !this.revengeReady || time < this.revengeUntil) return false;
     this.revengeReady = false;
     this.revengeUntil = time + 15;
     return true;

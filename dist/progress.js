@@ -3,7 +3,7 @@ import { PHRASE_VERSION } from './phrase-charts.js';
 import { pulseSummary } from './pulse-view.js';
 import { Temporal } from './temporal.js';
 import { formatNumber, formatPercent, formatSigned, formatCount, formatAttemptTime, formatDay } from './format.js?v=0.3.0';
-import { CHART_VERSION, RULES_VERSION, HISTORY_LIMIT, IMPORT_LIMIT, recordKey, exportProgress, parseProgress } from './storage.js?v=0.5.0';
+import { CHART_VERSION, RULES_VERSION, HISTORY_LIMIT, IMPORT_LIMIT, recordKey, exportProgress, parseProgress } from './storage.js?v=0.6.0';
 
 const $ = id => document.getElementById(id);
 const LEVELS = { 1: 'Легко', 2: 'Средне', 3: 'Сложно', 4: 'Экстрим' };
@@ -24,6 +24,8 @@ export class ProgressView {
   constructor({ getProgress, getSettings, getWarning, onImport, onSelect }) {
     Object.assign(this, { getProgress, getSettings, getWarning, onImport, onSelect });
     this.songs = []; this.level = '1'; this.tab = 'records'; this.fileRequest = 0; this.pendingImport = null;
+    this.rules = RULES_VERSION;
+    $('progress-rules').onchange = () => { this.rules = $('progress-rules').value; this.renderRecords(); };
     $('records-tab').onclick = () => this.setTab('records');
     $('history-tab').onclick = () => this.setTab('history');
     $('progress-song').onchange = () => { this.song = this.songs.find(song => song.id === $('progress-song').value); this.renderRecords(); };
@@ -48,6 +50,7 @@ export class ProgressView {
     };
   }
   open(catalog, song, level) {
+    this.rules = RULES_VERSION;
     this.songs = catalog.filter(item => !item.tutorial);
     this.song = this.songs.find(item => item.id === song?.id) || this.songs[0];
     this.level = this.song.levels[level] ? level : '1';
@@ -81,8 +84,14 @@ export class ProgressView {
       button.onclick = () => { this.level = value; this.renderRecords(); $('progress-levels').children[Number(value) - 1].focus({ preventScroll: true }); };
       return button;
     }));
-    const key = recordKey({ songId: song.id, level });
-    const progress = this.getProgress(), best = progress.records.find(entry => recordKey(entry) === key);
+    const progress = this.getProgress();
+    const rules = [...new Set([RULES_VERSION, ...progress.records.map(entry => entry.rulesVersion)])];
+    if (!rules.includes(this.rules)) this.rules = RULES_VERSION;
+    $('progress-rules').replaceChildren(...rules.map(value => option(value, value === RULES_VERSION
+      ? 'Авто ×8 · до ошибки' : value === 'web-v1' ? 'Ручной ×8 · прежние рекорды' : `Правила: ${value}`)));
+    $('progress-rules').value = this.rules;
+    const key = recordKey({ songId: song.id, level, rulesVersion: this.rules });
+    const best = progress.records.find(entry => recordKey(entry) === key);
     $('personal-best').hidden = !best; $('record-empty').hidden = Boolean(best);
     if (best) {
       $('best-score').textContent = formatNumber(best.result.score);

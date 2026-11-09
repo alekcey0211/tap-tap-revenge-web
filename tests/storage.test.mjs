@@ -207,3 +207,25 @@ test('maximum-size export including independent Pulse records remains importable
   assert.ok(new TextEncoder().encode(text).length <= IMPORT_LIMIT, `size ${new TextEncoder().encode(text).length}`);
   assert.equal(parseProgress(text).progress.pulseRecords.length, 256);
 });
+
+test('safe original-track slugs round-trip; malformed or path-like identifiers remain rejected', () => {
+  for (const songId of ['neon-circuit-v1', 'overdrive-v1']) {
+    const progress = recordAttempt(empty(), attempt({ songId }));
+    assert.deepEqual(parseProgress(exportProgress(DEFAULT_SETTINGS, progress)).progress, progress);
+  }
+  for (const songId of ['', '../cover', 'x/y', 'x:y', 'x%2Fy', '<img>', 'a'.repeat(65), '-foo']) {
+    assert.throws(() => recordAttempt(empty(), attempt({ songId })), /повреждён/);
+  }
+});
+
+test('manual records and history retain their rules and values when automatic records are added', () => {
+  const old = recordAttempt(empty(), attempt({ rulesVersion: 'web-v1', result: { ...base, score: 9000 } }));
+  const before = structuredClone(old);
+  const next = recordAttempt(parseProgress(exportProgress(DEFAULT_SETTINGS, old)).progress, attempt({ result: { ...base, score: 100 } }));
+  assert.deepEqual(next.records.find(r => r.rulesVersion === 'web-v1'), before.records[0]);
+  assert.ok(next.history.some(r => r.id === before.history[0].id));
+  assert.equal(currentRecords(next)[songId + ':1'].score, 100);
+  const migrated = loadSave(store({ 'ttr-web-records': JSON.stringify({ [songId + ':1']: base }) }));
+  assert.equal(migrated.progress.records[0].rulesVersion, 'web-v1');
+  assert.deepEqual(currentRecords(migrated.progress), {});
+});

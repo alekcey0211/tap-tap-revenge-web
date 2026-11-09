@@ -127,3 +127,18 @@ test('session-only mode warns and can still display newly completed attempts', a
   assert.equal(ui.node('save-warning').hidden, false); assert.equal(ui.node('personal-best').hidden, false);
   await ui.click('history-tab'); assert.equal(ui.node('history-list').children.filter(node => node.tagName === 'ARTICLE').length, 1);
 });
+
+test('manual bests remain visible through the rules selector without mixing new attempts', async t => {
+  const old = { score: 9000, accuracy: 98, bestStreak: 70 };
+  const ui = await mount(t, { records: { [song.id + ':1']: old } });
+  assert.match(ui.node('record').textContent, /Прежний рекорд/);
+  await ui.click('progress-open');
+  assert.equal(ui.node('record-empty').hidden, false);
+  ui.node('progress-rules').value = 'web-v1'; ui.node('progress-rules').onchange();
+  assert.equal(ui.node('personal-best').hidden, false);
+  assert.equal(ui.node('best-score').textContent, new Intl.NumberFormat('ru-RU').format(9000));
+  assert.equal(ui.node('accuracy-plot').children.length, 0);
+  ui.node('progress-rules').value = 'auto-revenge-v2'; ui.node('progress-rules').onchange();
+  assert.equal(ui.node('record-empty').hidden, false);
+  assert.deepEqual(ui.progress().records[0].result, old);
+});

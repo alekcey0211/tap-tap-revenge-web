@@ -47,8 +47,8 @@ test('paths and travel times reproduce the Lua theme', async () => {
 });
 const catalog = JSON.parse(await readFile(new URL('../dist/assets/catalog.json', import.meta.url)));
 for (const song of catalog) {
-  for (const [level, summary] of Object.entries(song.levels)) {
-    test(`${song.title} / ${level}: real chart integrity and complete autoplay`, async () => {
+  for (const [level, summary] of Object.entries(song.levels)) for (const automaticRevenge of [false, true]) {
+    test(`${song.title} / ${level}: real chart integrity and complete autoplay (${automaticRevenge ? 'auto' : 'legacy'})`, async () => {
       const chart = JSON.parse(await readFile(new URL(`../dist/assets/tracks/${song.id}/${level}.json`, import.meta.url)));
       assert.equal(chart.length, summary.notes);
       for (const [i, n] of chart.entries()) {
@@ -56,7 +56,7 @@ for (const song of catalog) {
         assert.ok(n.duration >= 0 && n.time + n.duration < song.duration);
         if (i) assert.ok(chart[i - 1].time <= n.time);
       }
-      const game = new Game(chart);
+      const game = new Game(chart, { automaticRevenge });
       const actions = chart.flatMap(n => [{ t: n.time, lane: n.lane, down: true }, { t: n.time + (n.duration || .035), lane: n.lane, down: false }])
         .sort((a, b) => a.t - b.t || Number(a.down) - Number(b.down));
       for (const a of actions) {
@@ -69,3 +69,31 @@ for (const song of catalog) {
     });
   }
 }
+
+test('automatic x8 begins at 50 heads, has no timer and never requires activation', () => {
+  const game = new Game(Array.from({ length: 51 }, (_, i) => note(i + 1)), { automaticRevenge: true });
+  for (let i = 1; i <= 49; i++) { game.press(0, i); game.release(0, i + .01); }
+  assert.equal(game.multiplier(49), 4);
+  const before = game.score;
+  game.press(0, 50); game.release(0, 50.01);
+  assert.equal(game.score - before, 400, '50th head uses the pre-hit multiplier, like the other thresholds');
+  assert.equal(game.multiplier(50), 8); assert.equal(game.revengeReady, false);
+  assert.equal(game.activateRevenge(50), false);
+  game.press(0, 51); game.release(0, 51.01);
+  assert.equal(game.score - before, 1200);
+  game.update(500); assert.equal(game.multiplier(500), 8, 'no remaining notes and no error: bonus does not expire');
+});
+
+for (const failure of ['miss', 'stray', 'broken']) test(`automatic x8 resets on ${failure}, then can be earned again`, () => {
+  const chart = Array.from({ length: 50 }, (_, i) => note(i + 1));
+  if (failure !== 'stray') chart.push(note(51, 0, failure === 'broken' ? 2 : 0));
+  chart.push(...Array.from({ length: 50 }, (_, i) => note(60 + i)));
+  const game = new Game(chart, { automaticRevenge: true });
+  for (let i = 1; i <= 50; i++) { game.press(0, i); game.release(0, i + .01); }
+  if (failure === 'miss') game.update(51.2);
+  else if (failure === 'stray') { game.press(1, 51); game.release(1, 51.01); }
+  else { game.press(0, 51); game.release(0, 51.5); }
+  assert.equal(game.multiplier(52), 1);
+  for (let i = 60; i < 110; i++) { game.press(0, i); game.release(0, i + .01); }
+  assert.equal(game.multiplier(110), 8);
+});

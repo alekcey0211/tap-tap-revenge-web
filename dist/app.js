@@ -5,15 +5,15 @@ import { OfflineView } from './offline-view.js?v=0.4.0';
 import { Game } from './engine.js';
 import { SongAudio } from './audio.js?v=0.5.3';
 import { MediaSongAudio } from './media-audio.js?v=0.3.1';
-import { Renderer } from './renderer.js?v=0.5.3';
+import { Renderer } from './renderer.js?v=0.6.0';
 
 import { Temporal } from './temporal.js';
 import { formatNumber, formatPercent, formatSigned, formatTime, formatCount } from './format.js?v=0.3.0';
-import { DEFAULT_SETTINGS, loadSave, saveSettings as writeSettings, recordAttempt, currentRecords, importProgress } from './storage.js?v=0.5.0';
-import { ProgressView } from './progress.js?v=0.5.0';
+import { DEFAULT_SETTINGS, loadSave, saveSettings as writeSettings, recordAttempt, currentRecords, importProgress } from './storage.js?v=0.6.0';
+import { ProgressView } from './progress.js?v=0.6.0';
 
 const $ = id => document.getElementById(id);
-const APP_VERSION = '0.5.3';
+const APP_VERSION = '0.6.0';
 if ($('app-version')) $('app-version').textContent = `v${APP_VERSION}`;
 $('pulse-target').textContent = formatPercent(90);
 const LEVELS = { 1: 'Легко', 2: 'Средне', 3: 'Сложно', 4: 'Экстрим' };
@@ -80,7 +80,8 @@ function refresh() {
   }
   $('note-count').textContent = formatCount(selected.levels[level].notes, { one: 'нота', few: 'ноты', many: 'нот', other: 'ноты' });
   const best = records[`${selected.id}:${level}`];
-  $('record').textContent = Number.isFinite(best?.score) && Number.isFinite(best?.accuracy) ? `Рекорд ${formatNumber(best.score)} · ${formatPercent(best.accuracy)}` : 'Рекорд ещё не установлен';
+  $('record').textContent = Number.isFinite(best?.score) && Number.isFinite(best?.accuracy) ? `Рекорд ${formatNumber(best.score)} · ${formatPercent(best.accuracy)}` : progress.records.some(entry => entry.songId === selected.id && entry.level === level)
+    ? 'Новые правила ×8. Прежний рекорд — в «Мой прогресс».' : 'Рекорд ещё не установлен';
   $('play').disabled = false; $('demo').disabled = false; $('calibration').disabled = false;
   $('settings-calibration').disabled = false; $('progress-open').disabled = false;
 }
@@ -150,7 +151,7 @@ async function beginRun() {
   $('preparation-heading').textContent = 'Включаем музыку…';
   try {
     renderer.effects.reset();
-    game = new Game(chart); buffer = loadedBuffer; demo = isDemo; run = { song, level: difficulty };
+    game = new Game(chart, { automaticRevenge: true }); buffer = loadedBuffer; demo = isDemo; run = { song, level: difficulty };
     pulse = !demo && !song.tutorial && PULSE_CHARTS[song.id] ? new PhraseProgress(game.notes, PULSE_CHARTS[song.id]) : null;
     renderPulse(pulse?.view(0) ?? null);
     inputs.forEach(input => input.clear());
@@ -296,7 +297,6 @@ function frame() {
           if (action.down) pressNote(action.lane, action.time);
           else releaseNote(action.lane, action.time);
         }
-        if (game.revengeReady) game.activateRevenge(time);
       } else if (time >= resumeGrace && resumeGrace !== -Infinity) {
         for (let lane = 0; lane < 3; lane++) if (!game.held[lane]) releaseNote(lane, time);
         resumeGrace = -Infinity;
@@ -313,11 +313,10 @@ function frame() {
     const multiplier = game.multiplier(time);
     text('multiplier', `×${formatNumber(multiplier)}`);
     $('multiplier').dataset.level = String(multiplier);
-    $('game-screen').dataset.energy = multiplier === 8 ? 'active' : game.revengeReady ? 'ready' : 'charging';
+    $('game-screen').dataset.energy = multiplier === 8 ? 'active' : 'charging';
     $('song-progress').value = Math.min(1, Math.max(0, position / buffer.duration));
-    $('revenge-progress').value = time < game.revengeUntil ? Math.max(0, (game.revengeUntil - time) / 15 * 50) : Math.min(50, game.streak);
-    $('revenge').disabled = !game.revengeReady || demo || countdown > 0 || Boolean(audio.waiting) || state !== 'playing';
-    text('revenge-label', time < game.revengeUntil ? `×${formatNumber(8)} · ${formatNumber(Math.ceil(game.revengeUntil - time))} с` : game.revengeReady ? `ВКЛЮЧИТЬ ×${formatNumber(8)} →` : `ЗАРЯД ×${formatNumber(8)}`);
+    $('revenge-progress').value = Math.min(50, game.streak);
+    text('revenge-label', multiplier === 8 ? `×${formatNumber(8)} · ДО ОШИБКИ` : `АВТО ×${formatNumber(8)} · ${formatNumber(Math.min(50, game.streak))} / ${formatNumber(50)}`);
     $('audio-status').hidden = audio !== mediaAudio;
     text('audio-status', audio.waiting ? 'Ожидаем звук…' : 'Совместимый звук');
     text('game-stats', `Очки: ${formatNumber(game.score)}; попадания: ${formatNumber(game.hits)}; пропуски: ${formatNumber(game.misses)}`);
@@ -336,7 +335,6 @@ $('restart').onclick = () => { if (document.hidden) return; $('pause-dialog').cl
 $('quit').onclick = showLibrary;
 $('retry').onclick = () => { selected = run.song; level = run.level; return start(demo); };
 $('back-to-library').onclick = showLibrary;
-$('revenge').onclick = () => { if (state === 'playing' && !demo && !audio.waiting && audio.countdown === 0) game.activateRevenge(gameTime()); };
 function selectCalibration() {
   showLibrary();
   selected = catalog.find(song => song.tutorial); level = '1'; refresh();
@@ -393,7 +391,6 @@ window.addEventListener('keydown', event => {
   if (state !== 'playing') return;
   if (event.code in keys) { event.preventDefault(); down(keys[event.code], event.code); }
   if (event.code === 'Escape') { event.preventDefault(); pause(); }
-  if (event.code === 'Space') { event.preventDefault(); if (!demo && !audio.waiting && audio.countdown === 0) game.activateRevenge(gameTime()); }
 });
 window.addEventListener('keyup', event => { if (event.code in keys) up(keys[event.code], event.code); });
 function leavePage() {

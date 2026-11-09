@@ -46,7 +46,8 @@ test('old records survive a worse score with a new Pulse result; demo and calibr
   const old = { score: 98765, accuracy: 98, bestStreak: 100 };
   const ui = await mount(t, { chart, records: { [id + ':1']: old }, settings: { compatibleAudio: true } });
   await ui.click('play'); await ui.click('load-begin'); ui.native.instances.at(-1).currentTime = 151; ui.tick(151);
-  assert.deepEqual(ui.records()[id + ':1'], old); assert.equal(ui.progress().history[0].pulse.captured, 0);
+  assert.deepEqual(ui.progress().records.find(record => record.rulesVersion === 'web-v1').result, old);
+  assert.equal(ui.progress().records.length, 2); assert.equal(ui.progress().history[0].pulse.captured, 0);
   const saved = structuredClone(ui.progress());
   for (const mode of ['demo', 'calibration']) {
     await ui.click('back-to-library');

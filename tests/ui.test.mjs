@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { DEFAULT_SETTINGS, recordAttempt, exportProgress } from '../dist/storage.js';
 import { mount, deferred } from './helpers/ui-harness.mjs';
 
 test('library shows the running app version matching the entry asset version', async t => {
@@ -14,7 +15,7 @@ test('library shows the running app version matching the entry asset version', a
 test('library selects all existing tracks and four difficulties; persisted settings survive', async t => {
   const ui = await mount(t, { settings: { volume: 35, offset: 25, motion: true } });
   assert.equal(ui.document.body.dataset.screen, 'library');
-  assert.equal(ui.node('tracks').children.length, 4);
+  assert.equal(ui.node('tracks').children.length, 5);
   assert.equal(ui.node('difficulties').children.length, 4);
   assert.equal(ui.node('volume').value, 35);
   assert.equal(ui.node('offset').value, 25);
@@ -141,7 +142,9 @@ test('real play reports delta from the previous record and preserves it on a wor
 test('record improvement displays the correct delta', async t => {
   const catalog = JSON.parse(await readFile(new URL('../dist/assets/catalog.json', import.meta.url)));
   const song = catalog.find(song => !song.tutorial), key = song.id + ':1';
-  const ui = await mount(t, { records: { [key]: { score: 10, accuracy: 1 } } });
+  const progress = recordAttempt({ records: [], history: [] }, { songId: song.id, level: '1',
+    result: { score: 10, accuracy: 1 }, id: crypto.randomUUID(), playedAt: '2026-11-09T19:00:00Z' });
+  const ui = await mount(t, { saved: JSON.parse(exportProgress(DEFAULT_SETTINGS, progress)) });
   const chart = JSON.parse(await readFile(new URL('../dist/assets/tracks/' + song.id + '/1.json', import.meta.url)));
   await ui.click('play'); ui.tick(chart[0].time + 3);
   ui.lanes[chart[0].lane].onclick({ detail: 0 }); ui.tick(154);

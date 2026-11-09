@@ -4,9 +4,11 @@ export const SAVE_KEY = 'ttr-web-save-v1';
 export const HISTORY_LIMIT = 100;
 export const IMPORT_LIMIT = 512 * 1024;
 export const CHART_VERSION = 'original-v1';
-export const RULES_VERSION = 'web-v1';
+export const RULES_VERSION = 'auto-revenge-v2';
 export const DEFAULT_SETTINGS = { compatibleAudio: false, volume: 75, offset: 0, motion: false };
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const songSlug = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const validSongId = value => typeof value === 'string' && (uuid.test(value) || value.length <= 64 && songSlug.test(value));
 const version = /^[a-zA-Z0-9._-]{1,40}$/;
 const invalid = () => { throw new Error('Файл прогресса повреждён или имеет неизвестный формат.'); };
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -24,7 +26,7 @@ function pulseFrom(value) {
     total: value.total, captured: value.captured, perfect: value.perfect };
 }
 function identityFrom(value) {
-  if (!object(value) || typeof value.songId !== 'string' || !uuid.test(value.songId) || !['1', '2', '3', '4'].includes(value.level)
+  if (!object(value) || !validSongId(value.songId) || !['1', '2', '3', '4'].includes(value.level)
     || typeof value.chartVersion !== 'string' || !version.test(value.chartVersion) || typeof value.rulesVersion !== 'string' || !version.test(value.rulesVersion)) invalid();
   return { songId: value.songId, level: value.level, chartVersion: value.chartVersion, rulesVersion: value.rulesVersion };
 }
@@ -120,7 +122,7 @@ function legacy(storage, defaults) {
       const parts = key.split(':');
       const [songId, level] = parts;
       if (parts.length !== 2 || !uuid.test(songId) || !['1', '2', '3', '4'].includes(level)) continue;
-      try { records.push({ songId, level, chartVersion: CHART_VERSION, rulesVersion: RULES_VERSION, result: resultFrom(result), previousScore: null }); } catch { /* Skip only the malformed record. */ }
+      try { records.push({ songId, level, chartVersion: CHART_VERSION, rulesVersion: 'web-v1', result: resultFrom(result), previousScore: null }); } catch { /* Skip only the malformed record. */ }
     }
   } catch { /* Keep valid settings when old records are damaged. */ }
   return { settings, progress: { records, history: [] } };
