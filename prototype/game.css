@@ -11,8 +11,15 @@
 .babylon-links a { color: #b8a9e2; }
 #babylon-renderer-choice { width: 100%; margin-top: 10px; }
 .playfield .touch-lanes { z-index: 2; }
-/* Keep the new venue visible on the song preview instead of stacking the old image over it. */
-.song-backdrop { opacity: .85; }
-body[data-screen='song-screen'] .stage-lights { opacity: .2; }
 #babylon-renderer-choice { display: block; width: 100%; min-height: 48px; color: inherit; appearance: none; color-scheme: dark; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4' fill='none' stroke='%23d9b8ff' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 12px center, linear-gradient(135deg, #352247, #171027); border: 1px solid #b88aef77; border-radius: 12px; padding: 12px 36px 12px 12px; box-shadow: inset 0 1px 0 #ffffff16; text-overflow: ellipsis; }
 #babylon-renderer-choice option { background: #21152f; color: #f5edff; }
+/* One Babylon venue replaces the raster scene, CSS spotlights and duplicate preview. */
+.game-shell { background-image: none; background-color: #100822; }
+.game-shell::before, .stage-lights, .song-backdrop, .playfield::before { display: none !important; }
+.babylon-background { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; pointer-events: none; z-index: -1; }
+.babylon-background canvas { height: min(100svh, 900px); }
+#babylon-background-canvas { opacity: 0; }
+.babylon-background::after { content: ''; position: absolute; inset: 0; background: linear-gradient(#0b061b33, #10082222 25%, #100822b8 65%, #100822 100%); }
+body[data-screen='game-screen'] .babylon-background { visibility: hidden; }
+.utility-screen { background: linear-gradient(#100b2055, #100b20db 320px); }
+#game-screen .game-footer { padding-bottom: 2px; }

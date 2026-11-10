@@ -5,6 +5,8 @@ import { chooseBackend } from './backend.js';
 import { Transport } from './transport.js';
 import { PlaySession } from './session.js';
 import { TRAVEL } from '../dist/engine.js';
+import { sampleSpectrum } from './spectrum.js';
+const spectrumBands = new Float32Array(21);
 
 const $ = id => document.getElementById(id);
 const numbers = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 });
@@ -202,12 +204,12 @@ async function initialize() {
       }
       const time = transport.position, playing = transport.state === 'playing';
       if (playing) session?.advance(time);
-      stage.update(time, playing, energy, $('reduced').checked);
+      stage.update(time, playing, energy, $('reduced').checked, [], selected && transport.state !== 'ready' ? sampleSpectrum(selected.id, time, spectrumBands) : null);
       stage.scene.render();
       $('clock').textContent = clock(time);
       $('timeline-fill').style.transform = `scaleX(${selected ? Math.min(1, time / selected.duration) : 0})`;
       renderScore();
-      if (performance.now() - statsAt > 1000) { $('fps').textContent = `${numbers.format(engine.getFps())} FPS · LAB 0.3`; statsAt = performance.now(); }
+      if (performance.now() - statsAt > 1000) { $('fps').textContent = `${numbers.format(engine.getFps())} FPS · LAB 0.4`; statsAt = performance.now(); }
 
     });
     tracks = (await json('assets/catalog.json')).filter(song => !song.tutorial);

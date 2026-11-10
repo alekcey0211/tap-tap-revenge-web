@@ -8,12 +8,12 @@ const random = seed => { let n = seed | 0; return () => { n = Math.imul(n ^ n >>
 
 export function createScene(engine, canvas, { fullViewport = false } = {}) {
   const scene = new Scene(engine);
-  scene.clearColor = new Color4(.018, .014, .046, 1);
-  scene.fogMode = Scene.FOGMODE_EXP2; scene.fogDensity = .023; scene.fogColor = new Color3(.018, .014, .046);
+  scene.clearColor = new Color4(.038, .012, .082, 1);
+  scene.fogMode = Scene.FOGMODE_EXP2; scene.fogDensity = .017; scene.fogColor = new Color3(.038, .012, .082);
   const camera = new FreeCamera('audience', v(0, 8.3, -12), scene);
   camera.setTarget(v(0, 1.6, 9)); camera.minZ = .1; camera.maxZ = 90;
   camera.fov = .88;
-  const ambient = new HemisphericLight('ambient', v(0, 1, -1), scene); ambient.intensity = .7; ambient.groundColor = new Color3(.14, .05, .25);
+  const ambient = new HemisphericLight('ambient', v(0, 1, -1), scene); ambient.intensity = .95; ambient.groundColor = new Color3(.14, .05, .25);
   const pinkLight = new PointLight('magenta-light', v(-5, 5, 6), scene); pinkLight.diffuse = Color3.FromHexString('#c27aff'); pinkLight.intensity = 1.3;
   const blueLight = new PointLight('cyan-light', v(5, 6, 11), scene); blueLight.diffuse = Color3.FromHexString('#80e5ff'); blueLight.intensity = 1.5;
   const frontLight = new PointLight('front-light', v(0, 5, -3), scene); frontLight.intensity = 1.1;
@@ -30,6 +30,8 @@ export function createScene(engine, canvas, { fullViewport = false } = {}) {
   const floorMat = material('runway', '#19112f', .07);
   const violet = material('violet-neon', '#9a62ff', 1.5);
   const cyan = material('cyan-neon', '#62dbff', 1.4);
+  const pink = material('rose-neon', '#ff6edb', 1.35);
+  const gold = material('amber-neon', '#ffca88', 1.25);
   const white = material('electric-core', '#d4f8ff', 3);
   const laneMats = palette.map((c, i) => material('lane-' + i, c, .65));
   const noteMats = palette.map((c, i) => { const mat = material('orb-' + i, c, .22); mat.specularColor.set(.9, .85, 1); return mat; });
@@ -61,7 +63,7 @@ export function createScene(engine, canvas, { fullViewport = false } = {}) {
   for (let i = 0; i < 5; i++) {
     const z = 21 + i * 2.4, diameter = 13 + i * 1.4;
     ring('arch-structure', diameter, .3, v(0, 1.3, z), dark, true);
-    arches.push(ring('arch-neon', diameter - .32, .07, v(0, 1.3, z - .1), i % 2 ? cyan : violet, true));
+    arches.push(ring('arch-neon', diameter - .32, .07, v(0, 1.3, z - .1), [violet, cyan, pink, violet, gold][i], true));
   }
   const panels = [];
   for (const side of [-1, 1]) {
@@ -75,10 +77,38 @@ export function createScene(engine, canvas, { fullViewport = false } = {}) {
       }
     }
   }
-  const backPanel = material('screen-lines', '#5ddfff', 1);
-  box('screen', 7, 4.8, .4, v(0, 3.5, 25), dark);
+  // A wide, physical spectrum display behind the runway. Bars read actual audio data.
+  box('screen', 10.2, 5.4, .4, v(0, 3.7, 24), dark);
+  for (const side of [-1, 1]) box('screen-frame', .045, 5.5, .09, v(side * 5.15, 3.7, 23.72), side < 0 ? pink : cyan);
+  for (const y of [1, 6.4]) box('screen-frame', 10.3, .045, .09, v(0, y, 23.72), violet);
   const equalizer = [];
-  for (let i = 0; i < 21; i++) equalizer.push(box('equalizer', .14, 1, .05, v((i - 10) * .27, 3, 24.7), backPanel));
+  for (let i = 0; i < 21; i++) {
+    const color = Color3.Lerp(Color3.FromHexString('#ff76df'), Color3.FromHexString('#55f1ff'), i / 20);
+    const mat = material('spectrum-band-' + i, color, 1.2);
+    const bar = box('equalizer', .29, 1, .08, v((i - 10) * .43, 2, 23.7), mat);
+    const cap = box('spectrum-cap', .29, .035, .1, v(bar.position.x, 2.5, 23.65), white);
+    equalizer.push({ bar, cap });
+  }
+  // Stage wings and floor light pools add the depth and colour of the old concert art.
+  for (const side of [-1, 1]) {
+    for (let i = 0; i < 4; i++) {
+      const mat = material('floor-pool', side < 0 ? '#ba45fa' : '#299edc', .8, .12);
+      const pool = MeshBuilder.CreateDisc('floor-light', { radius: 2.3, tessellation: 24 }, scene);
+      pool.rotation.x = Math.PI / 2; pool.position.set(side * (6 + i * 2.2), -.36, 6 + i * 4.5); pool.scaling.y = 2.2; pool.material = mat;
+      box('wing-neon', .06, 7 + i * .7, .1, v(side * (7 + i * 1.7), 3.5 + i * .35, 20 + i * 2.4), i % 2 ? cyan : pink);
+    }
+  }
+  const crowdMat = material('audience', '#221437', .2);
+  const headSource = MeshBuilder.CreateSphere('audience-head-source', { diameter: .38, segments: 6 }, scene);
+  headSource.material = crowdMat; headSource.isVisible = false;
+  const bodySource = MeshBuilder.CreateCylinder('audience-body-source', { height: .7, diameterTop: .42, diameterBottom: .5, tessellation: 6 }, scene);
+  bodySource.material = crowdMat; bodySource.isVisible = false;
+  const crowdRandom = random(901);
+  for (const side of [-1, 1]) for (let i = 0; i < 30; i++) {
+    const x = side * (4.4 + (i % 6) * .66), z = 5.5 + Math.floor(i / 6) * 1.5, height = .8 + crowdRandom() * .25;
+    const body = bodySource.createInstance('audience-body'); body.position.set(x, height / 2 - .25, z); body.scaling.y = height / .7;
+    const head = headSource.createInstance('audience-head'); head.position.set(x, height - .22, z);
+  }
   const beams = [];
   for (let i = 0; i < 6; i++) {
     const side = i % 2 ? 1 : -1, x = side * (4.3 + Math.floor(i / 2) * 2.3), z = 10 + Math.floor(i / 2) * 5;
@@ -146,7 +176,7 @@ export function createScene(engine, canvas, { fullViewport = false } = {}) {
   let notes = [], travel = 2.15, lastTime = -Infinity, lastStrike = -Infinity, lastBeat = -1;
   const rhythm = new TrackRhythm();
   function setChart(chart, duration = 2.15) { notes = chart; travel = duration; lastTime = -Infinity; lastBeat = -1; lastStrike = -Infinity; totalHits = 0; lastHit = -Infinity; for (const b of bursts) b.born = -Infinity; }
-  function update(time, playing, energy, reduced, pulseZones = []) {
+  function update(time, playing, energy, reduced, pulseZones = [], spectrum = null) {
     if (time < lastTime) { totalHits = 0; lastStrike = -Infinity; for (const b of bursts) b.born = -Infinity; }
     lastTime = time;
     const beat = rhythm.frame(notes, time), pulse = reduced ? .2 : beat.pulse;
@@ -154,22 +184,28 @@ export function createScene(engine, canvas, { fullViewport = false } = {}) {
     lastBeat = beat.index;
     const flash = energy && !reduced ? Math.max(0, 1 - (time - lastStrike) / .2) : 0;
     for (const b of bolts) { b.mesh.setEnabled(flash > 0); b.mesh.visibility = flash; }
-    glow.intensity = reduced ? .4 : energy ? .8 + pulse * .35 : .38;
-    pinkLight.intensity = energy ? 1.8 + pulse * 1.1 : .8; blueLight.intensity = energy ? 2 + pulse * 1.3 : 1;
+    glow.intensity = reduced ? .5 : energy ? .85 + pulse * .2 : .62;
+    pinkLight.intensity = energy ? 2.2 + pulse : 1.5; blueLight.intensity = energy ? 2.4 + pulse : 1.7;
     for (const [i, mat] of noteMats.entries()) mat.emissiveColor = palette[i].scale(energy ? .55 : .15);
     for (const panel of panels) {
-      const wave = reduced ? 4 : (Math.sin(time * 3 + panel.col * .9 + panel.side) + 1) * 4;
+      const band = spectrum?.[panel.col * 4] || 0;
+      const wave = reduced ? 5 : spectrum ? band * 9 : (Math.sin(time * 1.4 + panel.col * .9 + panel.side) + 1) * 3 + 1;
       const lit = panel.row < wave + pulse * 3;
-      panel.mat.emissiveColor = panel.color.scale(energy ? (lit ? .95 : .1) : .22);
+      panel.mat.emissiveColor = panel.color.scale(lit ? energy ? 1.15 : .85 : .12);
     }
     for (let i = 0; i < equalizer.length; i++) {
-      const bar = equalizer[i]; bar.scaling.y = reduced ? 1 : .5 + Math.abs(Math.sin(time * 3.2 + i * .5)) * (energy ? 2.7 : 1);
-      bar.position.y = 1.9 + bar.scaling.y / 2;
+      const { bar, cap } = equalizer[i];
+      // No random or sine-driven fake equalizer; outside playback the screen is idle.
+      const level = reduced ? .12 : spectrum?.[i] || 0;
+      bar.scaling.y = .07 + level * 4.1;
+      bar.position.y = 1.25 + bar.scaling.y / 2;
+      cap.position.y = 1.25 + bar.scaling.y + .07;
+      cap.setEnabled(Boolean(spectrum) && !reduced && level > .03);
     }
     beams.forEach((b, i) => {
       b.mesh.rotation.z = reduced ? b.side * .3 : b.side * (.3 + Math.sin(time * .6 + i) * .3);
       b.mesh.rotation.x = reduced ? -.2 : -.25 + Math.cos(time * .4 + i) * .15;
-      b.mat.alpha = energy ? .065 + pulse * .018 : .025;
+      b.mat.alpha = energy ? .07 + pulse * .014 : .05;
     });
     zonePools.forEach((pool, index) => {
       const zone = pulseZones[index];

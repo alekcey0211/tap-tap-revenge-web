@@ -13,8 +13,8 @@ const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const manifest = JSON.parse((await read('offline-assets.js')).split(' = ')[1].replace(/;\s*$/, ''));
 const scope = 'https://example.test/tap-tap-revenge-web/prototype/';
 
-test('full prototype uses the exact working application with only version and renderer import changed', async () => {
-  const expected = (await read('app.js', stable)).replace("'./renderer.js?v=0.9.0'", "'./babylon-renderer.js?v=0.3.0'").replace("const APP_VERSION = '0.10.4';", "const APP_VERSION = '0.3.0-babylon';");
+test('full prototype uses the exact working application with only renderer integration and version changed', async () => {
+  const expected = (await read('app.js', stable)).replace("'./renderer.js?v=0.9.0'", "'./babylon-renderer.js?v=0.4.0'").replace("const APP_VERSION = '0.10.4';", "const APP_VERSION = '0.4.0-babylon';").replace('pulse?.zones(time, TRAVEL[run.level]));', 'pulse?.zones(time, TRAVEL[run.level]), { songId: run.song.id, position });');
   assert.equal(await read('app.js'), expected);
   for (const name of ['engine.js', 'audio.js', 'media-audio.js', 'routing.js', 'difficulty.js', 'progress.js', 'format.js', 'temporal.js', 'phrase-progress.js', 'pulse-view.js', 'pulse-zones.js', 'phrase-charts.js', 'offline-view.js', 'offline.js', 'sw.js']) {
     assert.equal(await read(name), await read(name, stable), name);
@@ -27,7 +27,7 @@ test('every stable screen/control is retained exactly once in the full prototype
   const current = ids(prototype);
   assert.equal(current.length, new Set(current).size);
   for (const id of ids(main)) assert.ok(current.includes(id), id);
-  assert.match(prototype, /game-bootstrap\.js\?v=0\.3\.0/);
+  assert.match(prototype, /game-bootstrap\.js\?v=0\.4\.0/);
   assert.match(prototype, /href="lab.html"/);
 });
 
@@ -60,7 +60,7 @@ test('prototype offline manifest covers full UI, Babylon, lab and selected-track
     const data = await readFile(new URL(file.path, root));
     assert.equal(data.length, file.bytes, file.path); assert.equal(hash(data), file.hash, file.path);
   }
-  assert.equal(manifest.version, '0.3.0-babylon');
+  assert.equal(manifest.version, '0.4.0-babylon');
   const pwa = JSON.parse(await read('manifest.webmanifest'));
   assert.equal(pwa.scope, './'); assert.equal(pwa.start_url, './'); assert.equal(pwa.short_name, 'Tap Tap Lab');
 });

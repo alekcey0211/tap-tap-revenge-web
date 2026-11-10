@@ -9,7 +9,7 @@ import { OfflineView } from './offline-view.js?v=0.10.0';
 import { Game, TRAVEL } from './engine.js';
 import { SongAudio } from './audio.js?v=0.5.3';
 import { MediaSongAudio } from './media-audio.js?v=0.3.1';
-import { Renderer } from './babylon-renderer.js?v=0.3.0';
+import { Renderer } from './babylon-renderer.js?v=0.4.0';
 
 import { Temporal } from './temporal.js';
 import { formatNumber, formatPercent, formatSigned, formatTime } from './format.js?v=0.3.0';
@@ -17,7 +17,7 @@ import { DEFAULT_SETTINGS, loadSave, saveSettings as writeSettings, recordAttemp
 import { ProgressView } from './progress.js?v=0.10.3';
 
 const $ = id => document.getElementById(id);
-const APP_VERSION = '0.3.0-babylon';
+const APP_VERSION = '0.4.0-babylon';
 if ($('app-version')) $('app-version').textContent = `v${APP_VERSION}`;
 $('settings-version').textContent = `v${APP_VERSION}`;
 $('pulse-target').textContent = formatPercent(90);
@@ -403,7 +403,7 @@ function frame() {
       pulse?.advance(time);
     }
     renderPulse(pulse?.view(time) ?? null);
-    if (!$('game-screen').hidden) renderer.render(game, time, run.level, buffer.duration, countdown, reducedMotion, pulse?.zones(time, TRAVEL[run.level]));
+    if (!$('game-screen').hidden) renderer.render(game, time, run.level, buffer.duration, countdown, reducedMotion, pulse?.zones(time, TRAVEL[run.level]), { songId: run.song.id, position });
     text('time', `${formatTime(position)} / ${formatTime(buffer.duration)}`);
     text('live-score', formatNumber(game.score));
     text('live-combo', formatNumber(game.streak));

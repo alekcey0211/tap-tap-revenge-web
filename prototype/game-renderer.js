@@ -2,6 +2,7 @@ import { Engine, WebGPUEngine } from '@babylonjs/core';
 import { createScene } from './scene.js';
 import { chooseBackend } from './backend.js';
 import { laneWidths } from './input-regions.js';
+import { sampleSpectrum } from './spectrum.js';
 import { HitEffects } from '../dist/hit-effects.js';
 import { TRAVEL } from '../dist/engine.js';
 import { formatNumber } from '../dist/format.js';
@@ -46,9 +47,18 @@ export async function prepareRenderer() {
     $('babylon-error').hidden = false;
     $('babylon-error-message').textContent = 'Графика прервана. Перезагрузи прототип или выбери WebGL.';
   });
+  let ambientTime = 0, stamp = performance.now();
+  const ambient = { hits: [], effects: new HitEffects() }, bands = new Float32Array(21);
   shared.engine.runRenderLoop(() => {
-    const data = shared.pending;
-    if (!data || document.hidden || !['menu', 'library', 'song-screen', 'game-screen', 'results'].includes(document.body.dataset.screen) || !data.canvas.clientWidth || !data.canvas.clientHeight || !data.canvas.getClientRects().length) return;
+    const now = performance.now(), delta = Math.min(.1, Math.max(0, (now - stamp) / 1000)); stamp = now;
+    if (document.hidden) return;
+    const screen = document.body.dataset.screen;
+    const reduced = document.body.dataset.reducedMotion === 'true' || matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!reduced) ambientTime += delta;
+    const active = screen === 'game-screen', paused = screen === 'pause-screen';
+    const data = active ? shared.pending : { owner: ambient, canvas: $('babylon-background-canvas'),
+      time: paused ? shared.pending?.time || 0 : ambientTime, reduced, difficulty: '1', zones: [], track: paused ? shared.pending?.track : null };
+    if (!data || !data.canvas.clientWidth || !data.canvas.clientHeight || !data.canvas.getClientRects().length) return;
     const { engine, world, canvas } = shared;
     if (canvas.parentElement !== data.canvas.parentElement) {
       data.canvas.before(canvas); data.canvas.after(feedback); previousSize = '';
@@ -65,7 +75,8 @@ export async function prepareRenderer() {
     if (notes !== previousNotes) { world.setChart(notes, TRAVEL[data.difficulty] || TRAVEL[1]); previousNotes = notes; }
     const multiplier = data.game?.multiplier(data.time) || 1;
     for (const hit of data.owner.hits.splice(0)) world.hit(hit.lane, hit.time);
-    world.update(data.time, !data.countdown, multiplier === 8, data.reduced, data.zones);
+    const spectrum = data.track && !data.countdown ? sampleSpectrum(data.track.songId, data.track.position, bands) : null;
+    world.update(data.time, active && !data.countdown, multiplier === 8, data.reduced, data.zones, spectrum);
     const effects = data.owner.effects.frame(multiplier, data.time);
     const points = world.targets();
     judgments.forEach((node, lane) => {
@@ -93,11 +104,10 @@ export class Renderer {
     };
     this.effects.reset = () => { reset(); this.hits = []; };
   }
-  renderBackdrop(time, reduced) {
-    const canvas = document.body.dataset.screen === 'song-screen' ? $('song-canvas') : this.canvas;
-    shared.pending = { owner: this, canvas, time, reduced, difficulty: '1', zones: [] };
-  }
-  render(game, time, difficulty, duration, countdown = 0, reduced = false, zones = []) {
-    shared.pending = { owner: this, canvas: this.canvas, game, time, difficulty, countdown, reduced, zones };
+  renderBackdrop() { /* The single engine now paints the shared background on every screen. */ }
+
+  render(game, time, difficulty, duration, countdown = 0, reduced = false, zones = [], track = null) {
+    if (this.canvas.id !== 'canvas') return;
+    shared.pending = { owner: this, canvas: this.canvas, game, time, difficulty, countdown, reduced, zones, track };
   }
 }

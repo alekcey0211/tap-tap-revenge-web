@@ -16,8 +16,8 @@
   <link rel="preload" href="assets/fonts/unbounded-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/unbounded-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="style.css?v=0.10.3">
-  <link rel="stylesheet" href="babylon.css?v=0.3.0">
-  <script type="module" src="game-bootstrap.js?v=0.3.0"></script>
+  <link rel="stylesheet" href="babylon.css?v=0.4.0">
+  <script type="module" src="game-bootstrap.js?v=0.4.0"></script>
 </head>
 <body>
   <div id="babylon-buffer" aria-hidden="true"></div>
@@ -30,7 +30,7 @@
       <p class="subtle">Три дорожки. Музыка. Точность.</p>
       <div class="instructions"><h2>Как играть</h2><p>Нажимай, когда ноты достигают колец. Длинные ноты удерживай до конца хвоста.</p><div class="key-row"><kbd>D</kbd><kbd>F</kbd><kbd>J</kbd></div><p><kbd>Esc</kbd> — пауза</p><p class="subtle">После 50 попаданий подряд ×8 включается автоматически.</p></div>
     </aside>
-    <div class="game-shell"><div class="stage-lights" aria-hidden="true"><i></i><i></i><i></i><canvas id="venue-canvas"></canvas></div>
+    <div class="game-shell"><div class="babylon-background" aria-hidden="true"><canvas id="babylon-background-canvas"></canvas></div><div class="stage-lights" aria-hidden="true"><i></i><i></i><i></i><canvas id="venue-canvas"></canvas></div>
       <header class="appbar" id="appbar"><button id="home" class="icon-button" aria-label="К трекам" hidden>‹</button><span class="music-mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><h2 id="screen-title" tabindex="-1">Музыка</h2><button id="settings-open" class="icon-button" aria-label="Настройки">⚙</button></header>
       <div id="song-backdrop" class="song-backdrop" aria-hidden="true" hidden><canvas id="song-canvas"></canvas></div>
       <section id="menu" class="screen main-menu" hidden aria-labelledby="menu-heading">
@@ -67,7 +67,7 @@
           <div id="pulse-progress-row"><progress id="pulse-progress" max="1" value="0" aria-label="Завершённые ноты фрагмента"></progress><span id="pulse-notes"></span></div>
         </section>
         <div class="playfield" id="playfield"><canvas id="canvas" width="640" height="960" aria-label="Три дорожки: левая D, средняя F, правая J"></canvas><div class="touch-lanes"><button data-lane="0" aria-label="Левая дорожка, D"></button><button data-lane="1" aria-label="Средняя дорожка, F"></button><button data-lane="2" aria-label="Правая дорожка, J"></button></div></div>
-        <div class="game-footer"><div class="progress-row"><progress id="song-progress" max="1" value="0" aria-label="Прогресс трека"></progress><span id="time">0:00 / 0:00</span></div><div id="revenge" class="secondary"><span id="revenge-label">АВТО ×8</span><progress id="revenge-progress" max="50" value="0" aria-hidden="true"></progress></div></div><div id="game-stats" class="sr-only"></div>
+        <div class="game-footer"><div class="progress-row"><progress id="song-progress" max="1" value="0" aria-label="Прогресс трека"></progress><span id="time">0:00 / 0:00</span></div><div id="revenge" hidden class="secondary"><span id="revenge-label">АВТО ×8</span><progress id="revenge-progress" max="50" value="0" aria-hidden="true"></progress></div></div><div id="game-stats" class="sr-only"></div>
       </section>
       <section id="results" class="screen result-screen" hidden aria-labelledby="result-heading">
         <div class="result-stage"><img id="result-art" class="result-art" alt=""></div><h3 id="result-heading"></h3><p id="result-artist"></p>

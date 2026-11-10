@@ -295,7 +295,7 @@ body[data-reduced-motion="true"] #multiplier { box-shadow: none; }
 #revenge-progress { flex: 0 0 25%; width: 25%; }
 
 /* Concert composition: luminous artwork, stage depth and a compact performance HUD. */
-.game-shell { position: relative; isolation: isolate; min-height: 760px; background: #080718 url("assets/scene/concert.jpg") center top / 100% auto no-repeat; border-color: #60508c; box-shadow: 0 24px 100px #0009, 0 0 70px #593bc333; }
+.game-shell { position: relative; isolation: isolate; min-height: 760px; background: #080718 none center top / 100% auto no-repeat; border-color: #60508c; box-shadow: 0 24px 100px #0009, 0 0 70px #593bc333; }
 .game-shell::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: linear-gradient(#06051777, #160a2b11 35%, #10091be6 75%); }
 .stage-lights { position: absolute; inset: 0 0 auto; height: 420px; z-index: -1; overflow: hidden; pointer-events: none; opacity: .55; }
 .stage-lights i { position: absolute; top: -70px; left: 12%; width: 32%; height: 450px; transform-origin: 50% 0; transform: rotate(-25deg); background: linear-gradient(#a6f4ff77, #67b2ff33 45%, transparent); clip-path: polygon(46% 0, 54% 0, 100% 100%, 0 100%); }
@@ -386,7 +386,7 @@ body[data-screen="game-screen"] .stage-lights { display: none; }
 .pulse[data-outcome="captured"] strong, .pulse[data-outcome="perfect"] strong { color: #ffd2a4; }
 .pulse-summary { color: #ffd2a4; border-color: #a7766244; background: #38233b99; }
 .playfield { isolation: isolate; }
-.playfield::before { content: ""; pointer-events: none; position: absolute; inset: 0; z-index: -1; background: url("assets/scene/concert.jpg") center -90px / 100% auto no-repeat; mask-image: linear-gradient(#000 0%, #000 30%, transparent 62%); }
+.playfield::before { content: ""; pointer-events: none; position: absolute; inset: 0; z-index: -1; background: none center -90px / 100% auto no-repeat; mask-image: linear-gradient(#000 0%, #000 30%, transparent 62%); }
 .game-footer { padding: 0 16px 4px; }
 .game-footer .progress-row { padding: 0 4px 8px; gap: 12px; }
 .game-footer #song-progress { height: 2px; }
@@ -434,7 +434,6 @@ body[data-screen="results"] .appbar h2 { font-size: 18px; text-align: center; co
 #pulse-breakdown li { padding: 12px 0; border-top: 1px solid #a980cc33; }
 #results #result-stats { margin: 0; padding: 4px 16px 16px; font-size: 13px; }
 .progress-tabs, .progress-screen select { border-color: #926bbd77; }
-img[src$="scene/concert.jpg"] { object-position: center top; }
 body:not([data-reduced-motion="true"]) button { transition: transform 120ms ease, filter 120ms ease; }
 body:not([data-reduced-motion="true"]) button:active:not(:disabled) { transform: scale(.97); }
 body:not([data-reduced-motion="true"]) #song-screen:not([hidden]) .album-stage img { animation: album-float 5s ease-in-out infinite; }
