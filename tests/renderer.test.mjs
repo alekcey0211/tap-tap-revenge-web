@@ -126,26 +126,6 @@ test('x8 changes the whole field even with reduced motion and ends on expiry or 
   assert.deepEqual(backgrounds, ['#0b071c55', '#4d202433', '#0b071c55', '#0b071c55']);
 });
 
-test('x8 lightning is confined to edges, moves with song time and stays static with reduced motion', () => {
-  let path = [], bolts = [];
-  const context = new Proxy({}, { get: (_, name) => {
-    if (['createLinearGradient', 'createRadialGradient'].includes(name)) return () => ({ addColorStop() {} });
-    if (name === 'beginPath') return () => { path = []; };
-    if (name === 'moveTo' || name === 'lineTo') return (x, y) => path.push([x, y]);
-    if (name === 'stroke') return () => { if (path.length === 19) bolts.push([...path]); };
-    return () => {};
-  } });
-  const renderer = new Renderer({ clientWidth: 320, clientHeight: 270, getContext: () => context }, paths);
-  const game = new Game([], { automaticRevenge: true }); game.streak = 50;
-  const draw = (time, reduced) => { bolts = []; renderer.render(game, time, '4', 100, 0, reduced); return bolts; };
-  const first = draw(1, false);
-  assert.equal(first.length, 4, 'two edges, each with glow and bright core');
-  assert.ok(first.flat().every(([x, y]) => (x >= 0 && x <= 18 || x >= 302 && x <= 320) && y >= 66 && y <= 444));
-  assert.deepEqual(draw(1, false), first, 'paused song clock freezes lightning');
-  assert.notDeepEqual(draw(1.2, false), first);
-  assert.deepEqual(draw(1, true), draw(1.2, true));
-});
-
 test('a successful round head explodes into particles; stray taps and reduced motion do not', () => {
   const arcs = [];
   const context = new Proxy({}, { get: (_, name) => ['createLinearGradient', 'createRadialGradient'].includes(name)
@@ -184,4 +164,84 @@ test('burst fragments rise from the target without replacing the next circular n
   renderer.render(game, 1.12, '4', 66);
   assert.equal(particles.length, 16);
   assert.ok(particles.filter(([, y]) => y < 422).length >= 12);
+});
+
+test('natural lightning is visible only during actual x8 and disappears on a broken streak', () => {
+  const cores = [];
+  const ctx = new Proxy({}, {
+    get: (target, name) => {
+      if (name in target) return target[name];
+      if (['createLinearGradient', 'createRadialGradient'].includes(name)) return () => ({ addColorStop() {} });
+      return name === 'stroke' ? () => { if (target.strokeStyle === '#f6fbff') cores.push(target.globalAlpha); } : () => {};
+    },
+  });
+  const renderer = new Renderer({ clientWidth: 390, clientHeight: 630, getContext: () => ctx }, paths);
+  const game = new Game([], { automaticRevenge: true });
+  renderer.render(game, 1, '4', 66); assert.equal(cores.length, 0);
+  game.streak = 50; renderer.render(game, 1.3, '4', 66); assert.equal(cores.length, 2);
+  cores.length = 0; game.press(0, 2); renderer.render(game, 2, '4', 66); assert.equal(cores.length, 0);
+});
+
+test('x8 animates concert beams and ornaments without moving the hit targets; reduced motion is static', () => {
+  let path = [], fillStyle; const beams = [], rings = [];
+  const context = new Proxy({}, {
+    get: (_, name) => {
+      if (['createLinearGradient', 'createRadialGradient'].includes(name)) return () => ({ stops: [], addColorStop(offset, color) { this.stops.push(color); } });
+      if (name === 'beginPath') return () => { path = []; };
+      if (name === 'moveTo' || name === 'lineTo') return (...point) => path.push(point);
+      if (name === 'fill') return () => { if (['#ca83ff', '#74baff'].includes(fillStyle?.stops?.[0])) beams.push([...path]); };
+      if (name === 'ellipse') return (...args) => { if (args[2] === 37) rings.push(args); };
+      return () => {};
+    },
+    set: (_, name, value) => { if (name === 'fillStyle') fillStyle = value; return true; },
+  });
+  const renderer = new Renderer({ clientWidth: 390, clientHeight: 630, getContext: () => context }, paths);
+  const game = new Game([{ time: 1, lane: 0, duration: 0 }], { automaticRevenge: true });
+  renderer.render(game, 2, '4', 66); assert.equal(beams.length + rings.length, 0);
+  game.streak = 50;
+  const draw = (time, reduced = false) => { beams.length = 0; rings.length = 0; renderer.render(game, time, '4', 66, 0, reduced); return { beams: structuredClone(beams), rings: structuredClone(rings) }; };
+  const first = draw(2);
+  assert.equal(first.beams.length, 4); assert.equal(first.rings.length, 9);
+  assert.deepEqual(draw(2), first, 'same song time freezes scenery');
+  assert.notDeepEqual(draw(2.5).beams, first.beams);
+  assert.ok(first.rings.every(([x, y]) => [54, 160, 266].includes(x) && y === 422));
+  const still = draw(2, true); assert.equal(still.beams.length, 0);
+  assert.deepEqual(draw(8, true), still);
+});
+
+test('x8 adds translucent halos without changing note circles, and lights six artwork panels', () => {
+  const fills = [], circles = [], scales = [], shifts = []; let path = [];
+  const ctx = new Proxy({ globalAlpha: 1 }, { get(target, name) {
+    if (name in target) return target[name];
+    if (['createLinearGradient', 'createRadialGradient'].includes(name)) return (...args) => ({ args, stops: [], addColorStop(offset, color) { this.stops.push(color); } });
+    if (name === 'beginPath') return () => { path = []; };
+    if (name === 'moveTo' || name === 'lineTo') return (...point) => path.push(point);
+    if (name === 'arc') return (...args) => circles.push(args);
+    if (name === 'scale') return (...args) => scales.push(args);
+    if (name === 'translate') return (...args) => shifts.push(args);
+    if (name === 'fill') return () => fills.push({ paint: target.fillStyle, alpha: target.globalAlpha, points: [...path] });
+    return () => {};
+  } });
+  const canvas = { clientWidth: 390, clientHeight: 630, getContext: () => ctx };
+  const renderer = new Renderer(canvas, paths);
+  const game = new Game([{ time: 2.2, lane: 1, duration: 0 }], { automaticRevenge: true });
+  const draw = (time, reduced = false) => {
+    fills.length = circles.length = scales.length = shifts.length = 0;
+    renderer.render(game, time, '4', 66, 0, reduced);
+    return { panels: JSON.parse(JSON.stringify(fills.filter(x => x.paint?.stops?.at(-1) === '#ffe4ff'))),
+      halos: fills.filter(x => x.paint?.stops?.[1] === '#c9ff5677'), circles: structuredClone(circles) };
+  };
+  const normal = draw(2); assert.equal(normal.panels.length + normal.halos.length, 0);
+  game.streak = 80;
+  const active = draw(2); assert.equal(active.panels.length, 6); assert.equal(active.halos.length, 1);
+  assert.deepEqual(active.circles, normal.circles, 'opaque heads retain shape and radius');
+  assert.ok(active.panels.every(p => p.points.length === 4));
+  assert.ok(scales.some(([x, y]) => x === 320 / 1024 && y === 390 / 630 * 480 / 1024));
+  assert.ok(shifts.some(([x, y]) => x === 0 && y === -90 * 1024 / 390));
+  const still = draw(2, true);
+  assert.deepEqual(draw(2.1, true).panels, still.panels);
+  canvas.clientWidth = 320; canvas.clientHeight = 270; draw(2);
+  assert.ok(scales.some(([x, y]) => x === 320 / 1024 && y === 320 / 270 * 480 / 1024));
+  assert.ok(shifts.some(([x, y]) => x === 0 && y === -90 * 1024 / 320));
+  game.streak = 0; const ended = draw(2); assert.equal(ended.panels.length + ended.halos.length, 0);
 });

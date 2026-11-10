@@ -1,3 +1,5 @@
+import { TrackRhythm } from './track-rhythm.js?v=0.8.1';
+import { Lightning } from './lightning.js?v=0.8.1';
 import { HitEffects } from './hit-effects.js';
 import { formatNumber } from './format.js?v=0.3.0';
 import { pathPosition, TRAVEL } from './engine.js';
@@ -19,6 +21,8 @@ export class Renderer {
     this.ctx = canvas.getContext('2d');
     this.paths = paths;
     this.effects = new HitEffects();
+    this.lightning = new Lightning();
+    this.rhythm = new TrackRhythm();
   }
   text(text, x, y, size = 12, color = '#f3f2ee') {
     const c = this.ctx;
@@ -27,8 +31,17 @@ export class Renderer {
     c.fillStyle = color;
     c.fillText(text, x, y);
   }
-  renderNote(lane, radius, reducedMotion) {
+  renderNote(lane, radius, reducedMotion, energy = 0) {
     const c = this.ctx;
+    if (energy) {
+      // A transparent halo, not a larger head: the opaque circle stays unchanged.
+      const halo = c.createRadialGradient(0, 0, radius * .75, 0, 0, radius * 1.8);
+      halo.addColorStop(0, COLORS[lane] + '00');
+      halo.addColorStop(.3, COLORS[lane] + '77');
+      halo.addColorStop(1, COLORS[lane] + '00');
+      c.beginPath(); c.ellipse(0, 0, radius * 1.8, radius * 1.8, 0, 0, Math.PI * 2);
+      c.save(); c.globalAlpha *= energy; c.fillStyle = halo; c.fill(); c.restore();
+    }
     // The caller uses a uniform screen scale: circles stay circular on short screens.
     c.beginPath(); c.ellipse(0, radius * .14, radius, radius * .92, 0, 0, Math.PI * 2);
     c.fillStyle = '#00000050'; c.fill();
@@ -45,20 +58,35 @@ export class Renderer {
     c.beginPath(); c.ellipse(-radius * .25, -radius * .36, radius * .32, radius * .15, -.5, 0, Math.PI * 2);
     c.fillStyle = '#ffffff55'; c.fill();
   }
-  renderStage(time, revenge, reducedMotion) {
+  renderStage(time, revenge, reducedMotion, pulse = 0) {
     const c = this.ctx;
     // A single dark runway with luminous rails, not a flat grid over the venue.
     const floor = c.createLinearGradient(160, 53, 160, 448);
-    floor.addColorStop(0, '#080d2300'); floor.addColorStop(.2, '#080d2355'); floor.addColorStop(1, '#080b20dd');
+    floor.addColorStop(0, '#080d2300'); floor.addColorStop(.2, revenge ? '#25145266' : '#080d2355'); floor.addColorStop(1, revenge ? '#111332e6' : '#080b20dd');
     c.beginPath(); c.moveTo(132, 53); c.lineTo(188, 53); c.lineTo(320, 448); c.lineTo(0, 448); c.closePath();
     c.fillStyle = floor; c.fill();
     for (const side of [0, 1]) {
       c.beginPath(); c.moveTo(side ? 188 : 132, 53); c.lineTo(side ? 318 : 2, 448);
-      c.strokeStyle = side ? '#75ddff' : '#ca81ff'; c.lineWidth = 1.5;
-      c.shadowColor = c.strokeStyle; c.shadowBlur = reducedMotion ? 0 : 12; c.stroke();
+      c.strokeStyle = side ? '#75ddff' : '#ca81ff'; c.lineWidth = revenge ? 2.8 : 1.5;
+      c.shadowColor = c.strokeStyle; c.shadowBlur = reducedMotion ? 0 : revenge ? 16 + pulse * 8 : 12; c.stroke();
       c.shadowBlur = 0;
       c.beginPath(); c.moveTo(side ? 192 : 128, 53); c.lineTo(side ? 320 : 0, 420);
       c.strokeStyle = side ? '#4791d955' : '#a34eda55'; c.lineWidth = 4; c.stroke();
+      if (revenge) {
+        // Segmented circuitry lives beside the rails, never across the note lanes.
+        for (let i = 0; i < 9; i++) {
+          const phase = reducedMotion ? i / 9 : (i / 9 + Math.max(0, time) * .35) % 1;
+          const depth = phase * phase, y = 60 + depth * 365, x = 132 * (1 - depth);
+          const inward = side ? -1 : 1, edge = side ? 320 - x : x;
+          const length = 5 + depth * 12;
+          c.beginPath(); c.moveTo(edge, y); c.lineTo(edge + inward * (3 + depth * 4), y + length * .4);
+          c.lineTo(edge + inward * (3 + depth * 4), y + length);
+          c.strokeStyle = side ? '#a5f6ff' : '#e4b5ff'; c.lineWidth = 1 + depth;
+          c.globalAlpha = reducedMotion ? .65 : .45 + pulse * .45;
+          c.shadowColor = c.strokeStyle; c.shadowBlur = reducedMotion ? 0 : 7; c.stroke();
+        }
+        c.globalAlpha = 1; c.shadowBlur = 0;
+      }
     }
     // Small moving edge lights convey speed without drawing stripes across the notes.
     if (!reducedMotion) for (let i = 0; i < 6; i++) {
@@ -92,42 +120,60 @@ export class Renderer {
     }
     c.restore();
   }
-  renderEnergy(effects, reducedMotion, time) {
+  renderEnergy(effects, reducedMotion, time, rhythm) {
     if (effects.multiplier !== 8) return;
     const c = this.ctx;
     const impact = reducedMotion ? 0 : Math.max(0, ...effects.hits.map(hit => 1 - hit.age / .6));
-    // Narrow side ribbons: no full-screen flash and no movement of the note lanes.
-    for (const side of [0, 1]) {
-      const x = side ? 320 : 0;
-      const gradient = c.createLinearGradient(x, 0, x + (side ? -18 : 18), 0);
-      gradient.addColorStop(0, '#ffa65a'); gradient.addColorStop(1, '#ffa65a00');
-      c.globalAlpha = .18 + impact * .26;
-      c.fillStyle = gradient; c.fillRect(side ? 302 : 0, 52, 18, 396);
-      // Bright zigzags stay in an 18px edge strip, never across note heads.
-      // Continuous deformation avoids alternating full-bright/full-dark flashes.
-      const phase = reducedMotion ? 0 : time * 9;
+    this.renderConcertLights(time, rhythm.pulse, reducedMotion);
+    this.lightning.render(c, rhythm, impact, reducedMotion);
+  }
+
+  renderPanels(pulse, reducedMotion) {
+    const c = this.ctx;
+    c.save();
+    // Match concert.jpg's 1024px artwork and CSS background: 100% width, -90px top.
+    // This mapping stays aligned on both tall and short phone playfields.
+    c.scale(320 / 1024, this.canvas.clientWidth / this.canvas.clientHeight * 480 / 1024);
+    c.translate(0, -90 * 1024 / this.canvas.clientWidth);
+    c.globalCompositeOperation = 'screen';
+    const panels = [
+      [[51, 192], [82, 207], [79, 350], [47, 350]],
+      [[156, 94], [201, 117], [197, 369], [150, 367]],
+      [[246, 263], [265, 272], [263, 350], [244, 350]],
+    ];
+    for (const side of [0, 1]) for (let i = 0; i < panels.length; i++) {
+      const points = panels[i], color = i === 1 ? '#6aefff' : '#d77aff';
+      const light = c.createLinearGradient(0, points[0][1], 0, points[2][1]);
+      light.addColorStop(0, color + '55'); light.addColorStop(.65, color);
+      light.addColorStop(1, '#ffe4ff');
       c.beginPath();
-      for (let i = 0; i <= 18; i++) {
-        const reach = 4 + (1 + Math.sin(i * 6.7 + side * 2.8)) * 5 + Math.sin(phase + i * 2.1 + side * 1.7) * 3;
-        const px = side ? 320 - reach : reach, py = 66 + i * 21 + (i > 0 && i < 18 ? Math.sin(phase * .7 + i * 3.2) * 5 : 0);
-        if (!i) c.moveTo(px, py); else c.lineTo(px, py);
-      }
-      c.lineJoin = 'round';
-      c.globalAlpha = .65 + impact * .3;
-      c.strokeStyle = '#ffa65a'; c.lineWidth = 2.8 + impact * 1.5;
-      c.shadowColor = '#ffa65a'; c.shadowBlur = reducedMotion ? 0 : 10 + impact * 8; c.stroke();
-      c.shadowBlur = 0; c.strokeStyle = '#fff0d7'; c.lineWidth = .9 + impact * .5; c.stroke();
-      if (!reducedMotion) {
-        c.strokeStyle = '#ffa65a'; c.lineWidth = 1.5;
-        for (let i = 0; i < 5; i++) {
-          const y = 440 - ((time * 95 + i * 75) % 375);
-          const edge = side ? 307 : 13, direction = side ? -1 : 1;
-          c.beginPath(); c.moveTo(edge, y); c.lineTo(edge + direction * 5, y - 10);
-          c.lineTo(edge + direction * 2, y - 17); c.stroke();
-        }
-      }
+      points.forEach(([x, y], n) => { const px = side ? 1024 - x : x; if (n) c.lineTo(px, y); else c.moveTo(px, y); });
+      c.closePath(); c.fillStyle = light;
+      c.globalAlpha = reducedMotion ? .3 : .22 + pulse * .38;
+      c.shadowColor = color; c.shadowBlur = reducedMotion ? 0 : 12;
+      c.fill(); c.strokeStyle = color; c.lineWidth = 1.5; c.stroke();
     }
-    c.globalAlpha = 1;
+    c.restore();
+  }
+  renderConcertLights(time, pulse, reducedMotion) {
+    if (reducedMotion) return;
+    const c = this.ctx;
+    c.save(); c.beginPath(); c.rect(0, 45, 320, 395); c.clip();
+    c.globalCompositeOperation = 'screen';
+    const halo = c.createRadialGradient(160, 68, 5, 160, 68, 150);
+    halo.addColorStop(0, '#ba7cff'); halo.addColorStop(.3, '#723cff77'); halo.addColorStop(1, '#723cff00');
+    c.globalAlpha = .14 + pulse * .14; c.fillStyle = halo; c.fillRect(10, 45, 300, 180);
+    for (let i = 0; i < 4; i++) {
+      const source = i % 2 ? 280 : 40;
+      const destination = 160 + Math.sin(time * .65 + i * 1.7) * 130;
+      const beam = c.createLinearGradient(source, 52, destination, 440);
+      beam.addColorStop(0, i % 2 ? '#ca83ff' : '#74baff');
+      beam.addColorStop(.6, i % 2 ? '#9b5aff88' : '#528eff88'); beam.addColorStop(1, '#496aff00');
+      c.globalAlpha = .07 + pulse * .07; c.fillStyle = beam;
+      c.beginPath(); c.moveTo(source - 2, 52); c.lineTo(source + 2, 52);
+      c.lineTo(destination + 38, 440); c.lineTo(destination - 38, 440); c.closePath(); c.fill();
+    }
+    c.restore();
   }
   renderHits(effects, reducedMotion) {
     const c = this.ctx;
@@ -197,8 +243,10 @@ export class Renderer {
     const effects = this.effects.frame(game.multiplier(time), time);
     const revenge = effects.multiplier === 8;
     c.fillStyle = revenge ? '#4d202433' : '#0b071c55'; c.fillRect(0, 0, 320, 480);
-    this.renderStage(time, revenge, reducedMotion);
-    this.renderEnergy(effects, reducedMotion, time);
+    const rhythm = revenge ? this.rhythm.frame(game.notes, time) : { index: -1, age: Infinity, pulse: 0 };
+    if (revenge) this.renderPanels(rhythm.pulse, reducedMotion);
+    this.renderStage(time, revenge, reducedMotion, rhythm.pulse);
+    this.renderEnergy(effects, reducedMotion, time, rhythm);
     for (let lane = 0; lane < 3; lane++) {
       const [x] = stagePosition(this.paths, lane, 1);
       const glow = c.createLinearGradient(160, 53, x, 422);
@@ -221,6 +269,17 @@ export class Renderer {
       c.strokeStyle = failed ? '#ff777e' : active ? '#f3f2ee' : COLORS[lane]; c.lineWidth = active ? 3 : 2;
       c.shadowColor = COLORS[lane]; c.shadowBlur = reducedMotion ? 0 : active ? 22 : 10;
       c.stroke(); c.shadowBlur = 0;
+      if (revenge) {
+        const turn = reducedMotion ? 0 : time * 1.3;
+        c.strokeStyle = COLORS[lane]; c.lineWidth = 1.4;
+        c.globalAlpha = reducedMotion ? .65 : .5 + rhythm.pulse * .4;
+        c.shadowColor = COLORS[lane]; c.shadowBlur = reducedMotion ? 0 : 9;
+        for (let part = 0; part < 3; part++) {
+          const angle = turn + part * Math.PI * 2 / 3;
+          c.beginPath(); c.ellipse(x, 422, 37, 18, 0, angle, angle + 1.1); c.stroke();
+        }
+        c.globalAlpha = 1; c.shadowBlur = 0;
+      }
     }
     this.renderHits(effects, reducedMotion);
     const travel = TRAVEL[difficulty];
@@ -249,7 +308,7 @@ export class Renderer {
       const radius = 32 * (.08 + .67 * (1 - Math.cos(Math.min(1, progress) * Math.PI / 2)));
       c.save(); c.translate(x, y);
       c.scale(noteScale * 320 / width, noteScale * 480 / height);
-      this.renderNote(note.lane, radius, reducedMotion);
+      this.renderNote(note.lane, radius, reducedMotion, revenge ? (reducedMotion ? .55 : .55 + rhythm.pulse * .45) : 0);
       c.restore();
       c.globalAlpha = 1;
     }
