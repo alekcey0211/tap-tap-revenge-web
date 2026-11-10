@@ -1,5 +1,5 @@
 import { formatCount } from './format.js?v=0.3.0';
-export const LEVELS = { 1: 'Легко', 2: 'Средне', 3: 'Сложно', 4: 'Экстрим' };
+export const LEVELS = { 1: 'Легко', 2: 'Средне', 3: 'Сложно' };
 
 export function renderDifficulties(container, song, level, onSelect) {
   for (const [value, name] of Object.entries(LEVELS)) {
@@ -7,7 +7,7 @@ export function renderDifficulties(container, song, level, onSelect) {
     if (!button) {
       button = document.createElement('button'); button.dataset.level = value;
       const meter = document.createElement('span'); meter.className = 'difficulty-meter'; meter.setAttribute('aria-hidden', 'true');
-      for (let step = 1; step <= 4; step++) {
+      for (let step = 1; step <= 3; step++) {
         const bar = document.createElement('i'); bar.dataset.lit = String(step <= Number(value)); meter.append(bar);
       }
       const check = document.createElement('span'); check.className = 'difficulty-check'; check.setAttribute('aria-hidden', 'true');

@@ -1,9 +1,9 @@
 import { Temporal } from './temporal.js';
 
-export const SAVE_KEY = 'ttr-babylon-save-v1';
+export const SAVE_KEY = 'ttr-babylon-save-v2';
 export const HISTORY_LIMIT = 100;
 export const IMPORT_LIMIT = 512 * 1024;
-export const CHART_VERSION = 'original-v1';
+export const CHART_VERSION = 'neon-three-v1';
 export const RULES_VERSION = 'auto-revenge-v2';
 export const DEFAULT_SETTINGS = { compatibleAudio: true, volume: 75, offset: 0, motion: false };
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -114,18 +114,10 @@ export function parseProgress(text) {
   return snapshotFrom(value);
 }
 function legacy(storage, defaults) {
-  let settings = defaults, records = [];
-  try { settings = settingsFrom(JSON.parse(storage.getItem('ttr-babylon-settings') || '{}'), defaults); } catch { /* Retain defaults. */ }
-  try {
-    const old = JSON.parse(storage.getItem('ttr-babylon-records') || '{}');
-    if (object(old)) for (const [key, result] of Object.entries(old).slice(0, 256)) {
-      const parts = key.split(':');
-      const [songId, level] = parts;
-      if (parts.length !== 2 || !uuid.test(songId) || !['1', '2', '3', '4'].includes(level)) continue;
-      try { records.push({ songId, level, chartVersion: CHART_VERSION, rulesVersion: 'web-v1', result: resultFrom(result), previousScore: null }); } catch { /* Skip only the malformed record. */ }
-    }
-  } catch { /* Keep valid settings when old records are damaged. */ }
-  return { settings, progress: { records, history: [] } };
+  let settings = defaults;
+  try { settings = settingsFrom(JSON.parse(storage.getItem('ttr-babylon-settings') || '{}'), defaults); } catch {}
+  try { const previous = storage.getItem('ttr-babylon-save-v1'); if (previous) settings = parseProgress(previous).settings; } catch {}
+  return { settings, progress: { records: [], history: [] } };
 }
 function resetLegacyPulse(progress) {
   const legacy = entry => ['phrases-v1', 'phrases-v2', 'phrases-v3'].includes(entry.pulse?.phraseVersion);

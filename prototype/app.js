@@ -4,7 +4,7 @@ import { createScene } from './scene.js';
 import { chooseBackend } from './backend.js';
 import { Transport } from './transport.js';
 import { PlaySession } from './session.js';
-import { TRAVEL } from '../dist/engine.js';
+import { TRAVEL } from './timing.js';
 import { sampleSpectrum } from './spectrum.js';
 const spectrumBands = new Float32Array(21);
 
@@ -209,7 +209,7 @@ async function initialize() {
       $('clock').textContent = clock(time);
       $('timeline-fill').style.transform = `scaleX(${selected ? Math.min(1, time / selected.duration) : 0})`;
       renderScore();
-      if (performance.now() - statsAt > 1000) { $('fps').textContent = `${numbers.format(engine.getFps())} FPS · LAB 0.4`; statsAt = performance.now(); }
+      if (performance.now() - statsAt > 1000) { $('fps').textContent = `${numbers.format(engine.getFps())} FPS · LAB 0.5`; statsAt = performance.now(); }
 
     });
     tracks = (await json('assets/catalog.json')).filter(song => !song.tutorial);

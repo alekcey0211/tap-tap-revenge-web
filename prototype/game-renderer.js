@@ -4,7 +4,7 @@ import { chooseBackend } from './backend.js';
 import { laneWidths } from './input-regions.js';
 import { sampleSpectrum } from './spectrum.js';
 import { HitEffects } from '../dist/hit-effects.js';
-import { TRAVEL } from '../dist/engine.js';
+import { TRAVEL } from './timing.js';
 import { formatNumber } from '../dist/format.js';
 
 let shared;

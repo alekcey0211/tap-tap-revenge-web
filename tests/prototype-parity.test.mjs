@@ -14,9 +14,9 @@ const manifest = JSON.parse((await read('offline-assets.js')).split(' = ')[1].re
 const scope = 'https://example.test/tap-tap-revenge-web/prototype/';
 
 test('full prototype uses the exact working application with only renderer integration and version changed', async () => {
-  const expected = (await read('app.js', stable)).replace("'./renderer.js?v=0.9.0'", "'./babylon-renderer.js?v=0.4.2'").replace("const APP_VERSION = '0.10.4';", "const APP_VERSION = '0.4.2-babylon';").replace('pulse?.zones(time, TRAVEL[run.level]));', 'pulse?.zones(time, TRAVEL[run.level]), { songId: run.song.id, position });');
+  const expected = (await read('app.js', stable)).replace("'./renderer.js?v=0.9.0'", "'./babylon-renderer.js?v=0.5.0'").replace("const APP_VERSION = '0.10.4';", "const APP_VERSION = '0.5.0-babylon';").replace('pulse?.zones(time, TRAVEL[run.level]));', 'pulse?.zones(time, TRAVEL[run.level]), { songId: run.song.id, position });');
   assert.equal(await read('app.js'), expected);
-  for (const name of ['engine.js', 'audio.js', 'media-audio.js', 'routing.js', 'difficulty.js', 'progress.js', 'format.js', 'temporal.js', 'phrase-progress.js', 'pulse-view.js', 'pulse-zones.js', 'phrase-charts.js', 'offline-view.js', 'offline.js', 'sw.js']) {
+  for (const name of ['audio.js', 'media-audio.js', 'routing.js', 'progress.js', 'format.js', 'temporal.js', 'phrase-progress.js', 'pulse-view.js', 'pulse-zones.js', 'phrase-charts.js', 'offline-view.js', 'offline.js', 'sw.js']) {
     assert.equal(await read(name), await read(name, stable), name);
   }
 });
@@ -27,12 +27,15 @@ test('every stable screen/control is retained exactly once in the full prototype
   const current = ids(prototype);
   assert.equal(current.length, new Set(current).size);
   for (const id of ids(main)) assert.ok(current.includes(id), id);
-  assert.match(prototype, /game-bootstrap\.js\?v=0\.4\.2/);
+  assert.match(prototype, /game-bootstrap\.js\?v=0\.5\.0/);
   assert.match(prototype, /href="lab.html"/);
 });
 
-test('prototype storage only changes namespace and defaults to the unchanged compatible audio', async () => {
-  assert.equal(await read('storage.js'), (await read('storage.js', stable)).replaceAll('ttr-web-', 'ttr-babylon-').replace('compatibleAudio: false', 'compatibleAudio: true'));
+test('prototype storage isolates progress, resets chart revision, and retains compatible audio default', async () => {
+  const withoutLegacy = source => source.replace(/function legacy\(storage, defaults\) \{[\s\S]*?(?=function resetLegacyPulse)/, '');
+  const expectedStorage = (await read('storage.js', stable)).replaceAll('ttr-web-', 'ttr-babylon-').replace('compatibleAudio: false', 'compatibleAudio: true')
+    .replace('ttr-babylon-save-v1', 'ttr-babylon-save-v2').replace("CHART_VERSION = 'original-v1'", "CHART_VERSION = 'neon-three-v1'");
+  assert.equal(withoutLegacy(await read('storage.js')), withoutLegacy(expectedStorage));
   const original = new Map([
     [stableSave.SAVE_KEY, stableSave.exportProgress(stableSave.DEFAULT_SETTINGS, { records: [], history: [] })],
     ['ttr-web-records', '{"do-not-touch":true}'], ['ttr-web-settings', '{"volume":17}'],
@@ -60,9 +63,9 @@ test('prototype offline manifest covers full UI, Babylon, lab and selected-track
     const data = await readFile(new URL(file.path, root));
     assert.equal(data.length, file.bytes, file.path); assert.equal(hash(data), file.hash, file.path);
   }
-  assert.equal(manifest.version, '0.4.2-babylon');
+  assert.equal(manifest.version, '0.5.0-babylon');
   const pwa = JSON.parse(await read('manifest.webmanifest'));
-  assert.equal(pwa.scope, './'); assert.equal(pwa.start_url, './'); assert.equal(pwa.short_name, 'Tap Tap Lab');
+  assert.equal(pwa.scope, './'); assert.equal(pwa.start_url, './'); assert.equal(pwa.short_name, 'Neon Drive');
 });
 
 test('prototype can cache full shell and song; its update/removal cannot delete main game caches', async () => {

@@ -30,19 +30,52 @@ for (const path of await walk(root)) {
   await cp(new URL(path, root), new URL(path, out));
 }
 await rm(new URL('assets/scene/concert.jpg', out), { force: true });
+// New catalog: medium/hard/extreme charts become easy/medium/hard. Calibration stays intact.
+const catalog = JSON.parse(await readFile(new URL('assets/catalog.json', root)));
+for (const song of catalog.filter(song => !song.tutorial)) {
+  const levels = {};
+  for (let level = 1; level <= 3; level++) {
+    levels[level] = song.levels[level + 1];
+    await cp(new URL(`assets/tracks/${song.id}/${level + 1}.json`, root), new URL(`assets/tracks/${song.id}/${level}.json`, out));
+  }
+  song.levels = levels;
+  await rm(new URL(`assets/tracks/${song.id}/4.json`, out), { force: true });
+}
+await writeFile(new URL('assets/catalog.json', out), JSON.stringify(catalog, null, 2) + '\n');
+const engine = replaceOnce(await readFile(new URL('engine.js', root), 'utf8'),
+  'export const TRAVEL = { 1: 2.7, 2: 2.15, 3: 1.8, 4: 1.4 };', 'export const TRAVEL = { 1: 2.15, 2: 1.8, 3: 1.4 };');
+await writeFile(new URL('engine.js', out), engine);
+const difficulty = replaceOnce(await readFile(new URL('difficulty.js', root), 'utf8'),
+  "{ 1: 'Легко', 2: 'Средне', 3: 'Сложно', 4: 'Экстрим' }", "{ 1: 'Легко', 2: 'Средне', 3: 'Сложно' }")
+  .replace('step <= 4', 'step <= 3');
+await writeFile(new URL('difficulty.js', out), difficulty);
 const style = (await readFile(new URL('style.css', root), 'utf8')).replaceAll('url("assets/scene/concert.jpg")', 'none').replace(/^img\[src\$="scene\/concert\.jpg"\].*\n/m, '');
 await writeFile(new URL('style.css', out), style);
 let app = await readFile(new URL('app.js', root), 'utf8');
-app = replaceOnce(app, "'./renderer.js?v=0.9.0'", "'./babylon-renderer.js?v=0.4.2'");
-app = replaceOnce(app, "const APP_VERSION = '0.10.4';", "const APP_VERSION = '0.4.2-babylon';");
+app = replaceOnce(app, "'./renderer.js?v=0.9.0'", "'./babylon-renderer.js?v=0.5.0'");
+app = replaceOnce(app, "const APP_VERSION = '0.10.4';", "const APP_VERSION = '0.5.0-babylon';");
 app = replaceOnce(app, 'pulse?.zones(time, TRAVEL[run.level]));', 'pulse?.zones(time, TRAVEL[run.level]), { songId: run.song.id, position });');
 await writeFile(new URL('app.js', out), app);
-const storage = (await readFile(new URL('storage.js', root), 'utf8')).replaceAll('ttr-web-', 'ttr-babylon-').replace('compatibleAudio: false', 'compatibleAudio: true');
+let storage = (await readFile(new URL('storage.js', root), 'utf8')).replaceAll('ttr-web-', 'ttr-babylon-').replace('compatibleAudio: false', 'compatibleAudio: true');
+storage = replaceOnce(storage, "'ttr-babylon-save-v1'", "'ttr-babylon-save-v2'");
+storage = replaceOnce(storage, "CHART_VERSION = 'original-v1'", "CHART_VERSION = 'neon-three-v1'");
+const legacyStart = storage.indexOf('function legacy(storage, defaults) {');
+const legacyEnd = storage.indexOf('function resetLegacyPulse', legacyStart);
+if (legacyStart < 0 || legacyEnd < 0) throw new Error('Storage migration changed');
+storage = storage.slice(0, legacyStart) + `function legacy(storage, defaults) {
+  let settings = defaults;
+  try { settings = settingsFrom(JSON.parse(storage.getItem('ttr-babylon-settings') || '{}'), defaults); } catch {}
+  try { const previous = storage.getItem('ttr-babylon-save-v1'); if (previous) settings = parseProgress(previous).settings; } catch {}
+  return { settings, progress: { records: [], history: [] } };
+}
+` + storage.slice(legacyEnd);
 await writeFile(new URL('storage.js', out), storage);
 let html = await readFile(new URL('index.html', root), 'utf8');
-html = replaceOnce(html, '<title>Tap Tap Revenge · Web</title>', '<title>Tap Tap · Babylon Stage Lab</title>');
-html = replaceOnce(html, 'content="Tap Tap Web"', 'content="Tap Tap Lab"');
-html = replaceOnce(html, '<script type="module" src="app.js?v=0.10.4"></script>', '<link rel="stylesheet" href="babylon.css?v=0.4.2">\n  <script type="module" src="game-bootstrap.js?v=0.4.2"></script>');
+html = replaceOnce(html, '<title>Tap Tap Revenge · Web</title>', '<title>NEON DRIVE · Stage Lab</title>');
+html = replaceOnce(html, 'content="Tap Tap Web"', 'content="Neon Drive"');
+html = replaceOnce(html, '<script type="module" src="app.js?v=0.10.4"></script>', '<link rel="stylesheet" href="babylon.css?v=0.5.0">\n  <script type="module" src="game-bootstrap.js?v=0.5.0"></script>');
+html = replaceOnce(html, 'TAP TAP<span>REVENGE</span>', 'NEON<span>DRIVE</span>');
+html = replaceOnce(html, 'TAP TAP REVENGE / WEB', 'NEON DRIVE / WEB');
 html = replaceOnce(html, '<body>', `<body>
   <div id="babylon-buffer" aria-hidden="true"></div>
   <div id="babylon-loading" role="status">Готовим объёмную сцену…</div>
@@ -57,7 +90,7 @@ const settingsContent = html.indexOf('>', settingsStart) + 1;
 html = html.slice(0, settingsContent) + '<p class="babylon-badge">STAGE LAB · отдельные настройки, рекорды и офлайн-треки</p><label>Графика<select id="babylon-renderer-choice"><option value="auto">WebGPU → WebGL</option><option value="webgl">Только WebGL</option></select></label>' + html.slice(settingsContent);
 await writeFile(new URL('index.html', out), html);
 const manifest = JSON.parse(await readFile(new URL('manifest.webmanifest', root)));
-manifest.name = 'Tap Tap · Stage Lab'; manifest.short_name = 'Tap Tap Lab';
+manifest.name = 'Neon Drive · Stage Lab'; manifest.short_name = 'Neon Drive';
 await writeFile(new URL('manifest.webmanifest', out), JSON.stringify(manifest, null, 2) + '\n');
 await cp(new URL('game-bootstrap.js', import.meta.url), new URL('game-bootstrap.js', out));
 await cp(new URL('game.css', import.meta.url), new URL('babylon.css', out));
@@ -68,7 +101,7 @@ for (const [source, target] of [['app.js', 'stage.js'], ['game-renderer.js', 'ba
     bundle: true, minify: true, format: 'esm', target: ['safari16', 'es2022'], legalComments: 'inline' });
   await writeFile(new URL(target, out), normalize(result.outputFiles[0].text));
 }
-const files = ['app.js', 'scene.js', 'backend.js', 'transport.js', 'session.js', 'spectrum.js', 'spectra.json', 'spectrum-analysis.mjs', 'analyze-music.mjs', 'input-regions.js', 'game-renderer.js', 'game-bootstrap.js', 'game.css', 'lab.html', 'lab.css', 'build.mjs', 'package.json', 'package-lock.json'];
+const files = ['app.js', 'scene.js', 'hold-feedback.js', 'timing.js', 'backend.js', 'transport.js', 'session.js', 'spectrum.js', 'spectra.json', 'spectrum-analysis.mjs', 'analyze-music.mjs', 'input-regions.js', 'game-renderer.js', 'game-bootstrap.js', 'game.css', 'lab.html', 'lab.css', 'build.mjs', 'package.json', 'package-lock.json'];
 const sources = Object.fromEntries(await Promise.all(files.map(async file => [file, hash(await readFile(new URL(file, import.meta.url)))])));
 const bytes = await readFile(new URL('stage.js', out));
 const renderer = await readFile(new URL('babylon-renderer.js', out));
@@ -83,6 +116,13 @@ const shell = await Promise.all((await walk(out)).filter(path => !['sw.js', 'off
   const data = await readFile(new URL(path, out)); return { path, hash: hash(data), bytes: data.length };
 }));
 const worker = await readFile(new URL('sw.js', out), 'utf8');
-const offline = { version: '0.4.2-babylon', revision: hash(JSON.stringify(shell) + worker).slice(0, 16), shell, tracks: stableManifest.tracks };
+const tracks = {};
+for (const [id, track] of Object.entries(stableManifest.tracks)) {
+  const files = await Promise.all(track.files.filter(file => !file.path.endsWith('/4.json')).map(async file => {
+    const data = await readFile(new URL(file.path, out)); return { path: file.path, hash: hash(data), bytes: data.length };
+  }));
+  tracks[id] = { files, revision: hash(JSON.stringify(files)).slice(0, 16) };
+}
+const offline = { version: '0.5.0-babylon', revision: hash(JSON.stringify(shell) + worker).slice(0, 16), shell, tracks };
 await writeFile(new URL('offline-assets.js', out), '// Generated by prototype/build.mjs. Do not edit.\nself.OFFLINE_ASSETS = ' + JSON.stringify(offline, null, 2) + ';\n');
 console.log(`Prototype: ${shell.length} shell files; renderers ${bytes.length + renderer.length} bytes; main files unchanged.`);

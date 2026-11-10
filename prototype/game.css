@@ -46,3 +46,8 @@ body[data-utility='true'] .appbar { position: relative; top: auto; background: t
   #game-screen { height: 100dvh; min-height: 0; padding-top: max(8px, env(safe-area-inset-top)); padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
   #game-screen .game-footer { padding-bottom: max(12px, env(safe-area-inset-bottom)); padding-left: max(18px, env(safe-area-inset-left)); padding-right: max(18px, env(safe-area-inset-right)); }
 }
+/* Floating artwork, consistent unframed navigation, three difficulty cards. */
+.album-stage::before, .album-stage::after { display: none; }
+.appbar #home, .appbar #settings-open { border-color: transparent; background: none; box-shadow: none; }
+.difficulty-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.appbar #home:focus-visible, .appbar #settings-open:focus-visible { outline: none; color: #ffba79; text-decoration: underline; text-underline-offset: 6px; }

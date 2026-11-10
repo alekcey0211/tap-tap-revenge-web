@@ -6,18 +6,18 @@
   <meta name="theme-color" content="#090819">
   <meta name="description" content="Три дорожки, любимая музыка и точность каждого попадания.">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; media-src 'self' blob:; object-src 'none'; base-uri 'none'">
-  <title>Tap Tap · Babylon Stage Lab</title>
+  <title>NEON DRIVE · Stage Lab</title>
   <link rel="icon" href="assets/identity/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="assets/identity/icon-180.png">
   <link rel="manifest" href="manifest.webmanifest">
-  <meta name="apple-mobile-web-app-title" content="Tap Tap Lab">
+  <meta name="apple-mobile-web-app-title" content="Neon Drive">
   <link rel="preload" href="assets/fonts/onest-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/onest-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/unbounded-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/unbounded-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="style.css?v=0.10.3">
-  <link rel="stylesheet" href="babylon.css?v=0.4.2">
-  <script type="module" src="game-bootstrap.js?v=0.4.2"></script>
+  <link rel="stylesheet" href="babylon.css?v=0.5.0">
+  <script type="module" src="game-bootstrap.js?v=0.5.0"></script>
 </head>
 <body>
   <div id="babylon-buffer" aria-hidden="true"></div>
@@ -25,7 +25,7 @@
   <div id="babylon-error" hidden role="alert"><h2>Сцена недоступна</h2><p id="babylon-error-message">Попробуй WebGL или перезагрузи прототип.</p><button id="babylon-webgl">Использовать WebGL</button><button id="babylon-reload">Перезагрузить</button><a href="../#/">Рабочая игра</a></div>
   <main class="layout">
     <aside class="intro">
-      <p class="eyebrow">TAP TAP REVENGE / WEB</p>
+      <p class="eyebrow">NEON DRIVE / WEB</p>
       <h1>Поймай<br>свой ритм<span class="accent">.</span></h1>
       <p class="subtle">Три дорожки. Музыка. Точность.</p>
       <div class="instructions"><h2>Как играть</h2><p>Нажимай, когда ноты достигают колец. Длинные ноты удерживай до конца хвоста.</p><div class="key-row"><kbd>D</kbd><kbd>F</kbd><kbd>J</kbd></div><p><kbd>Esc</kbd> — пауза</p><p class="subtle">После 50 попаданий подряд ×8 включается автоматически.</p></div>
@@ -35,7 +35,7 @@
       <div id="song-backdrop" class="song-backdrop" aria-hidden="true" hidden><canvas id="song-canvas"></canvas></div>
       <section id="menu" class="screen main-menu" hidden aria-labelledby="menu-heading">
         <p class="eyebrow">МУЗЫКА · РИТМ · ТОЧНОСТЬ</p>
-        <h2 id="menu-heading">TAP TAP<span>REVENGE</span></h2>
+        <h2 id="menu-heading">NEON<span>DRIVE</span></h2>
         <p class="menu-subtitle">Поймай свой ритм · STAGE LAB</p><p class="babylon-badge"><span id="babylon-backend">Babylon.js</span> · <span id="babylon-fps"></span></p>
         <nav class="menu-actions" aria-label="Главное меню">
           <button id="menu-play" class="primary" disabled>▶ Играть</button>

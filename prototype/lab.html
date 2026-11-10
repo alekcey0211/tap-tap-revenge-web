@@ -6,15 +6,15 @@
   <meta name="theme-color" content="#070617">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; media-src 'self' blob:; object-src 'none'; base-uri 'none'">
   <title>Pulse / Stage Lab · Babylon.js</title>
-  <link rel="stylesheet" href="stage.css?v=4">
-  <script type="module" src="stage.js?v=4"></script>
+  <link rel="stylesheet" href="stage.css?v=5">
+  <script type="module" src="stage.js?v=5"></script>
 </head>
 <body>
   <canvas id="stage" aria-label="Объёмная концертная сцена. Ритм-игра с тремя дорожками." role="img"></canvas>
   <header>
     <a class="back" href="./#/" aria-label="Вернуться в прототип игры">‹</a>
-    <div><span class="eyebrow">TAP TAP / EXPERIMENT</span><h1>STAGE<span> LAB</span></h1></div>
-    <div class="engine"><strong id="backend">Подготовка…</strong><small id="fps">LAB 0.4</small></div>
+    <div><span class="eyebrow">NEON DRIVE / EXPERIMENT</span><h1>STAGE<span> LAB</span></h1></div>
+    <div class="engine"><strong id="backend">Подготовка…</strong><small id="fps">LAB 0.5</small></div>
   </header>
   <main>
     <div class="energy" id="energy" data-active="true"><span id="energy-caption">ЭФФЕКТЫ СЦЕНЫ</span><strong id="energy-value">×8</strong><span id="judgment">ПОЧУВСТВУЙ РИТМ</span></div>
@@ -34,7 +34,7 @@
       <div class="secondary"><button id="silent" disabled>Без звука</button><button id="restart" disabled>Сначала</button><button id="options-toggle" aria-expanded="false" aria-controls="options">Параметры</button></div>
       <div id="options" hidden>
         <label>Режим<select id="mode" disabled><option value="manual">Играть самому</option><option value="demo">Автодемо</option></select></label>
-        <label>Сложность<select id="difficulty" disabled><option value="1">Легко</option><option value="2" selected>Средне</option><option value="3">Сложно</option><option value="4">Экстрим</option></select></label>
+        <label>Сложность<select id="difficulty" disabled><option value="1" selected>Легко</option><option value="2">Средне</option><option value="3">Сложно</option></select></label>
         <label>Трек<select id="song" disabled></select></label>
         <label>Графика<select id="renderer"><option value="auto">WebGPU → WebGL</option><option value="webgl">Только WebGL</option></select></label>
         <label class="motion"><input id="reduced" type="checkbox">Меньше эффектов</label>
