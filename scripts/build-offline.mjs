@@ -12,6 +12,7 @@ async function entry(path) {
 async function walk(path = '') {
   const result = [];
   for (const item of await readdir(new URL(path || '.', root), { withFileTypes: true })) {
+    if (!path && item.name === 'prototype') continue; // Separate online experiment, never part of the stable app cache.
     if (item.isDirectory()) result.push(...await walk(path + item.name + '/'));
     else result.push(path + item.name);
   }

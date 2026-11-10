@@ -1,0 +1,13 @@
+{
+  "babylon": "9.32.1",
+  "sources": {
+    "app.js": "f1dcfa736f8521752837b1354faf5b6bcc74e2e7796a7b0a5b966e2d2a3f10ea",
+    "scene.js": "151970d71c55862ef174df7b8e62b615659a05a52e9afbc3cc453a25cee55e1b",
+    "backend.js": "2e317885875838cce6d8282fe7f9209016ac4bd2514c06880da422def3e38972",
+    "transport.js": "81b4e8919f9c4f22335c5fdb2d9249b009cde15fcbf179c7cf751fd6c9adddc3",
+    "build.mjs": "41022cacb6f9ab7b43033422d05ca8b0af8d5362f662dfd3229ebaa6ccf72c0d",
+    "package.json": "112ba87362982fd6bf31e56e391da3e937b9f731365dc49cde1ec4aa0ee3d1b2",
+    "package-lock.json": "d093f726a93d283acd43b139df87f78379bf49edbb76fd86a9a5b7644f62607e"
+  },
+  "bundle": "eb0b72c265d2fdfba6db2bee58d63fb0c28ce0faa3aa54943ec3c71f090620bb"
+}
