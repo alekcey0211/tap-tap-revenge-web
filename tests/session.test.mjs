@@ -18,7 +18,7 @@ for (const compatibleAudio of [false, true]) {
   function plays(ui) { return compatibleAudio ? ui.native.plays.length : ui.audio.starts.length; }
   function lastOffset(ui) { return compatibleAudio ? ui.native.plays.at(-1) : ui.audio.starts.at(-1).offset; }
 
-  for (const event of ['visibilitychange', 'blur', 'pagehide']) {
+  for (const event of ['visibilitychange', 'pagehide']) {
     test(`${mode}: ${event} freezes the session until an explicit resume`, async t => {
       const ui = await playing(t); advance(ui, 7.25);
       const before = ui.node('game-stats').textContent;
@@ -48,6 +48,44 @@ for (const compatibleAudio of [false, true]) {
       assert.match(ui.location.hash, /^#\/song\//);
     });
   }
+
+  test(`${mode}: visible blur does not cancel a pending start`, async t => {
+    const ui = await mount(t, { settings: { compatibleAudio } }); await ui.openSong();
+    const gate = deferred();
+    if (compatibleAudio) ui.native.gate = gate; else ui.audio.resumeGate = gate;
+    const starting = ui.click('play');
+    if (compatibleAudio) assert.equal(plays(ui), 1, 'native play stays in the click');
+    ui.events.blur?.();
+    gate.resolve(); await starting;
+    assert.equal(ui.document.body.dataset.screen, 'game-screen');
+    assert.equal(plays(ui), 1);
+  });
+
+  test(`${mode}: visible blur and stale audio notifications do not pause a started track`, async t => {
+    const ui = await playing(t);
+    if (compatibleAudio) ui.native.instances[0].onpause(); // A queued event can arrive after play().
+    else ui.audio.contexts[0].onstatechange(); // The current context is still running.
+    ui.events.blur?.();
+    advance(ui, 2);
+    assert.equal(ui.document.body.dataset.screen, 'game-screen');
+    assert.equal(ui.node('time').textContent, '0:02 / 2:30');
+    assert.equal(plays(ui), 1);
+  });
+
+  test(`${mode}: hiding the page cancels a pending start without a late restart`, async t => {
+    const ui = await mount(t, { settings: { compatibleAudio } }); await ui.openSong();
+    const gate = deferred();
+    if (compatibleAudio) ui.native.gate = gate; else ui.audio.resumeGate = gate;
+    const starting = ui.click('play');
+    ui.document.hidden = true; ui.events.visibilitychange();
+    gate.resolve(); await starting;
+    assert.equal(ui.document.body.dataset.screen, 'song-screen');
+    assert.equal(plays(ui), compatibleAudio ? 1 : 0);
+    if (compatibleAudio) assert.equal(ui.native.instances[0].paused, true);
+    ui.document.hidden = false; ui.events.visibilitychange();
+    assert.equal(ui.document.body.dataset.screen, 'song-screen');
+    assert.equal(plays(ui), compatibleAudio ? 1 : 0);
+  });
 
   test(`${mode}: hidden page cannot resume or start another track`, async t => {
     const ui = await playing(t); advance(ui, 5); await ui.click('pause');
@@ -191,4 +229,16 @@ for (const compatibleAudio of [false, true]) test(`automatic x8 UI survives paus
   ui.lanes[1].onclick({ detail: 0 }); ui.tick(compatibleAudio ? 70 : 1022);
   assert.equal(ui.node('multiplier').textContent, '×1');
   assert.equal(ui.node('game-screen').dataset.energy, 'charging');
+});
+
+test('returning focus releases a key whose keyup was lost while the page stayed visible', async t => {
+  const chart = [{ time: 1, lane: 0, duration: 0 }, { time: 3, lane: 0, duration: 0 }];
+  const ui = await mount(t, { chart }); await ui.start();
+  const key = { code: 'KeyD', target: { tagName: 'BODY' }, preventDefault() {} };
+  ui.tick(1); ui.events.keydown(key);
+  ui.events.blur?.(); // No keyup delivered to the page.
+  ui.events.focus?.();
+  ui.tick(3); ui.events.keydown(key); ui.events.keyup(key);
+  ui.tick(200);
+  assert.equal(Object.values(ui.records())[0]?.hits, 2);
 });

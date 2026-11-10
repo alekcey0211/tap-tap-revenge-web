@@ -17,7 +17,7 @@ import { DEFAULT_SETTINGS, loadSave, saveSettings as writeSettings, recordAttemp
 import { ProgressView } from './progress.js?v=0.10.3';
 
 const $ = id => document.getElementById(id);
-const APP_VERSION = '0.10.3';
+const APP_VERSION = '0.10.4';
 if ($('app-version')) $('app-version').textContent = `v${APP_VERSION}`;
 $('settings-version').textContent = `v${APP_VERSION}`;
 $('pulse-target').textContent = formatPercent(90);
@@ -504,7 +504,11 @@ function leavePage() {
 }
 document.addEventListener('visibilitychange', () => { if (document.hidden) leavePage(); });
 window.addEventListener('pagehide', leavePage);
-window.addEventListener('blur', leavePage);
+// Focus can leave a visible page without sending it to the background.
+window.addEventListener('focus', () => {
+  // A keyup may have gone to the browser UI while the game was unfocused.
+  for (const [code, lane] of Object.entries(keys)) up(lane, code);
+});
 
 progressView = new ProgressView({
   onOpenImport: () => openPage('import-screen', 'import-cancel'), onCloseImport: backPage,

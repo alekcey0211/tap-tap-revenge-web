@@ -53,6 +53,19 @@ for (const compatibleAudio of [false, true]) test(`restored song starts only fro
   assert.equal(ui.location.hash, songURL('4'));
 });
 
+for (const compatibleAudio of [false, true]) test(`visible blur does not cancel Play from a restored URL (${compatibleAudio})`, async t => {
+  const hash = songURL('4');
+  const ui = await mount(t, { hash, settings: { compatibleAudio } });
+  const gate = deferred();
+  if (compatibleAudio) ui.native.gate = gate; else ui.audio.loadGate = gate;
+  const starting = ui.click('play');
+  ui.events.blur?.();
+  gate.resolve(); await starting;
+  assert.equal(ui.document.body.dataset.screen, 'game-screen');
+  assert.equal(ui.location.hash, hash);
+  assert.equal(ui.native.plays.length + ui.audio.starts.length, 1);
+});
+
 test('difficulty replaces the current URL; browser Back/Forward navigates pages, not all chosen levels', async t => {
   const ui = await mount(t); await ui.openSong();
   await ui.node('difficulties').children[1].onclick();
