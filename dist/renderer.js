@@ -26,7 +26,7 @@ export class Renderer {
   }
   text(text, x, y, size = 12, color = '#f3f2ee') {
     const c = this.ctx;
-    c.font = `700 ${size}px -apple-system, BlinkMacSystemFont, Arial, sans-serif`;
+    c.font = `700 ${size}px Onest, -apple-system, BlinkMacSystemFont, Arial, sans-serif`;
     c.textAlign = 'center';
     c.fillStyle = color;
     c.fillText(text, x, y);
