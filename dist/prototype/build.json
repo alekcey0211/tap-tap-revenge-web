@@ -1,8 +1,8 @@
 {
   "babylon": "9.32.1",
   "sources": {
-    "app.js": "d3b8c0b92202604f6cbfee079d1c85c9c9594cced2c09c2132862e5ce99c3451",
-    "scene.js": "d8c3b1c908f3d125d9ee6fc8a357f8ae8e04c502ed5fdfe205c15b8efe281c02",
+    "app.js": "5c7c77e6021793d235ae58f32accf1184c906c44e0edc893873f9eecf5616c2e",
+    "scene.js": "4e3e08c05a70a403b29ad04e1db7bdf6cabbb6d08fd7ca1ae375aaf8bf510f99",
     "hold-feedback.js": "90cd339069cafcef3402c483650589d665cb4a6a961d9649b2286a63e9bddd52",
     "venue-layout.js": "71bdd867dbe154ab0bd867b07260e41b04c62d2d09f1c93f747caba04cac0ba0",
     "timing.js": "0f91d8d646fa632c9a8c6a2158ac20bee26c1e5c431940f69120ca98446116de",
@@ -15,12 +15,12 @@
     "analyze-music.mjs": "6079c86558a11900e40b16ec9fdc762cd4e8c96c42dad053edd43517c7cf0fd4",
     "input-regions.js": "bbbbb5100f66eec9af2fccd42d3e8491b673efb76003e447feb7e2cda3f2243d",
     "game-renderer.js": "eeb1e3c43f39f62b9e985d18efdb006015d1ac6fdfe79299482a917de8d7a86f",
-    "game-bootstrap.js": "8c084de273cef3dd78c406dbf901c105f0348e0027dd036afdb08643f6311912",
+    "game-bootstrap.js": "f565fd3169952b3620163b1c7e9f5f0f6234acf453e26f5f6b4d04afab9ceca8",
     "game.css": "7db87c35d823deabb0ba4ad25ead8200858a5b0afe787f0515524600c0b496bb",
-    "lab.html": "40592e2dd73b62c6a355216b14ba47ee4fe4c82822a699a5eb5d3aa184d51f2b",
+    "lab.html": "d6e8e83e9905d33b3e94332b98138bdcbfc4d1600223047ed63bf9657940db83",
     "lab.css": "53481389277fd4d4ee0c170c1d61048311e6284f219db6138850357c63927bb0",
-    "build.mjs": "b0102fd2c3747f4276732b48d690bbe07e7fe280c0d109bbb1f5e8a1baa3eb18",
-    "package.json": "112ba87362982fd6bf31e56e391da3e937b9f731365dc49cde1ec4aa0ee3d1b2",
+    "build.mjs": "311d540c5edfb08ec882a1acb63409872b3e962325e8e9df35dac830acc8e902",
+    "package.json": "3e35a43e33c3f2ee9d5bc1751d055ea3746872710eada522e679d2fcfcc926a7",
     "package-lock.json": "d093f726a93d283acd43b139df87f78379bf49edbb76fd86a9a5b7644f62607e"
   },
   "mainSources": {
@@ -106,6 +106,6 @@
     "vendor/jsbi-4.3.0.js": "bc620c7c60b11f3f59a5ead9509493e309655ce87631e8a359687f7e84eb3334",
     "vendor/temporal-0.5.1.js": "f3191e633c50ec4dfa3dea0f09503fb07480e0b15c36dadacd2348253d26965d"
   },
-  "bundle": "1e20a99db3ca223a284ee529927bd04fdadca9afa4e200e46879a16193974b57",
-  "renderer": "1ac8c567112c9a817f19d3c197e2951cdc9274cc8a28e420f5534058cc60ce9a"
+  "bundle": "9514d3e8737bf7cbf5e5055ffcdbac98cfbc70fa8b045e75e02e4f12ba21b07d",
+  "renderer": "f9962977ab5c918a754f3984115008cd137f840c83a7d81ddf5bb3edb8ea600a"
 }

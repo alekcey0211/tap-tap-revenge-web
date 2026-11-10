@@ -36,7 +36,7 @@ export function createScene(engine, canvas, { fullViewport = false } = {}) {
   const gold = material('amber-neon', '#ffca88', 1.25);
   const white = material('electric-core', '#d4f8ff', 3);
   const laneMats = palette.map((c, i) => material('lane-' + i, c, .65));
-  const noteMats = palette.map((c, i) => { const mat = material('orb-' + i, c, .22); mat.specularColor.set(.9, .85, 1); return mat; });
+  const noteMats = palette.map((c, i) => { const mat = material('orb-' + i, c, .15); mat.specularColor.set(.9, .85, 1); return mat; });
   function box(name, width, height, depth, pos, mat) {
     const mesh = MeshBuilder.CreateBox(name, { width, height, depth }, scene); mesh.position = pos; mesh.material = mat; return mesh;
   }
@@ -61,12 +61,22 @@ export function createScene(engine, canvas, { fullViewport = false } = {}) {
       mesh.rotation.y = side * -.55; energyMarkers.push({ mesh, index: i });
     }
   }
-  const pads = [];
+  const pads = [], targetArcs = [];
   for (let i = 0; i < 3; i++) {
     const x = (i - 1) * 1.65;
     ring('target-bezel', 1.2, .16, v(x, .02, 0), dark);
     const pad = ring('target-light', 1.14, .065, v(x, .13, 0), laneMats[i]); pads.push(pad);
     ring('target-inner', .88, .02, v(x, .14, 0), laneMats[i]);
+    for (let arc = 0; arc < 2; arc++) {
+      const radius = .69 + arc * .045;
+      const path = Array.from({ length: 19 }, (_, step) => {
+        const angle = step / 18 * Math.PI * .72;
+        return v(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
+      });
+      const mesh = MeshBuilder.CreateTube('target-energy-arc', { path, radius: .027, tessellation: 6 }, scene);
+      mesh.position.set(x, .18 + arc * .025, 0); mesh.material = laneMats[i]; mesh.setEnabled(false);
+      targetArcs.push({ mesh, lane: i, arc });
+    }
   }
   box('platform', 15, .5, 5, v(0, -.1, 20), dark);
   box('platform-rim', 15, .05, .07, v(0, .18, 17.45), violet);
@@ -116,11 +126,18 @@ export function createScene(engine, canvas, { fullViewport = false } = {}) {
   headSource.material = crowdMat; headSource.isVisible = false;
   const bodySource = MeshBuilder.CreateCylinder('audience-body-source', { height: .7, diameterTop: .42, diameterBottom: .5, tessellation: 6 }, scene);
   bodySource.material = crowdMat; bodySource.isVisible = false;
-  const crowdRandom = random(901);
+  const crowdRandom = random(901), audience = [];
+  const audienceTrims = Array.from({ length: 10 }, (_, row) => {
+    const mesh = MeshBuilder.CreateTorus('audience-trim-source', { diameter: .43, thickness: .025, tessellation: 12 }, scene);
+    mesh.material = row < 5 ? pink : cyan; mesh.isVisible = false; return mesh;
+  });
   for (const side of [-1, 1]) for (let i = 0; i < 30; i++) {
     const x = side * (4.4 + (i % 6) * .66), z = 5.5 + Math.floor(i / 6) * 1.5, height = .8 + crowdRandom() * .25;
     const body = bodySource.createInstance('audience-body'); body.position.set(x, height / 2 - .25, z); body.scaling.y = height / .7;
     const head = headSource.createInstance('audience-head'); head.position.set(x, height - .22, z);
+    const trim = audienceTrims[(side < 0 ? 0 : 5) + Math.floor(i / 6)].createInstance('audience-energy-trim');
+    trim.position.set(x, height - .3, z); trim.setEnabled(false);
+    audience.push({ body, head, trim, height, phase: Math.floor(i / 6) * .8 + i % 6 * .45 });
   }
   const beams = [];
   for (let i = 0; i < 6; i++) {
@@ -136,8 +153,8 @@ export function createScene(engine, canvas, { fullViewport = false } = {}) {
   // Bounded pools: no per-frame mesh construction for notes or hit particles.
   const notePools = noteMats.map((mat, lane) => {
     const base = MeshBuilder.CreateSphere('orb-source-' + lane, { diameter: .67, segments: 20 }, scene);
-    base.material = mat; base.isVisible = false;
-    return Array.from({ length: 20 }, (_, i) => { const mesh = base.createInstance('note-' + lane + '-' + i); mesh.setEnabled(false); return mesh; });
+    base.material = mat; base.isVisible = false; glow.addExcludedMesh(base);
+    return Array.from({ length: 20 }, (_, i) => { const mesh = base.createInstance('note-' + lane + '-' + i); glow.addExcludedMesh(mesh); mesh.setEnabled(false); return mesh; });
   });
   const sparkSources = laneMats.map((mat, i) => {
     const mesh = MeshBuilder.CreateSphere('spark-source-' + i, { diameter: .08, segments: 4 }, scene); mesh.material = mat; mesh.isVisible = false; return mesh;
@@ -220,8 +237,27 @@ export function createScene(engine, canvas, { fullViewport = false } = {}) {
       mesh.visibility = reduced ? .45 : .65 + pulse * .3;
     }
     glow.intensity = reduced ? .4 : energy ? .5 + pulse * .04 : .48;
-    pinkLight.intensity = energy ? 1.45 + pulse * .15 : 1.5; blueLight.intensity = energy ? 1.65 + pulse * .15 : 1.7;
-    for (const [i, mat] of noteMats.entries()) mat.emissiveColor = palette[i].scale(energy ? .28 : .15);
+    // Keep note lighting independent of the multiplier; energy belongs to the scenery.
+    pinkLight.intensity = 1.5; blueLight.intensity = 1.7;
+    const animateEnergy = energy && playing && !reduced;
+    for (const { mesh, lane, arc } of targetArcs) {
+      mesh.setEnabled(energy);
+      mesh.rotation.y = lane * .8 + arc * Math.PI + (animateEnergy ? time * (arc ? -2.8 : 3.4) : 0);
+      mesh.scaling.setAll(1 + (animateEnergy ? pulse * .045 : 0));
+      mesh.visibility = animateEnergy ? .7 + pulse * .3 : .65;
+    }
+    for (const { body, head, trim, height, phase } of audience) {
+      const wave = animateEnergy ? Math.pow((Math.sin(time * 5 - phase) + 1) / 2, 3) : 0;
+      const lift = wave * (.08 + pulse * .14);
+      body.scaling.y = (height + lift) / .7; body.position.y = (height + lift) / 2 - .25;
+      head.position.y = height + lift - .22;
+      trim.position.y = height + lift - .3; trim.setEnabled(energy);
+    }
+    audienceTrims.forEach((source, row) => {
+      const wave = animateEnergy ? Math.pow((Math.sin(time * 5 - row % 5 * .8) + 1) / 2, 3) : 0;
+      // Instances share the source opacity, keeping each wave row in one draw group.
+      source.visibility = animateEnergy ? .25 + wave * (.45 + pulse * .3) : .45;
+    });
     for (const panel of panels) {
       const band = spectrum?.[panel.col * 4] || 0;
       const wave = reduced ? 5 : spectrum ? band * 9 : (Math.sin(time * 1.4 + panel.col * .9 + panel.side) + 1) * 3 + 1;
@@ -300,7 +336,7 @@ export function createScene(engine, canvas, { fullViewport = false } = {}) {
         p.mesh.scaling.setAll((1 - age / .55) * (energy ? 1.8 : 1));
       }
     }
-    pads.forEach((pad, i) => { const age = time - Math.max(...bursts.filter(b => b.lane === i).map(b => b.born)); pad.scaling.setAll(1 + Math.max(0, 1 - age / .2) * .12); });
+    pads.forEach((pad, i) => { const age = time - Math.max(...bursts.filter(b => b.lane === i).map(b => b.born)); pad.scaling.setAll(1 + Math.max(0, 1 - age / .2) * .12 + (animateEnergy ? pulse * .035 : 0)); });
     return { hits: totalHits, hitAge: time - lastHit };
   }
   function resize({ targetBottom = null } = {}) {

@@ -2,7 +2,7 @@
   "name": "tap-tap-stage-prototype",
   "private": true,
   "type": "module",
-  "scripts": { "build": "node build.mjs" },
+  "scripts": { "build": "node build.mjs", "test": "node --test scene.test.js" },
   "dependencies": { "@babylonjs/core": "9.32.1" },
   "devDependencies": { "esbuild": "0.28.2" }
 }
