@@ -219,7 +219,7 @@ test('x8 adds translucent halos without changing note circles, and lights six ar
     if (name === 'arc') return (...args) => circles.push(args);
     if (name === 'scale') return (...args) => scales.push(args);
     if (name === 'translate') return (...args) => shifts.push(args);
-    if (name === 'fill') return () => fills.push({ paint: target.fillStyle, alpha: target.globalAlpha, points: [...path] });
+    if (name === 'fill' || name === 'fillRect') return () => fills.push({ paint: target.fillStyle, alpha: target.globalAlpha, points: [...path] });
     return () => {};
   } });
   const canvas = { clientWidth: 390, clientHeight: 630, getContext: () => ctx };
@@ -229,16 +229,23 @@ test('x8 adds translucent halos without changing note circles, and lights six ar
     fills.length = circles.length = scales.length = shifts.length = 0;
     renderer.render(game, time, '4', 66, 0, reduced);
     return { panels: JSON.parse(JSON.stringify(fills.filter(x => x.paint?.stops?.at(-1) === '#ffe4ff'))),
+      lamps: fills.filter(x => x.paint?.stops?.[0] === '#effbff').map(x => x.alpha),
+      haze: fills.filter(x => x.paint?.stops?.at(-1) === '#956aff00').length,
       halos: fills.filter(x => x.paint?.stops?.[1] === '#c9ff5677'), circles: structuredClone(circles) };
   };
   const normal = draw(2); assert.equal(normal.panels.length + normal.halos.length, 0);
   game.streak = 80;
   const active = draw(2); assert.equal(active.panels.length, 6); assert.equal(active.halos.length, 1);
+  assert.equal(active.lamps.length, 33); assert.equal(active.haze, 3);
+  assert.deepEqual(draw(2).lamps, active.lamps, 'venue lights freeze with the song clock');
+  assert.notDeepEqual(draw(2.1).lamps, active.lamps, 'illumination travels along the arches');
+  draw(2);
   assert.deepEqual(active.circles, normal.circles, 'opaque heads retain shape and radius');
   assert.ok(active.panels.every(p => p.points.length === 4));
   assert.ok(scales.some(([x, y]) => x === 320 / 1024 && y === 390 / 630 * 480 / 1024));
   assert.ok(shifts.some(([x, y]) => x === 0 && y === -90 * 1024 / 390));
   const still = draw(2, true);
+  assert.equal(still.lamps.length + still.haze, 0, 'no moving venue decorations with reduced motion');
   assert.deepEqual(draw(2.1, true).panels, still.panels);
   canvas.clientWidth = 320; canvas.clientHeight = 270; draw(2);
   assert.ok(scales.some(([x, y]) => x === 320 / 1024 && y === 320 / 270 * 480 / 1024));

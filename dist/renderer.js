@@ -128,7 +128,7 @@ export class Renderer {
     this.lightning.render(c, rhythm, impact, reducedMotion);
   }
 
-  renderPanels(pulse, reducedMotion) {
+  renderVenue(time, pulse, reducedMotion) {
     const c = this.ctx;
     c.save();
     // Match concert.jpg's 1024px artwork and CSS background: 100% width, -90px top.
@@ -149,9 +149,37 @@ export class Renderer {
       c.beginPath();
       points.forEach(([x, y], n) => { const px = side ? 1024 - x : x; if (n) c.lineTo(px, y); else c.moveTo(px, y); });
       c.closePath(); c.fillStyle = light;
-      c.globalAlpha = reducedMotion ? .3 : .22 + pulse * .38;
+      const sweep = .5 + .5 * Math.sin(time * 2.2 - i * 1.1 - side * 1.8);
+      c.globalAlpha = reducedMotion ? .3 : .16 + pulse * .3 + sweep * .2;
       c.shadowColor = color; c.shadowBlur = reducedMotion ? 0 : 12;
       c.fill(); c.strokeStyle = color; c.lineWidth = 1.5; c.stroke();
+    }
+    c.shadowBlur = 0;
+    if (!reducedMotion) {
+      // Stationary fixtures brighten in travelling waves along the actual arches.
+      // Animate illumination, not the camera or the gameplay coordinate system.
+      for (const [arch, [rx, ry]] of [[332, 318], [218, 238], [164, 152]].entries()) {
+        for (let lamp = 0; lamp < 11; lamp++) {
+          const angle = Math.PI + (lamp + .5) / 11 * Math.PI;
+          const x = 512 + Math.cos(angle) * rx, y = 350 + Math.sin(angle) * ry;
+          const wave = Math.pow(.5 + .5 * Math.cos(lamp * .6 - time * 2.8 + arch * 1.4), 4);
+          const glow = c.createRadialGradient(x, y, 0, x, y, 20);
+          glow.addColorStop(0, '#effbff'); glow.addColorStop(.16, arch % 2 ? '#73edff' : '#d48aff');
+          glow.addColorStop(1, '#936aff00');
+          c.globalAlpha = .12 + wave * (.55 + pulse * .25); c.fillStyle = glow;
+          c.fillRect(x - 20, y - 20, 40, 40);
+        }
+      }
+      // Low translucent haze drifts over the distant stage, behind the runway.
+      for (let i = 0; i < 3; i++) {
+        const x = 512 + Math.sin(time * .5 + i * 2.1) * 95;
+        const y = 337 + Math.sin(time * .7 + i) * 9;
+        c.save(); c.translate(x, y); c.scale(1, .25);
+        const haze = c.createRadialGradient(0, 0, 0, 0, 0, 160);
+        haze.addColorStop(0, i % 2 ? '#55caff' : '#d77aff'); haze.addColorStop(1, '#956aff00');
+        c.globalAlpha = .1 + pulse * .09; c.fillStyle = haze; c.fillRect(-160, -160, 320, 320);
+        c.restore();
+      }
     }
     c.restore();
   }
@@ -244,7 +272,7 @@ export class Renderer {
     const revenge = effects.multiplier === 8;
     c.fillStyle = revenge ? '#4d202433' : '#0b071c55'; c.fillRect(0, 0, 320, 480);
     const rhythm = revenge ? this.rhythm.frame(game.notes, time) : { index: -1, age: Infinity, pulse: 0 };
-    if (revenge) this.renderPanels(rhythm.pulse, reducedMotion);
+    if (revenge) this.renderVenue(time, rhythm.pulse, reducedMotion);
     this.renderStage(time, revenge, reducedMotion, rhythm.pulse);
     this.renderEnergy(effects, reducedMotion, time, rhythm);
     for (let lane = 0; lane < 3; lane++) {
