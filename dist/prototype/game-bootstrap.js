@@ -1,4 +1,4 @@
-import { prepareRenderer } from './babylon-renderer.js?v=0.4.0';
+import { prepareRenderer } from './babylon-renderer.js?v=0.4.1';
 const $ = id => document.getElementById(id);
 $('babylon-reload').onclick = () => location.reload();
 $('babylon-webgl').onclick = () => { const url = new URL(location.href); url.searchParams.set('renderer', 'webgl'); location.assign(url); };
@@ -8,7 +8,7 @@ $('babylon-renderer-choice').onchange = event => {
 };
 try {
   await prepareRenderer();
-  await import('./app.js?v=0.4.0-babylon');
+  await import('./app.js?v=0.4.1-babylon');
   $('babylon-loading').hidden = true;
 } catch {
   $('babylon-loading').hidden = true; $('babylon-error').hidden = false;

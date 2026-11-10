@@ -252,7 +252,7 @@ export function createScene(engine, canvas, { fullViewport = false } = {}) {
     pads.forEach((pad, i) => { const age = time - Math.max(...bursts.filter(b => b.lane === i).map(b => b.born)); pad.scaling.setAll(1 + Math.max(0, 1 - age / .2) * .12); });
     return { hits: totalHits, hitAge: time - lastHit };
   }
-  function resize() {
+  function resize({ targetBottom = null } = {}) {
     engine.resize();
     // Keep all three target rings in frame on portrait screens, without camera controls.
     const height = Math.max(1, canvas.clientHeight);
@@ -260,6 +260,13 @@ export function createScene(engine, canvas, { fullViewport = false } = {}) {
     camera.viewport = new Viewport(0, 1 - available / height, 1, available / height);
     const aspect = canvas.clientWidth / available;
     camera.fov = canvas.clientWidth <= 600 ? Math.max(.8, 2 * Math.atan(.28 / aspect)) : .88;
+    if (targetBottom !== null) {
+      // Aim the target rings just above the footer on every viewport height.
+      const targetY = available - targetBottom;
+      const pitch = Math.atan2(camera.position.y - .13, -camera.position.z)
+        - Math.atan((2 * targetY / available - 1) * Math.tan(camera.fov / 2));
+      camera.setTarget(v(0, camera.position.y - 21 * Math.tan(pitch), 9));
+    } else camera.setTarget(v(0, 1.6, 9));
   }
   resize();
   function targets() {

@@ -16,10 +16,30 @@
 /* One Babylon venue replaces the raster scene, CSS spotlights and duplicate preview. */
 .game-shell { background-image: none; background-color: #100822; }
 .game-shell::before, .stage-lights, .song-backdrop, .playfield::before { display: none !important; }
-.babylon-background { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; pointer-events: none; z-index: -1; }
-.babylon-background canvas { height: min(100svh, 900px); }
+/* The viewport follows scrolling inside the full-height decorative layer. */
+.game-shell { overflow: clip; }
+.babylon-background { position: absolute; inset: 0; overflow: clip; border-radius: inherit; pointer-events: none; z-index: -1; }
+.babylon-viewport { position: sticky; top: 0; height: 100svh; max-height: 100%; }
 #babylon-background-canvas { opacity: 0; }
-.babylon-background::after { content: ''; position: absolute; inset: 0; background: linear-gradient(#0b061b33, #10082222 25%, #100822b8 65%, #100822 100%); }
+.babylon-viewport::after { content: ''; position: absolute; inset: 0; background: linear-gradient(#0b061b44, #10082233 30%, #10082288); }
 body[data-screen='game-screen'] .babylon-background { visibility: hidden; }
-.utility-screen { background: linear-gradient(#100b2055, #100b20db 320px); }
-#game-screen .game-footer { padding-bottom: 2px; }
+.utility-screen { background: #100b2044; }
+body[data-utility='true'] .appbar { position: relative; top: auto; background: transparent; }
+/* HUD overlays the venue; it no longer takes height away from the runway. */
+#game-screen { position: relative; isolation: isolate; padding: 8px 0 0; }
+#game-screen .playfield { position: absolute; inset: 0; min-height: 0; z-index: -1; }
+#game-screen .hud, #game-screen .mode-row, #game-screen .pulse { position: relative; }
+#game-screen .hud { min-height: 50px; text-shadow: 0 2px 6px #000; }
+#game-screen .mode-row { text-shadow: 0 2px 4px #000; }
+#game-screen .pulse { background: #180e2bb8; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+#game-screen .game-footer { position: absolute; inset: auto 0 0; padding: 14px 18px 12px; background: linear-gradient(transparent, #100822dd); pointer-events: none; }
+#game-screen .progress-row { padding: 0; gap: 14px; }
+#game-screen #song-progress { height: 4px; }
+#game-screen #time { font-size: 16px; font-weight: 700; white-space: nowrap; color: #f5edff; text-shadow: 0 2px 5px #000; }
+#game-screen .touch-lanes { bottom: 0; }
+@media (max-width: 760px) {
+  body[data-screen='game-screen'] .layout { max-width: none; min-height: 0; }
+  body[data-screen='game-screen'] .game-shell { padding: 0; min-height: 0; }
+  #game-screen { height: 100dvh; min-height: 0; padding-top: max(8px, env(safe-area-inset-top)); padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
+  #game-screen .game-footer { padding-bottom: max(12px, env(safe-area-inset-bottom)); padding-left: max(18px, env(safe-area-inset-left)); padding-right: max(18px, env(safe-area-inset-right)); }
+}

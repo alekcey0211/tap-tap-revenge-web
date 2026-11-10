@@ -65,7 +65,7 @@ export async function prepareRenderer() {
     }
     const size = `${data.canvas.clientWidth}:${data.canvas.clientHeight}`;
     if (size !== previousSize) {
-      world.resize(); previousSize = size;
+      world.resize({ targetBottom: active ? document.querySelector('#game-screen .game-footer').offsetHeight + 30 : null }); previousSize = size;
       if (data.canvas.id === 'canvas') {
         const widths = laneWidths(world.targets(), data.canvas.clientWidth);
         document.querySelectorAll('.touch-lanes [data-lane]').forEach((button, lane) => { button.style.flex = `0 0 ${widths[lane]}px`; });

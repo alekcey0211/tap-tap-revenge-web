@@ -14,7 +14,7 @@ const manifest = JSON.parse((await read('offline-assets.js')).split(' = ')[1].re
 const scope = 'https://example.test/tap-tap-revenge-web/prototype/';
 
 test('full prototype uses the exact working application with only renderer integration and version changed', async () => {
-  const expected = (await read('app.js', stable)).replace("'./renderer.js?v=0.9.0'", "'./babylon-renderer.js?v=0.4.0'").replace("const APP_VERSION = '0.10.4';", "const APP_VERSION = '0.4.0-babylon';").replace('pulse?.zones(time, TRAVEL[run.level]));', 'pulse?.zones(time, TRAVEL[run.level]), { songId: run.song.id, position });');
+  const expected = (await read('app.js', stable)).replace("'./renderer.js?v=0.9.0'", "'./babylon-renderer.js?v=0.4.1'").replace("const APP_VERSION = '0.10.4';", "const APP_VERSION = '0.4.1-babylon';").replace('pulse?.zones(time, TRAVEL[run.level]));', 'pulse?.zones(time, TRAVEL[run.level]), { songId: run.song.id, position });');
   assert.equal(await read('app.js'), expected);
   for (const name of ['engine.js', 'audio.js', 'media-audio.js', 'routing.js', 'difficulty.js', 'progress.js', 'format.js', 'temporal.js', 'phrase-progress.js', 'pulse-view.js', 'pulse-zones.js', 'phrase-charts.js', 'offline-view.js', 'offline.js', 'sw.js']) {
     assert.equal(await read(name), await read(name, stable), name);
@@ -27,7 +27,7 @@ test('every stable screen/control is retained exactly once in the full prototype
   const current = ids(prototype);
   assert.equal(current.length, new Set(current).size);
   for (const id of ids(main)) assert.ok(current.includes(id), id);
-  assert.match(prototype, /game-bootstrap\.js\?v=0\.4\.0/);
+  assert.match(prototype, /game-bootstrap\.js\?v=0\.4\.1/);
   assert.match(prototype, /href="lab.html"/);
 });
 
@@ -60,7 +60,7 @@ test('prototype offline manifest covers full UI, Babylon, lab and selected-track
     const data = await readFile(new URL(file.path, root));
     assert.equal(data.length, file.bytes, file.path); assert.equal(hash(data), file.hash, file.path);
   }
-  assert.equal(manifest.version, '0.4.0-babylon');
+  assert.equal(manifest.version, '0.4.1-babylon');
   const pwa = JSON.parse(await read('manifest.webmanifest'));
   assert.equal(pwa.scope, './'); assert.equal(pwa.start_url, './'); assert.equal(pwa.short_name, 'Tap Tap Lab');
 });
@@ -82,4 +82,21 @@ test('prototype can cache full shell and song; its update/removal cannot delete 
   for (const name of mainNames) assert.ok((await caches.keys()).includes(name), name);
   assert.equal((await main.message('state', id)).result.state, 'ready');
   assert.equal(lab.request('../app.js'), undefined);
+});
+
+test('prototype keeps a viewport-sized scrolling venue without a sticky utility header', async () => {
+  const html = await read('index.html'), css = await read('babylon.css');
+  assert.match(html, /class="babylon-background"[^>]*><div class="babylon-viewport"><canvas/);
+  assert.match(css, /\.babylon-viewport \{ position: sticky; top: 0; height: 100svh;/);
+  assert.match(css, /body\[data-utility='true'\] \.appbar \{ position: relative; top: auto; background: transparent;/);
+  assert.doesNotMatch(css, /height: min\(100svh, 900px\)/);
+});
+
+test('prototype mobile field uses the dynamic viewport with HUD and legible time overlaid', async () => {
+  const css = await read('babylon.css');
+  assert.match(css, /#game-screen \{ height: 100dvh; min-height: 0;/);
+  assert.match(css, /#game-screen \.playfield \{ position: absolute; inset: 0;/);
+  assert.match(css, /#game-screen #time \{ font-size: 16px;/);
+  assert.match(css, /padding-bottom: max\(12px, env\(safe-area-inset-bottom\)\)/);
+  assert.match(css, /#game-screen \.touch-lanes \{ bottom: 0;/);
 });
