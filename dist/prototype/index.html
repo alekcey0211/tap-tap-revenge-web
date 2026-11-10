@@ -16,8 +16,8 @@
   <link rel="preload" href="assets/fonts/unbounded-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/unbounded-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="style.css?v=0.10.3">
-  <link rel="stylesheet" href="babylon.css?v=0.5.1">
-  <script type="module" src="game-bootstrap.js?v=0.5.1"></script>
+  <link rel="stylesheet" href="babylon.css?v=0.5.2">
+  <script type="module" src="game-bootstrap.js?v=0.5.2"></script>
 </head>
 <body>
   <div id="babylon-buffer" aria-hidden="true"></div>
@@ -31,7 +31,7 @@
       <div class="instructions"><h2>Как играть</h2><p>Нажимай, когда ноты достигают колец. Длинные ноты удерживай до конца хвоста.</p><div class="key-row"><kbd>D</kbd><kbd>F</kbd><kbd>J</kbd></div><p><kbd>Esc</kbd> — пауза</p><p class="subtle">После 50 попаданий подряд ×8 включается автоматически.</p></div>
     </aside>
     <div class="game-shell"><div class="babylon-background" aria-hidden="true"><div class="babylon-viewport"><canvas id="babylon-background-canvas"></canvas></div></div><div class="stage-lights" aria-hidden="true"><i></i><i></i><i></i><canvas id="venue-canvas"></canvas></div>
-      <header class="appbar" id="appbar"><button id="home" class="icon-button" aria-label="К трекам" hidden>‹</button><span class="music-mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><h2 id="screen-title" tabindex="-1">Музыка</h2><button id="settings-open" class="icon-button" aria-label="Настройки">⚙</button></header>
+      <header class="appbar" id="appbar"><button id="home" class="icon-button" aria-label="К трекам" hidden><svg class="control-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path d="M18 5 7 16l11 11M8 16h20" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="bevel"/></svg></button><span class="music-mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><h2 id="screen-title" tabindex="-1">Музыка</h2><button id="settings-open" class="icon-button" aria-label="Настройки"><svg class="control-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path d="m12 3-1 4-4 2-4-1-2 7 4 2 1 4-2 3 6 5 3-3h4l3 3 6-5-2-3 1-4 4-2-2-7-4 1-4-2-1-4Z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="bevel"/><circle cx="15.5" cy="16" r="4" fill="currentColor"/></svg></button></header>
       <div id="song-backdrop" class="song-backdrop" aria-hidden="true" hidden><canvas id="song-canvas"></canvas></div>
       <section id="menu" class="screen main-menu" hidden aria-labelledby="menu-heading">
         <p class="eyebrow">МУЗЫКА · РИТМ · ТОЧНОСТЬ</p>
@@ -49,7 +49,7 @@
         <div id="tracks" role="group" aria-label="Выбрать трек"></div>
       </section>
       <section id="song-screen" class="screen song-screen" hidden aria-labelledby="hero-title">
-        <div class="selected-art"><h3 id="hero-title"></h3><p id="hero-artist"></p><div class="album-stage"><img id="hero-art" alt=""></div><p id="hero-meta"></p></div>
+        <div class="selected-art"><h3 id="hero-title"></h3><p id="hero-artist"></p><p id="hero-meta"></p><div class="album-stage"><img id="hero-art" alt=""></div></div>
         <div class="song-controls">
           <div id="song-difficulty"><div class="difficulty-label"><span>Сложность</span></div><div id="difficulties" class="difficulty-cards" role="group" aria-label="Сложность"></div></div>
           <div id="record" class="record" aria-label="Личный рекорд"><span class="record-label"><span aria-hidden="true">☆</span> Личный рекорд</span><strong id="song-best-score"></strong><span id="song-best-accuracy"></span><p id="song-best-empty">Рекорд ещё не установлен</p></div>
@@ -60,7 +60,7 @@
       </section>
       <section id="game-screen" class="screen" hidden aria-label="Игра">
         <div class="now-playing sr-only"><img id="now-art" alt=""><div><strong id="now-title"></strong><small id="now-artist"></small></div></div>
-        <div class="hud"><strong id="live-score">0</strong><div><small>Комбо</small><strong id="live-combo">0</strong></div><span id="multiplier" aria-label="Множитель очков" role="status">×1</span><button id="pause" class="icon-button" aria-label="Пауза">Ⅱ</button></div>
+        <div class="hud"><div class="hud-score"><small>Счёт</small><strong id="live-score">0</strong></div><div><small>Комбо</small><strong id="live-combo">0</strong></div><span id="multiplier" aria-label="Множитель очков" role="status">×1</span><button id="pause" class="icon-button" aria-label="Пауза"><svg class="control-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path d="M7 5h7v22H7zM20 5h7v22h-7z" fill="currentColor"/></svg></button></div>
         <div class="mode-row"><span id="mode-label"></span><span id="audio-status" hidden></span></div>
         <section id="pulse" class="pulse" aria-label="Pulse" hidden>
           <strong id="pulse-title" role="status"></strong><span id="pulse-detail"></span>
@@ -105,7 +105,7 @@
         <p>Установка на домашний экран и обновления приложения находятся в настройках.</p><button id="offline-settings" class="secondary">Открыть настройки</button>
         <button id="offline-close" class="primary">Готово</button>
       </section>
-      <section id="pause-screen" class="screen utility-screen" hidden inert aria-labelledby="pause-heading"><span class="pause-symbol" aria-hidden="true">Ⅱ</span><h2 id="pause-heading">Пауза</h2><p>Ритм подождёт.</p><p id="pause-track"></p><p id="pause-error" role="status" hidden></p><button id="resume" class="primary">Продолжить</button><button id="restart" class="secondary">Начать заново</button><button id="quit" class="text-button">К трекам</button></section>
+      <section id="pause-screen" class="screen utility-screen" hidden inert aria-labelledby="pause-heading"><span class="pause-symbol" aria-hidden="true"><svg class="control-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path d="M7 5h7v22H7zM20 5h7v22h-7z" fill="currentColor"/></svg></span><h2 id="pause-heading">Пауза</h2><p>Ритм подождёт.</p><p id="pause-track"></p><p id="pause-error" role="status" hidden></p><button id="resume" class="primary">Продолжить</button><button id="restart" class="secondary">Начать заново</button><button id="quit" class="text-button">К трекам</button></section>
       <section id="import-screen" class="screen utility-screen" hidden inert aria-labelledby="import-heading"><h2 id="import-heading">Восстановить прогресс?</h2><p id="import-summary"></p><p>Файл заменит текущие рекорды, историю и настройки, включая режим звука. Сначала сохрани текущий прогресс, если хочешь оставить копию.</p><p id="import-error" class="save-warning" role="status" hidden></p><button id="import-confirm" class="primary">Заменить прогресс</button><button id="import-cancel" class="secondary">Отмена</button></section>
       <section id="settings-screen" class="screen utility-screen" hidden inert aria-labelledby="settings-heading"><p class="babylon-badge">STAGE LAB · отдельные настройки, рекорды и офлайн-треки</p><label>Графика<select id="babylon-renderer-choice"><option value="auto">WebGPU → WebGL</option><option value="webgl">Только WebGL</option></select></label>
         <h2 id="settings-heading" class="sr-only">Настройки</h2>

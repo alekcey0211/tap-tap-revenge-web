@@ -29,10 +29,8 @@ body[data-utility='true'] .appbar { position: relative; top: auto; background: t
 /* HUD overlays the venue; it no longer takes height away from the runway. */
 #game-screen { position: relative; isolation: isolate; padding: 8px 0 0; }
 #game-screen .playfield { position: absolute; inset: 0; min-height: 0; z-index: -1; }
-#game-screen .hud, #game-screen .mode-row, #game-screen .pulse { position: relative; }
-#game-screen .hud { min-height: 50px; text-shadow: 0 2px 6px #000; }
-#game-screen .mode-row { text-shadow: 0 2px 4px #000; }
-#game-screen .pulse { background: #180e2bb8; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+#game-screen .hud { position: relative; text-shadow: 0 2px 6px #000; }
+#game-screen .mode-row, #game-screen #pulse { display: none; }
 #game-screen .game-footer { position: absolute; inset: auto 0 0; padding: 14px 18px 12px; background: linear-gradient(transparent, #100822dd); pointer-events: none; }
 #game-screen .progress-row { padding: 0; gap: 14px; }
 #game-screen #song-progress { height: 4px; }
@@ -46,8 +44,40 @@ body[data-utility='true'] .appbar { position: relative; top: auto; background: t
   #game-screen { height: 100dvh; min-height: 0; padding-top: max(8px, env(safe-area-inset-top)); padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
   #game-screen .game-footer { padding-bottom: max(12px, env(safe-area-inset-bottom)); padding-left: max(18px, env(safe-area-inset-left)); padding-right: max(18px, env(safe-area-inset-right)); }
 }
-/* Floating artwork, consistent unframed navigation, three difficulty cards. */
+/* Compact song details leave the artwork floating directly above difficulty. */
 .album-stage::before, .album-stage::after { display: none; }
-.appbar #home, .appbar #settings-open { border-color: transparent; background: none; box-shadow: none; }
+.selected-art #hero-artist { margin-bottom: 0; }
+.selected-art #hero-meta { margin: 5px 0 0; font-size: 14px; color: #cfc0e4; }
+.album-stage { padding: 20px 0 18px; }
+.song-controls { padding-top: 0; }
+.difficulty-label { margin-top: 0; }
 .difficulty-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.appbar #home:focus-visible, .appbar #settings-open:focus-visible { outline: none; color: #ffba79; text-decoration: underline; text-underline-offset: 6px; }
+.difficulty-cards button { min-height: 112px; padding: 13px 10px; gap: 10px 4px; }
+.difficulty-meter { height: 30px; gap: 5px; }
+.difficulty-meter i { width: 8px; height: 13px; border-radius: 3px; }
+.difficulty-meter i:nth-child(2) { height: 21px; }
+.difficulty-meter i:nth-child(3) { height: 30px; }
+.difficulty-name { font-size: 17px; font-weight: 800; }
+.difficulty-notes { font-size: 13px; }
+.difficulty-check { width: 17px; height: 17px; }
+.difficulty-cards button[aria-pressed='true'] .difficulty-check::after { width: 7px; height: 4px; margin: 4px 3px; }
+/* No framed glyphs: large, consistent SVG silhouettes with keyboard focus below. */
+.appbar .icon-button, #game-screen #pause { position: relative; display: grid; place-items: center; flex: 0 0 48px; width: 48px; height: 48px; padding: 6px; border: 0; border-radius: 0; background: none; box-shadow: none; color: #f6efff; }
+.control-icon { display: block; width: 34px; height: 34px; filter: drop-shadow(0 2px 5px #120921); }
+.pause-symbol .control-icon { width: 64px; height: 64px; margin: auto; }
+.appbar .icon-button:focus-visible, #game-screen #pause:focus-visible { outline: none; color: #ffba79; }
+.appbar .icon-button:focus-visible::after, #game-screen #pause:focus-visible::after { content: ''; position: absolute; bottom: 0; left: 10px; right: 10px; height: 3px; border-radius: 2px; background: currentColor; }
+/* Only the score, combo, multiplier and pause compete with the notes. */
+#game-screen .hud { display: grid; grid-template-columns: minmax(0, 1fr) auto auto 48px; align-items: center; gap: 10px; padding: 6px 14px; min-height: 72px; }
+#game-screen .hud > div { display: grid; gap: 3px; text-align: left; }
+#game-screen .hud small { font-size: 11px; line-height: 1; letter-spacing: .04em; }
+#game-screen #live-score { font-size: clamp(22px, 6vw, 32px); line-height: 1.2; white-space: nowrap; }
+#game-screen #live-combo { font-size: clamp(24px, 6.5vw, 32px); line-height: 1.2; }
+#game-screen #multiplier, #game-screen #multiplier[data-level='8'] { font-size: clamp(30px, 8vw, 38px); min-width: 0; }
+@media (max-width: 350px) {
+  .difficulty-cards button { padding: 12px 7px; }
+  .difficulty-name { font-size: 15px; }
+  .difficulty-notes { font-size: 12px; }
+  #game-screen .hud { padding-inline: 10px; gap: 6px; grid-template-columns: minmax(0, 1fr) auto auto 44px; }
+  #game-screen #pause { width: 44px; }
+}

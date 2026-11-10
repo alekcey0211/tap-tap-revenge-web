@@ -14,7 +14,7 @@ const manifest = JSON.parse((await read('offline-assets.js')).split(' = ')[1].re
 const scope = 'https://example.test/tap-tap-revenge-web/prototype/';
 
 test('full prototype uses the exact working application with only renderer integration and version changed', async () => {
-  const expected = (await read('app.js', stable)).replace("'./renderer.js?v=0.9.0'", "'./babylon-renderer.js?v=0.5.1'").replace("const APP_VERSION = '0.10.4';", "const APP_VERSION = '0.5.1-babylon';").replace('pulse?.zones(time, TRAVEL[run.level]));', 'pulse?.zones(time, TRAVEL[run.level]), { songId: run.song.id, position });');
+  const expected = (await read('app.js', stable)).replace("'./renderer.js?v=0.9.0'", "'./babylon-renderer.js?v=0.5.2'").replace("const APP_VERSION = '0.10.4';", "const APP_VERSION = '0.5.2-babylon';").replace('pulse?.zones(time, TRAVEL[run.level]));', 'pulse?.zones(time, TRAVEL[run.level]), { songId: run.song.id, position });');
   assert.equal(await read('app.js'), expected);
   for (const name of ['audio.js', 'media-audio.js', 'routing.js', 'progress.js', 'format.js', 'temporal.js', 'phrase-progress.js', 'pulse-view.js', 'pulse-zones.js', 'phrase-charts.js', 'offline-view.js', 'offline.js', 'sw.js']) {
     assert.equal(await read(name), await read(name, stable), name);
@@ -27,10 +27,24 @@ test('every stable screen/control is retained exactly once in the full prototype
   const current = ids(prototype);
   assert.equal(current.length, new Set(current).size);
   for (const id of ids(main)) assert.ok(current.includes(id), id);
-  assert.match(prototype, /game-bootstrap\.js\?v=0\.5\.1/);
+  assert.match(prototype, /game-bootstrap\.js\?v=0\.5\.2/);
   assert.match(prototype, /href="lab.html"/);
   assert.match(prototype, /TAP<span>BEAT<\/span>/);
   assert.match(prototype, /Тапай в бит/);
+});
+
+test('prototype compact UI keeps controls accessible and moves metadata before the artwork', async () => {
+  const html = await read('index.html'), css = await read('babylon.css');
+  assert.ok(html.indexOf('id="hero-artist"') < html.indexOf('id="hero-meta"'));
+  assert.ok(html.indexOf('id="hero-meta"') < html.indexOf('class="album-stage"'));
+  for (const id of ['home', 'settings-open', 'pause']) {
+    const button = html.match(new RegExp(`<button id="${id}"[^>]*>[\\s\\S]*?</button>`))[0];
+    assert.match(button, /aria-label="[^"]+"/);
+    assert.match(button, /<svg class="control-icon"[^>]*aria-hidden="true"[^>]*focusable="false"/);
+  }
+  assert.match(html, /class="hud-score"><small>Счёт<\/small><strong id="live-score"/);
+  assert.match(css, /#game-screen \.mode-row, #game-screen #pulse \{ display: none; \}/);
+  assert.match(css, /\.difficulty-name \{ font-size: 17px;/);
 });
 
 test('prototype storage isolates progress, resets chart revision, and retains compatible audio default', async () => {
@@ -65,7 +79,7 @@ test('prototype offline manifest covers full UI, Babylon, lab and selected-track
     const data = await readFile(new URL(file.path, root));
     assert.equal(data.length, file.bytes, file.path); assert.equal(hash(data), file.hash, file.path);
   }
-  assert.equal(manifest.version, '0.5.1-babylon');
+  assert.equal(manifest.version, '0.5.2-babylon');
   const pwa = JSON.parse(await read('manifest.webmanifest'));
   assert.equal(pwa.scope, './'); assert.equal(pwa.start_url, './'); assert.equal(pwa.short_name, 'Tapbeat');
 });
