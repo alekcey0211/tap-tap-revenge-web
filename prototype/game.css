@@ -37,8 +37,10 @@ body[data-utility='true'] .appbar { position: relative; top: auto; background: t
 #game-screen #song-progress { height: 4px; }
 #game-screen #time { font-size: 16px; font-weight: 700; white-space: nowrap; color: #f5edff; text-shadow: 0 2px 5px #000; }
 #game-screen .touch-lanes { bottom: 0; }
-@media (max-width: 760px) {
-  body[data-screen='game-screen'] .layout { max-width: none; min-height: 0; }
+@media (max-width: 760px), (max-height: 500px) and (max-width: 1000px) {
+  body[data-screen='game-screen'] .intro { display: none; }
+  body[data-screen='game-screen'] .layout { display: block; max-width: none; min-height: 0; padding: 0; }
+  body[data-screen='game-screen'] .game-shell { border: 0; border-radius: 0; }
   body[data-screen='game-screen'] .game-shell { padding: 0; min-height: 0; }
   #game-screen { height: 100dvh; min-height: 0; padding-top: max(8px, env(safe-area-inset-top)); padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
   #game-screen .game-footer { padding-bottom: max(12px, env(safe-area-inset-bottom)); padding-left: max(18px, env(safe-area-inset-left)); padding-right: max(18px, env(safe-area-inset-right)); }
