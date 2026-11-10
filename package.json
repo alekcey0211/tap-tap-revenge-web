@@ -3,10 +3,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node scripts/serve.mjs",
-    "start:lan": "node scripts/serve.mjs --lan",
+    "start": "node scripts/serve.mjs --release",
+    "start:lan": "node scripts/serve.mjs --release --lan",
     "test": "node --test tests/*.test.mjs",
     "prepare:offline": "node scripts/build-offline.mjs",
-    "prepare:assets": "python3 scripts/extract.py"
-  }
+    "prepare:assets": "python3 scripts/extract.py",
+    "build": "npm --prefix prototype run build && node scripts/build-release.mjs",
+    "test:scene": "npm --prefix prototype test",
+    "start:source": "node scripts/serve.mjs"
+  },
+  "version": "1.0.0"
 }

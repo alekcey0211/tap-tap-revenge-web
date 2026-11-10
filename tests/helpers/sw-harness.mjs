@@ -11,6 +11,7 @@ export class FakeCaches {
     if (!this.stores.has(name)) this.stores.set(name, new Map());
     const files = this.stores.get(name);
     return {
+      keys: async () => [...files.keys()],
       match: async url => {
         const entry = files.get(String(url));
         return entry ? new Response(entry.bytes.slice(0), { status: entry.status, headers: entry.headers }) : undefined;

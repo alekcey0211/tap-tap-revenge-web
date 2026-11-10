@@ -38,7 +38,7 @@ export async function validateArtifact(root) {
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   try {
     if (process.argv.includes('--publish')) assertPublishRef(process.env.GITHUB_REF);
-    const result = await validateArtifact(fileURLToPath(new URL('../dist', import.meta.url)));
+    const result = await validateArtifact(fileURLToPath(new URL('../release', import.meta.url)));
     console.log(`Artifact checked: ${result.files} files, ${result.bytes} bytes`);
   } catch (error) {
     console.error(error.message);

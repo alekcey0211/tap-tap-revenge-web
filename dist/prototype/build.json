@@ -2,7 +2,7 @@
   "babylon": "9.32.1",
   "sources": {
     "app.js": "5c7c77e6021793d235ae58f32accf1184c906c44e0edc893873f9eecf5616c2e",
-    "scene.js": "4e3e08c05a70a403b29ad04e1db7bdf6cabbb6d08fd7ca1ae375aaf8bf510f99",
+    "scene.js": "9efe85bcf4bf02befd4c674a9499787e1f6808c97df1a43d6c58731673c53bdf",
     "hold-feedback.js": "90cd339069cafcef3402c483650589d665cb4a6a961d9649b2286a63e9bddd52",
     "venue-layout.js": "71bdd867dbe154ab0bd867b07260e41b04c62d2d09f1c93f747caba04cac0ba0",
     "timing.js": "0f91d8d646fa632c9a8c6a2158ac20bee26c1e5c431940f69120ca98446116de",
@@ -106,6 +106,6 @@
     "vendor/jsbi-4.3.0.js": "bc620c7c60b11f3f59a5ead9509493e309655ce87631e8a359687f7e84eb3334",
     "vendor/temporal-0.5.1.js": "f3191e633c50ec4dfa3dea0f09503fb07480e0b15c36dadacd2348253d26965d"
   },
-  "bundle": "9514d3e8737bf7cbf5e5055ffcdbac98cfbc70fa8b045e75e02e4f12ba21b07d",
-  "renderer": "f9962977ab5c918a754f3984115008cd137f840c83a7d81ddf5bb3edb8ea600a"
+  "bundle": "cf02f652f939c96d3fd9e51d22f751b72eb4770e29b66215376c9b97d99c6e66",
+  "renderer": "9c4708390e783299806c61131817bd457e830f2610e329fd68c4738a392d8598"
 }

@@ -23,6 +23,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Install renderer dependencies
+        run: npm ci --prefix prototype
+      - name: Build stable game
+        run: npm run build
+      - name: Test scene
+        run: npm run test:scene
       - name: Test game
         run: npm test
       - name: Check public artifact
@@ -32,7 +38,7 @@ jobs:
       - name: Upload game files
         uses: actions/upload-pages-artifact@v4
         with:
-          path: dist
+          path: release
 
   deploy:
     if: github.ref == 'refs/heads/codex/initial-web-port'

@@ -3,6 +3,11 @@ import { holdingLanes } from './hold-feedback.js';
 import { spectrumColumn, spectrumLevel } from './venue-layout.js';
 import { TrackRhythm } from '../dist/track-rhythm.js';
 
+const TRACK_WIDTH = 6.4, LANE_WIDTH = TRACK_WIDTH / 3;
+const EQUALIZER_Y = 11.6;
+const TRACK_NEAR = -1.5, TRACK_FAR = 64, NOTE_FAR = 56, TRAVEL_DISTANCE = 20;
+const TRACK_LENGTH = TRACK_FAR - TRACK_NEAR, TRACK_CENTER = (TRACK_FAR + TRACK_NEAR) / 2;
+
 const palette = ['#ff668a', '#ffd073', '#68edff'].map(Color3.FromHexString);
 const v = (x, y, z) => new Vector3(x, y, z);
 const mix = (a, b, t) => a + (b - a) * t;
@@ -13,7 +18,7 @@ export function createScene(engine, canvas, { fullViewport = false } = {}) {
   scene.clearColor = new Color4(.038, .012, .082, 1);
   scene.fogMode = Scene.FOGMODE_EXP2; scene.fogDensity = .017; scene.fogColor = new Color3(.038, .012, .082);
   const camera = new FreeCamera('audience', v(0, 8.3, -12), scene);
-  camera.setTarget(v(0, 1.6, 9)); camera.minZ = .1; camera.maxZ = 90;
+  camera.setTarget(v(0, 1.6, 9)); camera.minZ = .1; camera.maxZ = 160;
   camera.fov = .88;
   const ambient = new HemisphericLight('ambient', v(0, 1, -1), scene); ambient.intensity = .95; ambient.groundColor = new Color3(.14, .05, .25);
   const pinkLight = new PointLight('magenta-light', v(-5, 5, 6), scene); pinkLight.diffuse = Color3.FromHexString('#c27aff'); pinkLight.intensity = 1.3;
@@ -44,26 +49,26 @@ export function createScene(engine, canvas, { fullViewport = false } = {}) {
     const mesh = MeshBuilder.CreateTorus(name, { diameter, thickness, tessellation: 64 }, scene);
     mesh.position = pos; mesh.material = mat; if (vertical) mesh.rotation.x = Math.PI / 2; return mesh;
   }
-  box('stage-floor', 38, .3, 54, v(0, -.55, 17), dark);
-  box('track-base', 6.4, .18, 23, v(0, -.12, 10), floorMat);
+  box('stage-floor', 38, .3, 80, v(0, -.55, 30), dark);
+  box('track-base', TRACK_WIDTH, .18, TRACK_LENGTH, v(0, -.12, TRACK_CENTER), floorMat);
   for (const side of [-1, 1]) {
-    box('runway-rail', .055, .045, 23, v(side * 3.25, .06, 10), cyan);
-    box('outer-rail', .025, .05, 25, v(side * 3.65, -.25, 10), violet);
-    for (let i = 0; i < 13; i++) box('edge-marker', .23, .05, .55, v(side * 3.5, .02, i * 1.8), violet);
+    box('runway-rail', .055, .045, TRACK_LENGTH, v(side * 3.25, .06, TRACK_CENTER), cyan);
+    box('outer-rail', .025, .05, TRACK_LENGTH + 2, v(side * 3.65, -.25, TRACK_CENTER), violet);
+    for (let i = 0; i < Math.ceil(TRACK_FAR / 1.8); i++) box('edge-marker', .23, .05, .55, v(side * 3.5, .02, i * 1.8), violet);
   }
-  for (const x of [-.83, .83]) box('lane-divider', .015, .015, 22, v(x, 0, 10), material('separator', '#56618c', .15));
+  for (const x of [-LANE_WIDTH / 2, LANE_WIDTH / 2]) box('lane-divider', .015, .015, TRACK_LENGTH, v(x, 0, TRACK_CENTER), material('separator', '#56618c', .15));
   const energyMat = material('runway-energy', '#8fefff', 1.1);
   const energyRails = [], energyMarkers = [];
   for (const side of [-1, 1]) {
-    energyRails.push(box('energy-rail', .1, .035, 23, v(side * 3.3, .1, 10), energyMat));
-    for (let i = 0; i < 14; i++) {
+    energyRails.push(box('energy-rail', .1, .035, TRACK_LENGTH, v(side * 3.3, .1, TRACK_CENTER), energyMat));
+    for (let i = 0; i < Math.ceil(TRACK_FAR / 1.6); i++) {
       const mesh = box('energy-chevron', .18, .04, .8, v(side * 3.55, .12, 0), i % 2 ? gold : cyan);
       mesh.rotation.y = side * -.55; energyMarkers.push({ mesh, index: i });
     }
   }
   const pads = [], targetArcs = [];
   for (let i = 0; i < 3; i++) {
-    const x = (i - 1) * 1.65;
+    const x = (i - 1) * LANE_WIDTH;
     ring('target-bezel', 1.2, .16, v(x, .02, 0), dark);
     const pad = ring('target-light', 1.14, .065, v(x, .13, 0), laneMats[i]); pads.push(pad);
     ring('target-inner', .88, .02, v(x, .14, 0), laneMats[i]);
@@ -78,13 +83,17 @@ export function createScene(engine, canvas, { fullViewport = false } = {}) {
       targetArcs.push({ mesh, lane: i, arc });
     }
   }
-  box('platform', 15, .5, 5, v(0, -.1, 20), dark);
-  box('platform-rim', 15, .05, .07, v(0, .18, 17.45), violet);
+  // Leave the centre open: no opaque platform or crossbar across the runway.
+  for (const side of [-1, 1]) {
+    box('platform-wing', 3.3, .5, 5, v(side * 5.85, -.1, 20), dark);
+    box('platform-rim', 3.3, .05, .07, v(side * 5.85, .18, 17.45), violet);
+  }
   const arches = [];
   for (let i = 0; i < 5; i++) {
     const z = 21 + i * 2.4, diameter = 13 + i * 1.4;
-    ring('arch-structure', diameter, .3, v(0, 8, z), dark, true);
-    arches.push(ring('arch-neon', diameter - .32, .07, v(0, 8, z - .1), [violet, cyan, pink, violet, gold][i], true));
+    const y = EQUALIZER_Y + i * .4; // Keep the wider rear rims above distant notes too.
+    ring('arch-structure', diameter, .3, v(0, y, z), dark, true);
+    arches.push(ring('arch-neon', diameter - .32, .07, v(0, y, z - .1), [violet, cyan, pink, violet, gold][i], true));
   }
   const panels = [];
   for (const side of [-1, 1]) {
@@ -99,17 +108,18 @@ export function createScene(engine, canvas, { fullViewport = false } = {}) {
     }
   }
   // The spectrum fills the inner arch instead of a small rectangular screen.
-  const screen = MeshBuilder.CreateDisc('spectrum-disc', { radius: 6.15, tessellation: 96, sideOrientation: 2 }, scene);
-  screen.position.set(0, 8, 21.4); screen.material = dark;
+  const screen = MeshBuilder.CreateDisc('spectrum-disc', { radius: 6.5, tessellation: 96, sideOrientation: 2 }, scene);
+  // Opaque backing overlaps the inner rim, sealing the former see-through seam.
+  screen.position.set(0, EQUALIZER_Y, 21.4); screen.material = dark;
   const equalizer = [];
   for (let i = 0; i < 31; i++) {
-    const { x, width, height } = spectrumColumn(i);
+    const { x, width, height } = spectrumColumn(i, 31, 6.32);
     const color = Color3.Lerp(Color3.FromHexString('#ff76df'), Color3.FromHexString('#55f1ff'), i / 30);
     const mat = material('spectrum-band-' + i, color, .65);
     const idle = material('spectrum-idle-' + i, color, .12); idle.disableLighting = true;
-    box('spectrum-bed', width, height, .04, v(x, 8, 21.3), idle);
-    const bar = box('equalizer', width, 1, .08, v(x, 8, 21.2), mat);
-    const caps = [-1, 1].map(side => ({ side, mesh: box('spectrum-cap', width, .035, .1, v(x, 8, 21.13), mat) }));
+    box('spectrum-bed', width, height, .04, v(x, EQUALIZER_Y, 21.3), idle);
+    const bar = box('equalizer', width, 1, .08, v(x, EQUALIZER_Y, 21.2), mat);
+    const caps = [-1, 1].map(side => ({ side, mesh: box('spectrum-cap', width, .035, .1, v(x, EQUALIZER_Y, 21.13), mat) }));
     equalizer.push({ bar, caps, height });
   }
   // Stage wings and floor light pools add the depth and colour of the old concert art.
@@ -154,7 +164,7 @@ export function createScene(engine, canvas, { fullViewport = false } = {}) {
   const notePools = noteMats.map((mat, lane) => {
     const base = MeshBuilder.CreateSphere('orb-source-' + lane, { diameter: .67, segments: 20 }, scene);
     base.material = mat; base.isVisible = false; glow.addExcludedMesh(base);
-    return Array.from({ length: 20 }, (_, i) => { const mesh = base.createInstance('note-' + lane + '-' + i); glow.addExcludedMesh(mesh); mesh.setEnabled(false); return mesh; });
+    return Array.from({ length: 40 }, (_, i) => { const mesh = base.createInstance('note-' + lane + '-' + i); glow.addExcludedMesh(mesh); mesh.setEnabled(false); return mesh; });
   });
   const sparkSources = laneMats.map((mat, i) => {
     const mesh = MeshBuilder.CreateSphere('spark-source-' + i, { diameter: .08, segments: 4 }, scene); mesh.material = mat; mesh.isVisible = false; return mesh;
@@ -169,11 +179,11 @@ export function createScene(engine, canvas, { fullViewport = false } = {}) {
     });
     return { lane, halo, flash, particles, born: -Infinity };
   });
-  const tailPools = laneMats.map((mat, lane) => Array.from({ length: 20 }, () => {
+  const tailPools = laneMats.map((mat, lane) => Array.from({ length: 40 }, () => {
     const mesh = box('hold-tail-' + lane, .16, .08, 1, v(0, .35, 0), mat); mesh.setEnabled(false); return mesh;
   }));
   const holdPools = laneMats.map((mat, lane) => {
-    const halo = ring('hold-contact', 1.05, .045, v((lane - 1) * 1.65, .28, 0), mat);
+    const halo = ring('hold-contact', 1.05, .045, v((lane - 1) * LANE_WIDTH, .28, 0), mat);
     halo.setEnabled(false);
     const sparks = Array.from({ length: 12 }, (_, index) => {
       const mesh = sparkSources[lane].createInstance('hold-spark-' + lane + '-' + index);
@@ -184,28 +194,31 @@ export function createScene(engine, canvas, { fullViewport = false } = {}) {
   const nextBurst = [0, 0, 0]; let totalHits = 0, lastHit = -Infinity;
   function hit(lane, time) {
     const burst = bursts[lane + (nextBurst[lane]++ % 3) * 3]; burst.born = time;
-    burst.halo.position.x = burst.flash.position.x = (lane - 1) * 1.65; burst.flash.position.y = .5;
+    burst.halo.position.x = burst.flash.position.x = (lane - 1) * LANE_WIDTH; burst.flash.position.y = .5;
     totalHits++; lastHit = time;
   }
-  // Fixed-length updatable tubes; branches stay outside the playable lanes.
+  // Fixed-length tubes: central overhead origins, side landings, foreground compositing.
+  scene.setRenderingAutoClearDepthStencil(1, true, true, true);
   const bolts = [];
   for (const side of [-1, 1]) {
     for (let bank = 0; bank < 2; bank++) for (let branch = 0; branch < 4; branch++) {
       const points = Array.from({ length: branch ? 9 : 22 }, (_, i) => v(side * 4, 7 - i * .2, 15 - i * .3));
       const mesh = MeshBuilder.CreateTube('lightning', { path: points, radius: branch ? .023 : .048, tessellation: 5, updatable: true }, scene);
-      mesh.material = white; mesh.setEnabled(false); bolts.push({ mesh, points, side, bank, branch });
+      mesh.material = white; mesh.renderingGroupId = 1; mesh.setEnabled(false); bolts.push({ mesh, points, side, bank, branch });
     }
   }
   function strike(index) {
     for (const bolt of bolts) {
       const rand = random(index * 997 + bolt.side * 31 + bolt.bank * 521 + bolt.branch * 127 + 7001);
       const trunk = bolts.find(item => item.side === bolt.side && item.bank === bolt.bank && item.branch === 0);
-      const start = bolt.branch ? trunk.points[4 + bolt.branch * 4] : v(bolt.side * (5.6 + bolt.bank * 1.5), 9 + bolt.bank * 2, 18 + bolt.bank * 4);
+      const start = bolt.branch ? trunk.points[4 + bolt.branch * 4] : v(bolt.side * (2.2 + bolt.bank * .5), 9 + bolt.bank * 2, 18 + bolt.bank * 4);
       const end = bolt.branch ? start.add(v(bolt.side * (1 + rand()), -1.6 - rand(), -2 - rand() * 2)) : v(bolt.side * (3.6 + bolt.bank * 1.1), .1, .6 + bolt.bank * 7);
       for (let i = 0; i < bolt.points.length; i++) {
         const t = i / (bolt.points.length - 1), jitter = Math.sin(t * Math.PI) * (bolt.branch ? .5 : 1);
         bolt.points[i].set(mix(start.x, end.x, t) + (rand() - .5) * jitter, mix(start.y, end.y, t) + (rand() - .5) * jitter * .5, mix(start.z, end.z, t) + (rand() - .5) * jitter * 1.3);
-        bolt.points[i].x = bolt.side * Math.max(3.5, Math.abs(bolt.points[i].x));
+        // Near the runway, keep every branch outside the note lanes.
+        const clearance = bolt.points[i].y < 3 ? 3.5 : 1.8;
+        bolt.points[i].x = bolt.side * Math.max(clearance, Math.abs(bolt.points[i].x));
       }
       MeshBuilder.CreateTube('lightning', { path: bolt.points, instance: bolt.mesh }, scene);
     }
@@ -233,7 +246,7 @@ export function createScene(engine, canvas, { fullViewport = false } = {}) {
     for (const rail of energyRails) { rail.setEnabled(energy); rail.visibility = reduced ? .5 : .65 + pulse * .3; }
     for (const { mesh, index } of energyMarkers) {
       mesh.setEnabled(energy);
-      mesh.position.z = reduced || !playing ? index * 1.6 : 22 - (time * 10 + index * 1.6) % 22;
+      mesh.position.z = reduced || !playing ? index * 1.6 : TRACK_FAR - (time * 10 + index * 1.6) % TRACK_FAR;
       mesh.visibility = reduced ? .45 : .65 + pulse * .3;
     }
     glow.intensity = reduced ? .4 : energy ? .5 + pulse * .04 : .48;
@@ -270,7 +283,7 @@ export function createScene(engine, canvas, { fullViewport = false } = {}) {
       const level = reduced ? .12 : spectrumLevel(spectrum, i);
       bar.scaling.y = .07 + Math.pow(level, .65) * (height - .07);
       for (const cap of caps) {
-        cap.mesh.position.y = 8 + cap.side * (bar.scaling.y / 2 - .02);
+        cap.mesh.position.y = EQUALIZER_Y + cap.side * (bar.scaling.y / 2 - .02);
         cap.mesh.setEnabled(Boolean(spectrum) && !reduced && level > .03);
       }
     }
@@ -281,29 +294,32 @@ export function createScene(engine, canvas, { fullViewport = false } = {}) {
     });
     zonePools.forEach((pool, index) => {
       const zone = pulseZones[index];
-      const start = zone ? Math.max(0, Math.min(20, (zone.start - time) / travel * 20)) : 0;
-      const end = zone ? Math.max(0, Math.min(20, (zone.end - time) / travel * 20)) : 0;
+      const start = zone ? Math.max(0, Math.min(NOTE_FAR, (zone.start - time) / travel * TRAVEL_DISTANCE)) : 0;
+      const end = zone ? Math.max(0, Math.min(NOTE_FAR, (zone.end - time) / travel * TRAVEL_DISTANCE)) : 0;
       for (const mesh of pool.sides) { mesh.setEnabled(end > start); mesh.position.z = (start + end) / 2; mesh.scaling.z = Math.max(.001, end - start); }
       pool.edges.forEach((mesh, edge) => {
         const stamp = zone && (edge ? zone.end : zone.start);
-        mesh.setEnabled(Boolean(zone && stamp >= time && stamp <= time + travel));
+        mesh.setEnabled(Boolean(zone && stamp >= time && stamp <= time + travel * NOTE_FAR / TRAVEL_DISTANCE));
         mesh.position.z = edge ? end : start;
       });
     });
     const counts = [0, 0, 0];
     for (const pool of [...notePools, ...tailPools]) for (const mesh of pool) mesh.setEnabled(false);
     for (const note of notes) {
-      if (note.time > time + travel) break;
-      if (!['pending', 'holding'].includes(note.state) || counts[note.lane] >= 20) continue;
+      if (note.time > time + travel * NOTE_FAR / TRAVEL_DISTANCE) break;
+      if (!['pending', 'holding'].includes(note.state) || counts[note.lane] >= notePools[note.lane].length) continue;
       const remaining = note.time - time, slot = counts[note.lane]++;
-      const z = note.state === 'holding' ? 0 : remaining / travel * 20;
+      const z = note.state === 'holding' ? 0 : remaining / travel * TRAVEL_DISTANCE;
       const mesh = notePools[note.lane][slot]; mesh.setEnabled(true);
-      mesh.position.set((note.lane - 1) * 1.65, .54, z);
+      mesh.position.set((note.lane - 1) * LANE_WIDTH, .54, z);
+      // Ease in at the distant end, rather than popping into the old near portal.
+      const arrival = Math.max(0, Math.min(1, (NOTE_FAR - z) / 8));
+      mesh.scaling.setAll(arrival);
       if (note.duration > 0) {
-        const end = Math.min(20, (remaining + note.duration) / travel * 20), start = Math.max(0, z);
+        const end = Math.min(NOTE_FAR, (remaining + note.duration) / travel * TRAVEL_DISTANCE), start = Math.max(0, z);
         if (end > start) {
           const tail = tailPools[note.lane][slot]; tail.setEnabled(true);
-          tail.position.set(mesh.position.x, .35, (start + end) / 2); tail.scaling.z = end - start;
+          tail.position.set(mesh.position.x, .35, (start + end) / 2); tail.scaling.set(arrival, 1, end - start);
         }
       }
     }
@@ -317,9 +333,10 @@ export function createScene(engine, canvas, { fullViewport = false } = {}) {
         const age = (time * 2.8 + index / sparks.length) % 1;
         const angle = index * 2.39996 + Math.floor(time * 2.8) * .7;
         const radius = .18 + age * .65;
-        mesh.position.set((lane - 1) * 1.65 + Math.cos(angle) * radius,
+        mesh.position.set((lane - 1) * LANE_WIDTH + Math.cos(angle) * radius,
           .4 + Math.sin(age * Math.PI) * (.6 + index % 3 * .15), Math.sin(angle) * radius);
-        mesh.scaling.setAll((1 - age) * 1.6); mesh.visibility = 1 - age;
+        // Instances share visibility with their source; shrinking gives the fade-out.
+        mesh.scaling.setAll((1 - age) * 1.6);
       });
     });
     for (const burst of bursts) {
@@ -332,7 +349,7 @@ export function createScene(engine, canvas, { fullViewport = false } = {}) {
       for (const p of burst.particles) {
         p.mesh.setEnabled(visible && !reduced); if (!visible || reduced) continue;
         const strength = energy ? 1.6 : .9;
-        p.mesh.position.set((burst.lane - 1) * 1.65 + p.velocity.x * age * strength, .4 + p.velocity.y * age - age * age * 3, p.velocity.z * age * strength);
+        p.mesh.position.set((burst.lane - 1) * LANE_WIDTH + p.velocity.x * age * strength, .4 + p.velocity.y * age - age * age * 3, p.velocity.z * age * strength);
         p.mesh.scaling.setAll((1 - age / .55) * (energy ? 1.8 : 1));
       }
     }

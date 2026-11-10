@@ -77,3 +77,114 @@ test('energy effects stay pooled and spotlight sources remain anchored', t => {
   world.update(14, true, false, false);
   assert.ok(named(world, 'target-energy-arc').every(mesh => !mesh.isEnabled()));
 });
+
+test('equal-width lanes centre targets, notes and held-note feedback', t => {
+  const world = fixture(t);
+  const dividers = named(world, 'lane-divider').map(mesh => mesh.position.x);
+  const edges = [-3.2, ...dividers, 3.2];
+  const pads = named(world, 'target-light');
+  const notes = [0, 1, 2].map(lane => ({ lane, time: 10, duration: 2, state: 'holding', judgment: 'perfect' }));
+  world.setChart(notes, 2);
+  world.update(10.5, true, true, true);
+  for (let lane = 0; lane < 3; lane++) {
+    assert.ok(Math.abs(edges[lane + 1] - edges[lane] - 6.4 / 3) < 1e-8);
+    const centre = (edges[lane] + edges[lane + 1]) / 2;
+    assert.ok(Math.abs(pads[lane].position.x - centre) < 1e-8);
+    assert.equal(world.scene.getMeshByName(`note-${lane}-0`).position.x, pads[lane].position.x);
+    assert.equal(named(world, 'hold-contact')[lane].position.x, pads[lane].position.x);
+  }
+});
+
+test('distant notes approach continuously on the extended runway', t => {
+  const world = fixture(t);
+  world.setChart([{ time: 10, lane: 0, duration: 1, state: 'pending' }], 2);
+  const note = world.scene.getMeshByName('note-0-0');
+  world.update(4.41, true, false, false);
+  assert.ok(note.isEnabled());
+  assert.ok(note.position.z > 55 && note.scaling.x < .02);
+  world.update(5, true, false, false);
+  assert.equal(note.position.z, 50);
+  world.update(8, true, false, false);
+  assert.equal(note.position.z, 20);
+  assert.equal(note.scaling.x, 1);
+  world.update(10, true, false, false);
+  assert.equal(note.position.z, 0);
+  const track = world.scene.getMeshByName('track-base');
+  track.computeWorldMatrix(true);
+  assert.ok(track.getBoundingInfo().boundingBox.maximumWorld.z >= 64);
+  assert.equal(world.scene.getMeshByName('platform'), null);
+});
+
+test('raised equalizer seals the rim and clears the distant note path', t => {
+  const world = fixture(t);
+  const disc = world.scene.getMeshByName('spectrum-disc');
+  assert.equal(disc.parent, null);
+  assert.deepEqual(disc.position.asArray(), [0, 11.6, 21.4]);
+  assert.deepEqual(disc.scaling.asArray(), [1, 1, 1]);
+  assert.equal(disc.applyFog, true);
+  named(world, 'arch-neon').forEach((mesh, i) => {
+    assert.equal(mesh.parent, null);
+    assert.equal(mesh.position.y, 11.6 + i * .4);
+    assert.ok(Math.abs(mesh.position.z - (20.9 + i * 2.4)) < 1e-8);
+    assert.deepEqual(mesh.scaling.asArray(), [1, 1, 1]);
+  });
+  disc.computeWorldMatrix(true);
+  assert.ok(disc.getBoundingInfo().boundingBox.extendSize.x >= 6.49);
+  // Conservative ray to the top of a full-size note at the farthest visible point.
+  named(world, 'arch-structure').forEach((mesh, i) => {
+    const noteRayY = 8.3 + (.54 + .335 - 8.3) * (mesh.position.z + 12) / (56 + 12);
+    const rimBottom = mesh.position.y - (13 + i * 1.4) / 2 - .15;
+    assert.ok(rimBottom > noteRayY, `arch ${i} must clear the approaching notes`);
+  });
+  world.update(10, true, false, false, [], new Float32Array(21).fill(.5));
+  for (const bar of named(world, 'equalizer')) assert.equal(bar.position.y, 11.6);
+
+});
+
+
+test('lightning starts centrally, keeps side landings and renders above the stage', t => {
+  const world = fixture(t);
+  world.update(10.01, true, true, false);
+  world.update(10.08, true, true, false);
+  const bolts = named(world, 'lightning');
+  assert.equal(bolts.length, 16);
+  assert.ok(bolts.every(mesh => mesh.isEnabled() && mesh.renderingGroupId === 1));
+  assert.deepEqual(world.scene.getAutoClearDepthStencilSetup(1), { autoClear: true, depth: true, stencil: true });
+  assert.ok(named(world, 'led').every(mesh => mesh.renderingGroupId === 0));
+  const centre = (vertices, ring) => [0, 1, 2].map(axis => {
+    let sum = 0;
+    for (let vertex = 0; vertex < 5; vertex++) sum += vertices[(ring * 6 + vertex) * 3 + axis];
+    return sum / 5;
+  });
+  let trunks = 0;
+  for (const bolt of bolts) {
+    const vertices = bolt.getVerticesData('position');
+    if (vertices.length !== 22 * 6 * 3) continue;
+    const start = centre(vertices, 0), end = centre(vertices, 21);
+    const bank = start[1] > 10 ? 1 : 0;
+    assert.ok(Math.abs(Math.abs(start[0]) - (2.2 + bank * .5)) < 1e-5);
+    assert.ok(Math.abs(Math.abs(end[0]) - (3.6 + bank * 1.1)) < 1e-5);
+    assert.ok(Math.abs(end[2] - (.6 + bank * 7)) < 1e-5);
+    trunks++;
+  }
+  assert.equal(trunks, 4);
+  world.update(10.09, true, true, true);
+  assert.ok(bolts.every(mesh => !mesh.isEnabled()));
+});
+
+
+test('hold sparks animate without writing unsupported per-instance visibility', t => {
+  const world = fixture(t);
+  world.setChart([{ time: 1, lane: 1, duration: 8, state: 'holding', judgment: 'perfect' }]);
+  for (const mesh of world.scene.meshes.filter(mesh => mesh.getClassName() === 'InstancedMesh')) {
+    Object.defineProperty(mesh, 'visibility', { get: () => 1, set: () => assert.fail('instance visibility is shared with source') });
+  }
+  world.update(2.01, true, true, false);
+  const sparks = world.scene.meshes.filter(mesh => mesh.name.startsWith('hold-spark-1-'));
+  assert.equal(sparks.length, 12); assert.ok(sparks.every(mesh => mesh.isEnabled()));
+  const first = positions(sparks);
+  world.update(2.15, true, true, false);
+  assert.notDeepEqual(positions(sparks), first);
+  world.update(2.15, false, true, false);
+  assert.ok(sparks.every(mesh => !mesh.isEnabled()));
+});
