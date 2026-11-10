@@ -52,8 +52,8 @@ await writeFile(new URL('difficulty.js', out), difficulty);
 const style = (await readFile(new URL('style.css', root), 'utf8')).replaceAll('url("assets/scene/concert.jpg")', 'none').replace(/^img\[src\$="scene\/concert\.jpg"\].*\n/m, '');
 await writeFile(new URL('style.css', out), style);
 let app = await readFile(new URL('app.js', root), 'utf8');
-app = replaceOnce(app, "'./renderer.js?v=0.9.0'", "'./babylon-renderer.js?v=0.5.0'");
-app = replaceOnce(app, "const APP_VERSION = '0.10.4';", "const APP_VERSION = '0.5.0-babylon';");
+app = replaceOnce(app, "'./renderer.js?v=0.9.0'", "'./babylon-renderer.js?v=0.5.1'");
+app = replaceOnce(app, "const APP_VERSION = '0.10.4';", "const APP_VERSION = '0.5.1-babylon';");
 app = replaceOnce(app, 'pulse?.zones(time, TRAVEL[run.level]));', 'pulse?.zones(time, TRAVEL[run.level]), { songId: run.song.id, position });');
 await writeFile(new URL('app.js', out), app);
 let storage = (await readFile(new URL('storage.js', root), 'utf8')).replaceAll('ttr-web-', 'ttr-babylon-').replace('compatibleAudio: false', 'compatibleAudio: true');
@@ -71,16 +71,16 @@ storage = storage.slice(0, legacyStart) + `function legacy(storage, defaults) {
 ` + storage.slice(legacyEnd);
 await writeFile(new URL('storage.js', out), storage);
 let html = await readFile(new URL('index.html', root), 'utf8');
-html = replaceOnce(html, '<title>Tap Tap Revenge · Web</title>', '<title>NEON DRIVE · Stage Lab</title>');
-html = replaceOnce(html, 'content="Tap Tap Web"', 'content="Neon Drive"');
-html = replaceOnce(html, '<script type="module" src="app.js?v=0.10.4"></script>', '<link rel="stylesheet" href="babylon.css?v=0.5.0">\n  <script type="module" src="game-bootstrap.js?v=0.5.0"></script>');
-html = replaceOnce(html, 'TAP TAP<span>REVENGE</span>', 'NEON<span>DRIVE</span>');
-html = replaceOnce(html, 'TAP TAP REVENGE / WEB', 'NEON DRIVE / WEB');
+html = replaceOnce(html, '<title>Tap Tap Revenge · Web</title>', '<title>TAPBEAT · Stage Lab</title>');
+html = replaceOnce(html, 'content="Tap Tap Web"', 'content="Tapbeat"');
+html = replaceOnce(html, '<script type="module" src="app.js?v=0.10.4"></script>', '<link rel="stylesheet" href="babylon.css?v=0.5.1">\n  <script type="module" src="game-bootstrap.js?v=0.5.1"></script>');
+html = replaceOnce(html, 'TAP TAP<span>REVENGE</span>', 'TAP<span>BEAT</span>');
+html = replaceOnce(html, 'TAP TAP REVENGE / WEB', 'TAPBEAT / WEB');
 html = replaceOnce(html, '<body>', `<body>
   <div id="babylon-buffer" aria-hidden="true"></div>
   <div id="babylon-loading" role="status">Готовим объёмную сцену…</div>
   <div id="babylon-error" hidden role="alert"><h2>Сцена недоступна</h2><p id="babylon-error-message">Попробуй WebGL или перезагрузи прототип.</p><button id="babylon-webgl">Использовать WebGL</button><button id="babylon-reload">Перезагрузить</button><a href="../#/">Рабочая игра</a></div>`);
-html = replaceOnce(html, '<p class="menu-subtitle">Поймай свой ритм</p>', '<p class="menu-subtitle">Поймай свой ритм · STAGE LAB</p><p class="babylon-badge"><span id="babylon-backend">Babylon.js</span> · <span id="babylon-fps"></span></p>');
+html = replaceOnce(html, '<p class="menu-subtitle">Поймай свой ритм</p>', '<p class="menu-subtitle">Тапай в бит · STAGE LAB</p><p class="babylon-badge"><span id="babylon-backend">Babylon.js</span> · <span id="babylon-fps"></span></p>');
 html = replaceOnce(html, '<p class="menu-version">', '<div class="babylon-links"><a href="lab.html">Лаборатория эффектов</a><a href="../#/">Рабочая версия</a></div><p class="menu-version">');
 html = replaceOnce(html, '<div class="game-shell">', '<div class="game-shell"><div class="babylon-background" aria-hidden="true"><div class="babylon-viewport"><canvas id="babylon-background-canvas"></canvas></div></div>');
 html = replaceOnce(html, 'id="revenge" class=', 'id="revenge" hidden class=');
@@ -90,7 +90,7 @@ const settingsContent = html.indexOf('>', settingsStart) + 1;
 html = html.slice(0, settingsContent) + '<p class="babylon-badge">STAGE LAB · отдельные настройки, рекорды и офлайн-треки</p><label>Графика<select id="babylon-renderer-choice"><option value="auto">WebGPU → WebGL</option><option value="webgl">Только WebGL</option></select></label>' + html.slice(settingsContent);
 await writeFile(new URL('index.html', out), html);
 const manifest = JSON.parse(await readFile(new URL('manifest.webmanifest', root)));
-manifest.name = 'Neon Drive · Stage Lab'; manifest.short_name = 'Neon Drive';
+manifest.name = 'Tapbeat · Stage Lab'; manifest.short_name = 'Tapbeat';
 await writeFile(new URL('manifest.webmanifest', out), JSON.stringify(manifest, null, 2) + '\n');
 await cp(new URL('game-bootstrap.js', import.meta.url), new URL('game-bootstrap.js', out));
 await cp(new URL('game.css', import.meta.url), new URL('babylon.css', out));
@@ -123,6 +123,6 @@ for (const [id, track] of Object.entries(stableManifest.tracks)) {
   }));
   tracks[id] = { files, revision: hash(JSON.stringify(files)).slice(0, 16) };
 }
-const offline = { version: '0.5.0-babylon', revision: hash(JSON.stringify(shell) + worker).slice(0, 16), shell, tracks };
+const offline = { version: '0.5.1-babylon', revision: hash(JSON.stringify(shell) + worker).slice(0, 16), shell, tracks };
 await writeFile(new URL('offline-assets.js', out), '// Generated by prototype/build.mjs. Do not edit.\nself.OFFLINE_ASSETS = ' + JSON.stringify(offline, null, 2) + ';\n');
 console.log(`Prototype: ${shell.length} shell files; renderers ${bytes.length + renderer.length} bytes; main files unchanged.`);
