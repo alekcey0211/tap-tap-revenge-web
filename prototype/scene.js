@@ -1,5 +1,6 @@
-import { Scene, FreeCamera, Vector3, Color3, Color4, MeshBuilder, StandardMaterial, HemisphericLight, PointLight, GlowLayer, Viewport, Matrix } from '@babylonjs/core';
+import { Scene, FreeCamera, Vector3, Color3, Color4, MeshBuilder, StandardMaterial, HemisphericLight, PointLight, GlowLayer, Viewport, Matrix, TransformNode } from '@babylonjs/core';
 import { holdingLanes } from './hold-feedback.js';
+import { spectrumColumn, spectrumLevel } from './venue-layout.js';
 import { TrackRhythm } from '../dist/track-rhythm.js';
 
 const palette = ['#ff668a', '#ffd073', '#68edff'].map(Color3.FromHexString);
@@ -51,6 +52,15 @@ export function createScene(engine, canvas, { fullViewport = false } = {}) {
     for (let i = 0; i < 13; i++) box('edge-marker', .23, .05, .55, v(side * 3.5, .02, i * 1.8), violet);
   }
   for (const x of [-.83, .83]) box('lane-divider', .015, .015, 22, v(x, 0, 10), material('separator', '#56618c', .15));
+  const energyMat = material('runway-energy', '#8fefff', 1.1);
+  const energyRails = [], energyMarkers = [];
+  for (const side of [-1, 1]) {
+    energyRails.push(box('energy-rail', .1, .035, 23, v(side * 3.3, .1, 10), energyMat));
+    for (let i = 0; i < 14; i++) {
+      const mesh = box('energy-chevron', .18, .04, .8, v(side * 3.55, .12, 0), i % 2 ? gold : cyan);
+      mesh.rotation.y = side * -.55; energyMarkers.push({ mesh, index: i });
+    }
+  }
   const pads = [];
   for (let i = 0; i < 3; i++) {
     const x = (i - 1) * 1.65;
@@ -78,17 +88,19 @@ export function createScene(engine, canvas, { fullViewport = false } = {}) {
       }
     }
   }
-  // A wide, physical spectrum display behind the runway. Bars read actual audio data.
-  box('screen', 10.2, 7.8, .4, v(0, 8, 24), dark);
-  for (const side of [-1, 1]) box('screen-frame', .045, 7.9, .09, v(side * 5.15, 8, 23.72), side < 0 ? pink : cyan);
-  for (const y of [4.1, 11.9]) box('screen-frame', 10.3, .045, .09, v(0, y, 23.72), violet);
+  // The spectrum fills the inner arch instead of a small rectangular screen.
+  const screen = MeshBuilder.CreateDisc('spectrum-disc', { radius: 6.15, tessellation: 96, sideOrientation: 2 }, scene);
+  screen.position.set(0, 8, 21.4); screen.material = dark;
   const equalizer = [];
-  for (let i = 0; i < 21; i++) {
-    const color = Color3.Lerp(Color3.FromHexString('#ff76df'), Color3.FromHexString('#55f1ff'), i / 20);
-    const mat = material('spectrum-band-' + i, color, .85);
-    const bar = box('equalizer', .29, 1, .08, v((i - 10) * .43, 2, 23.7), mat);
-    const cap = box('spectrum-cap', .29, .035, .1, v(bar.position.x, 2.5, 23.65), white);
-    equalizer.push({ bar, cap });
+  for (let i = 0; i < 31; i++) {
+    const { x, width, height } = spectrumColumn(i);
+    const color = Color3.Lerp(Color3.FromHexString('#ff76df'), Color3.FromHexString('#55f1ff'), i / 30);
+    const mat = material('spectrum-band-' + i, color, .65);
+    const idle = material('spectrum-idle-' + i, color, .12); idle.disableLighting = true;
+    box('spectrum-bed', width, height, .04, v(x, 8, 21.3), idle);
+    const bar = box('equalizer', width, 1, .08, v(x, 8, 21.2), mat);
+    const caps = [-1, 1].map(side => ({ side, mesh: box('spectrum-cap', width, .035, .1, v(x, 8, 21.13), mat) }));
+    equalizer.push({ bar, caps, height });
   }
   // Stage wings and floor light pools add the depth and colour of the old concert art.
   for (const side of [-1, 1]) {
@@ -115,7 +127,9 @@ export function createScene(engine, canvas, { fullViewport = false } = {}) {
     const side = i % 2 ? 1 : -1, x = side * (4.3 + Math.floor(i / 2) * 2.3), z = 10 + Math.floor(i / 2) * 5;
     const mat = material('haze', i % 2 ? '#57cfff' : '#c47dff', .9, .055); mat.disableLighting = true; mat.backFaceCulling = false;
     const beam = MeshBuilder.CreateCylinder('light-beam', { height: 24, diameterTop: 6, diameterBottom: .07, tessellation: 20 }, scene);
-    beam.position = v(x, 11.7, z); glow.addExcludedMesh(beam); beam.material = mat; beams.push({ mesh: beam, side, x, z, mat });
+    const mount = new TransformNode('spotlight-pivot', scene); mount.position.set(x, .34, z);
+    beam.parent = mount; beam.position.y = 12;
+    glow.addExcludedMesh(beam); beam.material = mat; beams.push({ mount, side, mat });
     box('spotlight', .48, .3, .6, v(x, .15, z), dark);
     ring('light-lens', .32, .1, v(x, .34, z), i % 2 ? cyan : violet);
   }
@@ -159,21 +173,22 @@ export function createScene(engine, canvas, { fullViewport = false } = {}) {
   // Fixed-length updatable tubes; branches stay outside the playable lanes.
   const bolts = [];
   for (const side of [-1, 1]) {
-    for (let branch = 0; branch < 3; branch++) {
+    for (let bank = 0; bank < 2; bank++) for (let branch = 0; branch < 4; branch++) {
       const points = Array.from({ length: branch ? 9 : 22 }, (_, i) => v(side * 4, 7 - i * .2, 15 - i * .3));
       const mesh = MeshBuilder.CreateTube('lightning', { path: points, radius: branch ? .023 : .048, tessellation: 5, updatable: true }, scene);
-      mesh.material = white; mesh.setEnabled(false); bolts.push({ mesh, points, side, branch });
+      mesh.material = white; mesh.setEnabled(false); bolts.push({ mesh, points, side, bank, branch });
     }
   }
   function strike(index) {
     for (const bolt of bolts) {
-      const rand = random(index * 997 + bolt.side * 31 + bolt.branch * 127 + 7001);
-      const trunk = bolts.find(item => item.side === bolt.side && item.branch === 0);
-      const start = bolt.branch ? trunk.points[bolt.branch === 1 ? 7 : 13] : v(bolt.side * 7, 8, 17);
-      const end = bolt.branch ? start.add(v(bolt.side * (1.3 + rand()), -2 - rand(), -3 - rand() * 2)) : v(bolt.side * 3.8, .1, .6);
+      const rand = random(index * 997 + bolt.side * 31 + bolt.bank * 521 + bolt.branch * 127 + 7001);
+      const trunk = bolts.find(item => item.side === bolt.side && item.bank === bolt.bank && item.branch === 0);
+      const start = bolt.branch ? trunk.points[4 + bolt.branch * 4] : v(bolt.side * (5.6 + bolt.bank * 1.5), 9 + bolt.bank * 2, 18 + bolt.bank * 4);
+      const end = bolt.branch ? start.add(v(bolt.side * (1 + rand()), -1.6 - rand(), -2 - rand() * 2)) : v(bolt.side * (3.6 + bolt.bank * 1.1), .1, .6 + bolt.bank * 7);
       for (let i = 0; i < bolt.points.length; i++) {
         const t = i / (bolt.points.length - 1), jitter = Math.sin(t * Math.PI) * (bolt.branch ? .5 : 1);
         bolt.points[i].set(mix(start.x, end.x, t) + (rand() - .5) * jitter, mix(start.y, end.y, t) + (rand() - .5) * jitter * .5, mix(start.z, end.z, t) + (rand() - .5) * jitter * 1.3);
+        bolt.points[i].x = bolt.side * Math.max(3.5, Math.abs(bolt.points[i].x));
       }
       MeshBuilder.CreateTube('lightning', { path: bolt.points, instance: bolt.mesh }, scene);
     }
@@ -192,8 +207,18 @@ export function createScene(engine, canvas, { fullViewport = false } = {}) {
     const beat = rhythm.frame(notes, time), pulse = reduced ? .2 : beat.pulse;
     if (energy && playing && !reduced && beat.index !== lastBeat && beat.age < .16 && time - lastStrike >= .3) { strike(beat.index); lastStrike = time; }
     lastBeat = beat.index;
-    const flash = energy && !reduced ? Math.max(0, 1 - (time - lastStrike) / .26) : 0;
-    for (const b of bolts) { b.mesh.setEnabled(flash > 0); b.mesh.visibility = flash; }
+    for (const b of bolts) {
+      const age = time - lastStrike - b.bank * .055;
+      const flash = energy && playing && !reduced && age >= 0 ? Math.max(0, 1 - age / .32) : 0;
+      b.mesh.setEnabled(flash > 0); b.mesh.visibility = flash;
+    }
+    floorMat.emissiveColor.set(energy ? .13 + pulse * .025 : .007, energy ? .035 : .005, energy ? .23 + pulse * .035 : .013);
+    for (const rail of energyRails) { rail.setEnabled(energy); rail.visibility = reduced ? .5 : .65 + pulse * .3; }
+    for (const { mesh, index } of energyMarkers) {
+      mesh.setEnabled(energy);
+      mesh.position.z = reduced || !playing ? index * 1.6 : 22 - (time * 10 + index * 1.6) % 22;
+      mesh.visibility = reduced ? .45 : .65 + pulse * .3;
+    }
     glow.intensity = reduced ? .4 : energy ? .5 + pulse * .04 : .48;
     pinkLight.intensity = energy ? 1.45 + pulse * .15 : 1.5; blueLight.intensity = energy ? 1.65 + pulse * .15 : 1.7;
     for (const [i, mat] of noteMats.entries()) mat.emissiveColor = palette[i].scale(energy ? .28 : .15);
@@ -204,17 +229,18 @@ export function createScene(engine, canvas, { fullViewport = false } = {}) {
       panel.mat.emissiveColor = panel.color.scale(lit ? energy ? .95 + pulse * .2 : .75 : .12);
     }
     for (let i = 0; i < equalizer.length; i++) {
-      const { bar, cap } = equalizer[i];
+      const { bar, caps, height } = equalizer[i];
       // No random or sine-driven fake equalizer; outside playback the screen is idle.
-      const level = reduced ? .12 : spectrum?.[i] || 0;
-      bar.scaling.y = .07 + level * 6.9;
-      bar.position.y = 4.2 + bar.scaling.y / 2;
-      cap.position.y = 4.2 + bar.scaling.y + .07;
-      cap.setEnabled(Boolean(spectrum) && !reduced && level > .03);
+      const level = reduced ? .12 : spectrumLevel(spectrum, i);
+      bar.scaling.y = .07 + Math.pow(level, .65) * (height - .07);
+      for (const cap of caps) {
+        cap.mesh.position.y = 8 + cap.side * (bar.scaling.y / 2 - .02);
+        cap.mesh.setEnabled(Boolean(spectrum) && !reduced && level > .03);
+      }
     }
     beams.forEach((b, i) => {
-      b.mesh.rotation.z = reduced ? b.side * .3 : b.side * (.3 + Math.sin(time * (energy ? 1.5 : .6) + i) * .3);
-      b.mesh.rotation.x = reduced ? -.2 : -.25 + Math.cos(time * (energy ? 1.1 : .4) + i) * .15;
+      b.mount.rotation.z = reduced ? b.side * .3 : b.side * (.3 + Math.sin(time * (energy ? 1.5 : .6) + i) * .3);
+      b.mount.rotation.x = reduced ? -.2 : -.25 + Math.cos(time * (energy ? 1.1 : .4) + i) * .15;
       b.mat.alpha = energy ? .075 + pulse * .035 : .035;
     });
     zonePools.forEach((pool, index) => {

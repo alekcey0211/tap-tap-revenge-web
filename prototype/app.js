@@ -209,7 +209,7 @@ async function initialize() {
       $('clock').textContent = clock(time);
       $('timeline-fill').style.transform = `scaleX(${selected ? Math.min(1, time / selected.duration) : 0})`;
       renderScore();
-      if (performance.now() - statsAt > 1000) { $('fps').textContent = `${numbers.format(engine.getFps())} FPS · LAB 0.5`; statsAt = performance.now(); }
+      if (performance.now() - statsAt > 1000) { $('fps').textContent = `${numbers.format(engine.getFps())} FPS · LAB 0.6`; statsAt = performance.now(); }
 
     });
     tracks = (await json('assets/catalog.json')).filter(song => !song.tutorial);

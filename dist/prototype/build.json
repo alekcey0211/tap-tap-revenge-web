@@ -1,9 +1,10 @@
 {
   "babylon": "9.32.1",
   "sources": {
-    "app.js": "9555e0047279dd75b5cf34448548f6d14ac96d3b069c71b70af7eecc782a98f7",
-    "scene.js": "c27fd673551ba358d30659199dc46ffa8b946b5d73f5d73a69f6435a444637bd",
+    "app.js": "d3b8c0b92202604f6cbfee079d1c85c9c9594cced2c09c2132862e5ce99c3451",
+    "scene.js": "d8c3b1c908f3d125d9ee6fc8a357f8ae8e04c502ed5fdfe205c15b8efe281c02",
     "hold-feedback.js": "90cd339069cafcef3402c483650589d665cb4a6a961d9649b2286a63e9bddd52",
+    "venue-layout.js": "71bdd867dbe154ab0bd867b07260e41b04c62d2d09f1c93f747caba04cac0ba0",
     "timing.js": "0f91d8d646fa632c9a8c6a2158ac20bee26c1e5c431940f69120ca98446116de",
     "backend.js": "2e317885875838cce6d8282fe7f9209016ac4bd2514c06880da422def3e38972",
     "transport.js": "073b54f6fb0adc88a7b8fb34537348891ca772e2bba6c2893171f61b7e3487a0",
@@ -14,11 +15,11 @@
     "analyze-music.mjs": "6079c86558a11900e40b16ec9fdc762cd4e8c96c42dad053edd43517c7cf0fd4",
     "input-regions.js": "bbbbb5100f66eec9af2fccd42d3e8491b673efb76003e447feb7e2cda3f2243d",
     "game-renderer.js": "eeb1e3c43f39f62b9e985d18efdb006015d1ac6fdfe79299482a917de8d7a86f",
-    "game-bootstrap.js": "38e365f394c1f51e4abd32cb20e8f7d5949ecb952b64d94f76849865920422f3",
+    "game-bootstrap.js": "8c084de273cef3dd78c406dbf901c105f0348e0027dd036afdb08643f6311912",
     "game.css": "7db87c35d823deabb0ba4ad25ead8200858a5b0afe787f0515524600c0b496bb",
-    "lab.html": "21e9943e28c55a1b873caaaad42a14a3e449c0feba570e1fffa2cbc1ce9dbcc0",
+    "lab.html": "40592e2dd73b62c6a355216b14ba47ee4fe4c82822a699a5eb5d3aa184d51f2b",
     "lab.css": "53481389277fd4d4ee0c170c1d61048311e6284f219db6138850357c63927bb0",
-    "build.mjs": "df81219e7d2a2efe14e9501b50b4ded9995669bc3326abd75808a2969bd476be",
+    "build.mjs": "b0102fd2c3747f4276732b48d690bbe07e7fe280c0d109bbb1f5e8a1baa3eb18",
     "package.json": "112ba87362982fd6bf31e56e391da3e937b9f731365dc49cde1ec4aa0ee3d1b2",
     "package-lock.json": "d093f726a93d283acd43b139df87f78379bf49edbb76fd86a9a5b7644f62607e"
   },
@@ -105,6 +106,6 @@
     "vendor/jsbi-4.3.0.js": "bc620c7c60b11f3f59a5ead9509493e309655ce87631e8a359687f7e84eb3334",
     "vendor/temporal-0.5.1.js": "f3191e633c50ec4dfa3dea0f09503fb07480e0b15c36dadacd2348253d26965d"
   },
-  "bundle": "9b6aaa98aa3e7f60f56de70d3d8d5901678ad63f0a0031d92afa5b37d4d0c20c",
-  "renderer": "9b1d907e3535bbf4bd1880c37edd008460e3cb159c9eea73f1f47160ab657301"
+  "bundle": "1e20a99db3ca223a284ee529927bd04fdadca9afa4e200e46879a16193974b57",
+  "renderer": "1ac8c567112c9a817f19d3c197e2951cdc9274cc8a28e420f5534058cc60ce9a"
 }
