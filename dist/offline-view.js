@@ -11,30 +11,47 @@ export class OfflineView {
     $('offline-remove').onclick = () => this.change('removeTrack');
     $('offline-open').onclick = () => { onOpen(); this.refresh(); };
     $('offline-close').onclick = onClose;
-    $('update-check').onclick = async () => {
-      $('update-check').disabled = true;
-      $('update-status').textContent = 'Проверяем обновления…';
-      try { await this.library.checkUpdate(); this.updateStatus(); }
-      catch { $('update-status').textContent = 'Не удалось проверить обновления. Подключись к интернету и попробуй ещё раз.'; }
-      finally { $('update-check').disabled = false; }
-    };
+    $('update-check').onclick = () => this.checkUpdates();
+  }
+  openSettings() {
+    if (this.library.registration) return this.checkUpdates();
+    this.checkWhenReady = true;
+  }
+  async checkUpdates() {
+    if (this.checking) return;
+    this.checking = true;
+    this.updateStatus();
+    try {
+      await this.library.checkUpdate();
+      this.checked = true;
+      this.checking = false;
+      this.updateStatus();
+    } catch {
+      this.checking = false;
+      this.updateStatus();
+      if (!this.library.updateReady) $('update-status').textContent = 'Не удалось проверить обновления. Подключись к интернету и попробуй ещё раз.';
+    }
   }
   async initialize() {
     try {
       await this.library.register(() => { this.updateStatus(); this.refresh(); });
       this.updateStatus();
+      if (this.checkWhenReady) { this.checkWhenReady = false; await this.checkUpdates(); }
     } catch {
       $('update-status').textContent = 'Офлайн пока недоступен. Открой игру по HTTPS с интернетом и попробуй перезагрузить страницу.';
       $('update-check').disabled = true;
     }
   }
   updateStatus() {
-    $('update-check').disabled = !this.library.registration;
+    $('update-check').disabled = this.checking || !this.library.registration;
+    $('update-status').dataset.update = this.library.updateReady ? 'ready' : 'current';
     $('update-status').textContent = this.library.installFailed
       ? 'Не удалось сохранить новую версию для офлайна. Проверь интернет и свободное место, затем повтори проверку.'
       : this.library.updateReady
-      ? 'Обновление готово. После игры закрой все её вкладки и окно приложения с домашнего экрана, затем открой снова. Прогресс и скачанные треки сохранятся.'
+      ? 'Доступна новая версия. После игры закрой все её вкладки и окно приложения с домашнего экрана, затем открой снова. Прогресс и скачанные треки сохранятся.'
       : this.library.registration?.installing ? 'Сохраняем новую версию игры… Не закрывай страницу.'
+      : this.checking ? 'Проверяем обновления…'
+      : this.checked && this.library.available ? 'Установлена актуальная версия. Игра готова к запуску без сети.'
       : this.library.available ? 'Эта версия готова к запуску без сети. Обновления применяются после закрытия всех окон игры.'
       : 'Готовим игру для офлайна…';
   }

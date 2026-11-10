@@ -63,6 +63,6 @@ for (const compatibleAudio of [false, true]) test(`ordinary ${title} results inc
   const { parseProgress, exportProgress } = await import('../dist/storage.js');
   const restored = parseProgress(exportProgress(ui.settings(), ui.progress()));
   assert.equal(restored.progress.history[0].songId, songId);
-  await ui.click('back-to-library'); await ui.click('progress-open');
+  await ui.click('back-to-library'); await ui.click('home'); await ui.click('menu-progress');
   assert.equal(ui.node('personal-best').hidden, false);
 });

@@ -97,7 +97,7 @@ test('buffering freezes scoring and ignores new presses', async t => {
 for (const mode of ['play', 'demo', 'calibration']) {
   test(`native ${mode} reaches results and preserves record rules`, async t => {
     const ui = await mount(t, options);
-    if (mode === 'calibration') await ui.click('calibration');
+    if (mode === 'calibration') { await ui.click('settings-open'); await ui.click('settings-calibration'); }
     await ui.start(mode === 'demo' ? 'demo' : 'play');
     const song = ui.catalog.find(song => Boolean(song.tutorial) === (mode === 'calibration'));
     const chart = JSON.parse(await readFile(new URL('../dist/assets/tracks/' + song.id + '/1.json', import.meta.url)));

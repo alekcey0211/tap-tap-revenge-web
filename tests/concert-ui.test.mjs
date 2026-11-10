@@ -92,7 +92,7 @@ test('the catalogue does not contain song controls and keeps progress accessible
   const html = await readFile(new URL('../dist/index.html', import.meta.url), 'utf8');
   const library = html.slice(html.indexOf('<section id="library"'), html.indexOf('<section id="song-screen"'));
   assert.doesNotMatch(library, /id="(?:play|demo|difficulties)"/);
-  assert.match(library, /id="progress-open"/);
+  assert.doesNotMatch(library, /library-nav|catalog-count|progress-open/);
 });
 
 test('pause can cancel a pending native start; late failure cannot replace the next performance', async t => {

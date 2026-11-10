@@ -36,7 +36,7 @@ for (const compatibleAudio of [false, true]) {
     assert.equal(attempt.pulse.total, 2); assert.equal(attempt.pulse.perfect, 2); assert.equal(attempt.result.score, 200);
     assert.equal(ui.node('result-pulse').hidden, false);
     assert.equal(ui.progress().records[0].pulse, undefined, 'base score remains separate');
-    await ui.click('back-to-library'); await ui.click('progress-open');
+    await ui.click('back-to-library'); await ui.click('home'); await ui.click('menu-progress');
     assert.equal(ui.node('best-pulse').hidden, false);
     await ui.click('history-tab');
     const row = ui.node('history-list').children.find(node => node.tagName === 'ARTICLE');
@@ -56,7 +56,7 @@ test('old records survive a worse score with a new Pulse result; demo and calibr
   const saved = structuredClone(ui.progress());
   for (const mode of ['demo', 'calibration']) {
     await ui.click('back-to-library');
-    if (mode === 'calibration') { await ui.click(mode); await ui.start(); } else await ui.start('demo');
+    if (mode === 'calibration') { await ui.click('settings-open'); await ui.click('settings-calibration'); await ui.start(); } else await ui.start('demo');
     assert.equal(ui.node('pulse').hidden, true);
     ui.native.instances.at(-1).currentTime = 151; ui.tick(151);
     assert.equal(ui.node('result-pulse').hidden, true); assert.deepEqual(ui.progress(), saved);

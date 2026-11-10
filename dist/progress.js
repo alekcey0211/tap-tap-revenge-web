@@ -1,4 +1,5 @@
-import { artwork } from './artwork.js?v=0.9.0';
+import { LEVELS, renderDifficulties } from './difficulty.js?v=0.10.0';
+import { artwork } from './artwork.js?v=0.10.0';
 import { PULSE_RULES } from './phrase-progress.js?v=0.9.0';
 import { PHRASE_VERSION } from './phrase-charts.js?v=0.9.0';
 import { pulseSummary } from './pulse-view.js?v=0.8.2';
@@ -7,7 +8,6 @@ import { formatNumber, formatPercent, formatSigned, formatCount, formatAttemptTi
 import { CHART_VERSION, RULES_VERSION, HISTORY_LIMIT, IMPORT_LIMIT, recordKey, exportProgress, parseProgress } from './storage.js?v=0.8.2';
 
 const $ = id => document.getElementById(id);
-const LEVELS = { 1: 'Легко', 2: 'Средне', 3: 'Сложно', 4: 'Экстрим' };
 const attemptForms = { one: 'попытка', few: 'попытки', many: 'попыток', other: 'попытки' };
 function node(tag, text, className) {
   const element = document.createElement(tag);
@@ -25,8 +25,6 @@ export class ProgressView {
   constructor({ getProgress, getSettings, getWarning, onImport, onSelect, onOpenImport, onCloseImport }) {
     Object.assign(this, { getProgress, getSettings, getWarning, onImport, onSelect, onOpenImport, onCloseImport });
     this.songs = []; this.level = '1'; this.tab = 'records'; this.fileRequest = 0; this.pendingImport = null;
-    this.rules = RULES_VERSION;
-    $('progress-rules').onchange = () => { this.rules = $('progress-rules').value; this.renderRecords(); };
     $('records-tab').onclick = () => this.setTab('records');
     $('history-tab').onclick = () => this.setTab('history');
     $('progress-song').onchange = () => { this.song = this.songs.find(song => song.id === $('progress-song').value); this.renderRecords(); };
@@ -50,7 +48,7 @@ export class ProgressView {
     };
   }
   open(catalog, song, level) {
-    this.rules = RULES_VERSION;
+    this.catalog = catalog;
     this.songs = catalog.filter(item => !item.tutorial);
     this.song = this.songs.find(item => item.id === song?.id) || this.songs[0];
     this.level = this.song.levels[level] ? level : '1';
@@ -78,19 +76,9 @@ export class ProgressView {
     $('progress-song').value = song.id;
     $('progress-art').src = artwork(song);
     $('progress-artist').textContent = song.artist;
-    $('progress-levels').replaceChildren(...Object.entries(LEVELS).map(([value, title]) => {
-      const button = node('button', title); button.disabled = !song.levels[value];
-      button.setAttribute('aria-pressed', String(value === level));
-      button.onclick = () => { this.level = value; this.renderRecords(); $('progress-levels').children[Number(value) - 1].focus({ preventScroll: true }); };
-      return button;
-    }));
+    renderDifficulties($('progress-levels'), song, level, value => { this.level = value; this.renderRecords(); });
     const progress = this.getProgress();
-    const rules = [...new Set([RULES_VERSION, ...progress.records.map(entry => entry.rulesVersion)])];
-    if (!rules.includes(this.rules)) this.rules = RULES_VERSION;
-    $('progress-rules').replaceChildren(...rules.map(value => option(value, value === RULES_VERSION
-      ? 'Авто ×8' : value === 'web-v1' ? 'Ручной ×8 · прежние рекорды' : `Правила: ${value}`)));
-    $('progress-rules').value = this.rules;
-    const key = recordKey({ songId: song.id, level, rulesVersion: this.rules });
+    const key = recordKey({ songId: song.id, level, rulesVersion: RULES_VERSION });
     const best = progress.records.find(entry => recordKey(entry) === key);
     $('personal-best').hidden = !best; $('record-empty').hidden = Boolean(best);
     if (best) {
@@ -126,15 +114,15 @@ export class ProgressView {
     $('history-caption').textContent = `Показано: ${formatNumber(history.length)} · Храним до ${formatNumber(HISTORY_LIMIT)} попыток`;
     $('history-list').replaceChildren();
     $('history-empty').hidden = history.length > 0; $('history-reset').hidden = !songId && !level;
-    $('history-empty-help').textContent = songId || level ? 'Для этих фильтров нет результатов. Попробуй выбрать другой трек или сложность.' : 'Пройди любой трек — здесь появятся результат и время игры. Старые рекорды доступны во вкладке «Рекорды».';
+    $('history-empty-help').textContent = songId || level ? 'Для этих фильтров нет результатов. Попробуй выбрать другой трек или сложность.' : 'Пройди любой трек — здесь появятся результат и время игры.';
     const now = Temporal.Now.instant(), timeZone = Temporal.Now.timeZoneId();
     let day = '';
     for (const entry of history) {
       const label = formatDay(entry.playedAt, now, timeZone);
       if (label !== day) { $('history-list').append(node('h3', label, 'history-day')); day = label; }
-      const song = this.songs.find(item => item.id === entry.songId);
+      const song = this.catalog.find(item => item.id === entry.songId);
       const row = node('article', undefined, 'history-row');
-      const img = node('img'); img.alt = ''; img.src = song ? artwork(song) : 'assets/ui/logo.png';
+      const img = node('img'); img.alt = ''; img.src = artwork(song);
       const detail = node('div'); detail.append(node('h4', song?.title || 'Трек из другого каталога'),
         node('p', `${LEVELS[entry.level]} · ${formatAttemptTime(entry.playedAt, timeZone)}`));
       if (entry.chartVersion !== CHART_VERSION || entry.rulesVersion !== RULES_VERSION) detail.append(node('p', 'Другая версия карты или правил'));

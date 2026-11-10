@@ -26,11 +26,34 @@ test('difficulty cards show real chart counts and decorative intensity, keeping 
   assert.equal(ui.progress().history.length, 0);
 });
 test('calibration exposes only its existing easy chart, without invented counts for unavailable levels', async t => {
-  const ui = await mount(t); await ui.click('menu-play'); await ui.click('calibration');
+  const ui = await mount(t); await ui.click('menu-play'); await ui.click('settings-open'); await ui.click('settings-calibration');
   const buttons = ui.node('difficulties').children;
   assert.equal(buttons[0].disabled, false); assert.equal(buttons[0].attrs['aria-pressed'], 'true');
   for (const button of buttons.slice(1)) {
     assert.equal(button.disabled, true); assert.equal(button.attrs['aria-pressed'], 'false');
     assert.equal(button.children.at(-1).textContent, 'Недоступно');
   }
+});
+
+test('calibration hides game-only controls and restores them for a song', async t => {
+  const ui = await mount(t);
+  await ui.click('menu-settings'); await ui.click('settings-calibration');
+  for (const id of ['song-difficulty', 'record', 'demo', 'offline-open']) assert.equal(ui.node(id).hidden, true);
+  assert.equal(ui.node('hero-art').src, 'assets/scene/calibration.png');
+  assert.equal(ui.node('play').disabled, false);
+  await ui.click('home'); await ui.openSong();
+  for (const id of ['song-difficulty', 'record', 'demo', 'offline-open']) assert.equal(ui.node(id).hidden, false);
+});
+
+test('progress reuses song difficulty cards without starting audio', async t => {
+  const ui = await mount(t); await ui.click('menu-progress');
+  for (let index = 0; index < 4; index++) {
+    await ui.node('progress-levels').children[index].onclick();
+    const button = ui.node('progress-levels').children[index];
+    assert.equal(button.attrs['aria-pressed'], 'true');
+    assert.equal(button.dataset.level, String(index + 1));
+    assert.deepEqual(button.children.map(node => node.className), ['difficulty-meter', 'difficulty-check', 'difficulty-name', 'difficulty-notes']);
+    assert.equal(ui.document.activeElement, button);
+  }
+  assert.equal(ui.audio.starts.length + ui.native.plays.length, 0);
 });

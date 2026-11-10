@@ -167,7 +167,7 @@ test('hiding the page during loading cancels the pending start', async t => {
 
 test('calibration uses real hits, offers a correction and never writes a record', async t => {
   const ui = await mount(t);
-  await ui.click('calibration');
+  await ui.click('settings-open'); await ui.click('settings-calibration');
   const song = ui.catalog.find(song => song.tutorial);
   const chart = JSON.parse(await readFile(new URL('../dist/assets/tracks/' + song.id + '/1.json', import.meta.url)));
   await ui.start();

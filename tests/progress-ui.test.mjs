@@ -123,25 +123,23 @@ test('session-only mode warns and can still display newly completed attempts', a
   const ui = await mount(t, { storageFailure: true, settings: { compatibleAudio: true } });
   await ui.start();
   const media = ui.native.instances[0]; media.currentTime = 150; media.ended = true; media.paused = true;
-  ui.tick(0); ui.native.now = 1000; ui.tick(0); await ui.click('back-to-library'); await ui.click('progress-open');
+  ui.tick(0); ui.native.now = 1000; ui.tick(0); await ui.click('back-to-library'); await ui.click('home'); await ui.click('menu-progress');
   assert.equal(ui.node('save-warning').hidden, false); assert.equal(ui.node('personal-best').hidden, false);
   await ui.click('history-tab'); assert.equal(ui.node('history-list').children.filter(node => node.tagName === 'ARTICLE').length, 1);
 });
 
-test('manual bests remain visible through the rules selector without mixing new attempts', async t => {
+test('progress uses current rules only, preserving previous scores and history', async t => {
   const old = { score: 9000, accuracy: 98, bestStreak: 70 };
   const progress = recordAttempt({ records: [], history: [] }, { songId: song.id, level: '1', rulesVersion: 'web-v1',
     id: crypto.randomUUID(), playedAt: '2026-11-09T19:00Z', result: old });
   const ui = await mount(t, { saved: JSON.parse(exportProgress(DEFAULT_SETTINGS, progress)) });
-  assert.match(ui.node('record').textContent, /Прежний рекорд/);
+  assert.equal(ui.node('record').textContent, 'Рекорд ещё не установлен');
   await ui.click('menu-progress');
   assert.equal(ui.node('record-empty').hidden, false);
-  ui.node('progress-rules').value = 'web-v1'; ui.node('progress-rules').onchange();
-  assert.equal(ui.node('personal-best').hidden, false);
-  assert.equal(ui.node('best-score').textContent, new Intl.NumberFormat('ru-RU').format(9000));
+  assert.equal(ui.node('personal-best').hidden, true);
   assert.equal(ui.node('accuracy-plot').children.length, 0);
-  ui.node('progress-rules').value = 'auto-revenge-v2'; ui.node('progress-rules').onchange();
-  assert.equal(ui.node('record-empty').hidden, false);
+  await ui.click('history-tab');
+  assert.equal(ui.node('history-list').children.filter(node => node.tagName === 'ARTICLE').length, 1);
   assert.deepEqual(ui.progress().records[0].result, old);
 });
 
@@ -180,7 +178,7 @@ test('removed gallery songs retain saved scores, Pulse and history without broke
   const rows = ui.node('history-list').children.filter(node => node.tagName === 'ARTICLE');
   assert.equal(rows.length, 3);
   for (const row of rows) {
-    assert.equal(row.children[0].src, 'assets/ui/logo.png');
+    assert.equal(row.children[0].src, 'assets/scene/calibration.png');
     assert.equal(row.children[1].children[0].textContent, 'Трек из другого каталога');
   }
   await ui.click('home'); await ui.start(); ui.native.instances.at(-1).currentTime = 151; ui.tick(151);
@@ -190,4 +188,21 @@ test('removed gallery songs retain saved scores, Pulse and history without broke
     assert.deepEqual(ui.progress().pulseRecords.find(record => record.songId === id), saved.progress.pulseRecords.find(record => record.songId === id));
   }
   assert.equal(ui.settings().compatibleAudio, true); assert.equal(ui.settings().offset, 35);
+});
+
+test('existing calibration history uses its catalog title and the new square cover', async t => {
+  const calibration = catalog.find(song => song.tutorial);
+  const progress = recordAttempt({ records: [], history: [] }, {
+    songId: calibration.id, level: '1', id: crypto.randomUUID(), playedAt: '2026-11-10T10:00Z',
+    result: { score: 1000, accuracy: 98, bestStreak: 20 },
+  });
+  const saved = JSON.parse(exportProgress(DEFAULT_SETTINGS, progress));
+  const ui = await mount(t, { saved }); await ui.click('menu-progress'); await ui.click('history-tab');
+  const row = ui.node('history-list').children.find(node => node.tagName === 'ARTICLE');
+  assert.equal(row.children[0].src, 'assets/scene/calibration.png');
+  assert.equal(row.children[1].children[0].textContent, calibration.title);
+  const png = await readFile(new URL('../dist/assets/scene/calibration.png', import.meta.url));
+  assert.equal(png.subarray(1, 4).toString(), 'PNG');
+  assert.equal(png.readUInt32BE(16), png.readUInt32BE(20));
+  assert.deepEqual(ui.progress(), saved.progress);
 });

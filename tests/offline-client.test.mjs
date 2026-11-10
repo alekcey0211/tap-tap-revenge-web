@@ -104,3 +104,46 @@ test('retry after a failed first install registers again instead of updating a d
   await library.register(); await library.checkUpdate();
   assert.equal(registrations, 2); assert.equal(reg.updates, 0);
 });
+
+test('entering settings checks updates automatically and deduplicates overlapping checks', async t => {
+  const ui = await offlineUI(t), gate = deferred(); let calls = 0;
+  ui.reg.update = async () => { calls++; await gate.promise; ui.reg.waiting = {}; };
+  await ui.click('menu-settings');
+  assert.equal(calls, 1); assert.equal(ui.node('update-check').disabled, true);
+  assert.match(ui.node('update-status').textContent, /Проверяем/);
+  await ui.click('settings-close'); await ui.click('menu-settings');
+  assert.equal(calls, 1);
+  gate.resolve(); await new Promise(resolve => setImmediate(resolve));
+  assert.equal(ui.node('update-check').disabled, false);
+  assert.match(ui.node('update-status').textContent, /Доступна новая версия/);
+  assert.equal(ui.node('update-status').dataset.update, 'ready');
+  await ui.click('settings-close'); await ui.click('menu-settings');
+  assert.equal(calls, 2);
+  assert.equal(ui.audio.starts.length + ui.native.plays.length, 0);
+});
+
+test('settings distinguishes current version, failed check and already prepared update', async t => {
+  const ui = await offlineUI(t);
+  ui.reg.update = async () => {};
+  await ui.click('menu-settings'); await new Promise(resolve => setImmediate(resolve));
+  assert.match(ui.node('update-status').textContent, /актуальная версия/);
+  ui.reg.update = async () => { throw new Error('offline'); };
+  await ui.click('update-check');
+  assert.match(ui.node('update-status').textContent, /Не удалось проверить/);
+  assert.equal(ui.node('update-check').disabled, false);
+  ui.reg.waiting = {};
+  await ui.click('update-check');
+  assert.match(ui.node('update-status').textContent, /Доступна новая версия/);
+});
+
+test('settings entered before worker registration checks once registration finishes', async t => {
+  const gate = deferred(); let updates = 0;
+  const reg = { active: {}, waiting: null, installing: null, async update() { updates++; } };
+  t.mock.method(OfflineLibrary.prototype, 'register', async function () { await gate.promise; this.registration = reg; return reg; });
+  t.mock.method(OfflineLibrary.prototype, 'getOfflineState', async () => ({ state: 'missing', bytes: 0 }));
+  const ui = await mount(t);
+  await ui.click('menu-settings'); assert.equal(updates, 0);
+  gate.resolve(); await new Promise(resolve => setImmediate(resolve));
+  assert.equal(updates, 1);
+  assert.match(ui.node('update-status').textContent, /актуальная версия/);
+});

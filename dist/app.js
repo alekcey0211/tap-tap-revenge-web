@@ -1,9 +1,10 @@
-import { artwork } from './artwork.js?v=0.9.0';
+import { LEVELS, renderDifficulties } from './difficulty.js?v=0.10.0';
+import { artwork } from './artwork.js?v=0.10.0';
 import { PhraseProgress } from './phrase-progress.js?v=0.9.0';
 import { PULSE_CHARTS, PULSE_COUNTS } from './phrase-charts.js?v=0.9.0';
 import { choosePulseZones } from './pulse-zones.js?v=0.8.2';
 import { renderPulse, renderPulseBreakdown } from './pulse-view.js?v=0.8.2';
-import { OfflineView } from './offline-view.js?v=0.8.0';
+import { OfflineView } from './offline-view.js?v=0.10.0';
 import { Game, TRAVEL } from './engine.js';
 import { SongAudio } from './audio.js?v=0.5.3';
 import { MediaSongAudio } from './media-audio.js?v=0.3.1';
@@ -12,14 +13,13 @@ import { Renderer } from './renderer.js?v=0.9.0';
 import { Temporal } from './temporal.js';
 import { formatNumber, formatPercent, formatSigned, formatTime, formatCount } from './format.js?v=0.3.0';
 import { DEFAULT_SETTINGS, loadSave, saveSettings as writeSettings, recordAttempt, currentRecords, importProgress } from './storage.js?v=0.8.2';
-import { ProgressView } from './progress.js?v=0.9.0';
+import { ProgressView } from './progress.js?v=0.10.0';
 
 const $ = id => document.getElementById(id);
-const APP_VERSION = '0.9.2';
+const APP_VERSION = '0.10.0';
 if ($('app-version')) $('app-version').textContent = `v${APP_VERSION}`;
 $('settings-version').textContent = `v${APP_VERSION}`;
 $('pulse-target').textContent = formatPercent(90);
-const LEVELS = { 1: 'Легко', 2: 'Средне', 3: 'Сложно', 4: 'Экстрим' };
 const webAudio = new SongAudio(), mediaAudio = new MediaSongAudio();
 let audio = webAudio, readyTrack = null, preparedAudio = null, previewSize = '';
 let venueRenderer, venueTime = 0, venueFrame = -Infinity, venueStamp = performance.now(), venueSize = '';
@@ -58,6 +58,7 @@ function show(screen) {
   $('home').setAttribute('aria-label', pageStack.length ? 'Назад' : screen === 'library' ? 'Главное меню' : 'К трекам');
   $('settings-open').hidden = ['game-screen', 'preparation', 'progress-screen', 'settings-screen', 'offline-screen', 'about-screen', 'import-screen'].includes(screen);
   $('screen-title').textContent = screenTitles[screen];
+  if (screen === 'settings-screen') void offlineView.openSettings();
   $('status').textContent = '';
   window.scrollTo({ top: 0, behavior: 'instant' });
   if (!['menu', 'game-screen'].includes(screen)) $('screen-title').focus({ preventScroll: true });
@@ -105,27 +106,12 @@ function refresh() {
     button.onclick = () => openSong(song);
     $('tracks').append(button);
   }
-  $('difficulties').replaceChildren();
-  for (const [value, name] of Object.entries(LEVELS)) {
-    const button = document.createElement('button'); button.dataset.level = value;
-    const meter = document.createElement('span'); meter.className = 'difficulty-meter'; meter.setAttribute('aria-hidden', 'true');
-    for (let step = 1; step <= 4; step++) {
-      const bar = document.createElement('i'); bar.dataset.lit = String(step <= Number(value)); meter.append(bar);
-    }
-    const check = document.createElement('span'); check.className = 'difficulty-check'; check.setAttribute('aria-hidden', 'true');
-    const title = document.createElement('strong'); title.className = 'difficulty-name'; title.textContent = name;
-    const count = document.createElement('span'); count.className = 'difficulty-notes';
-    count.textContent = selected.levels[value] ? formatCount(selected.levels[value].notes, { one: 'нота', few: 'ноты', many: 'нот', other: 'ноты' }) : 'Недоступно';
-    button.append(meter, check, title, count);
-    button.setAttribute('aria-pressed', String(level === value)); button.disabled = !selected.levels[value];
-    button.onclick = () => { level = value; const loading = prepareSong(); $('difficulties').children[Number(value) - 1].focus({ preventScroll: true }); return loading; }; $('difficulties').append(button);
-  }
+  renderDifficulties($('difficulties'), selected, level, value => { level = value; return prepareSong(); });
+  for (const id of ['song-difficulty', 'record', 'demo', 'offline-open']) $(id).hidden = Boolean(selected.tutorial);
   $('note-count').textContent = formatCount(selected.levels[level].notes, { one: 'нота', few: 'ноты', many: 'нот', other: 'ноты' });
   const best = records[`${selected.id}:${level}`];
-  $('record').textContent = Number.isFinite(best?.score) && Number.isFinite(best?.accuracy) ? `Рекорд ${formatNumber(best.score)} · ${formatPercent(best.accuracy)}` : progress.records.some(entry => entry.songId === selected.id && entry.level === level)
-    ? 'Новые правила ×8. Прежний рекорд — в «Мой прогресс».' : 'Рекорд ещё не установлен';
-  $('calibration').disabled = false;
-  $('settings-calibration').disabled = false; $('progress-open').disabled = false;
+  $('record').textContent = Number.isFinite(best?.score) && Number.isFinite(best?.accuracy) ? `Рекорд ${formatNumber(best.score)} · ${formatPercent(best.accuracy)}` : 'Рекорд ещё не установлен';
+  $('settings-calibration').disabled = false;
   $('menu-play').disabled = false; $('menu-progress').disabled = false;
 }
 async function json(url) {
@@ -441,7 +427,6 @@ function selectCalibration() {
   $('status').textContent = 'Нажимай среднюю дорожку или F в такт метроному. Первые ноты начинаются на 12-й секунде.';
   return loading;
 }
-$('calibration').onclick = selectCalibration;
 $('settings-calibration').onclick = selectCalibration;
 $('load-cancel').onclick = showLibrary;
 $('load-retry').onclick = initialize;
@@ -449,7 +434,7 @@ $('apply-calibration').onclick = () => { settings.offset = calibrationOffset; $(
 $('menu-play').onclick = showLibrary;
 $('settings-open').onclick = $('menu-settings').onclick = event => openPage('settings-screen', 'screen-title', event?.currentTarget);
 $('settings-close').onclick = backPage;
-$('about-open').onclick = $('menu-about').onclick = event => openPage('about-screen', 'screen-title', event?.currentTarget);
+$('menu-about').onclick = event => openPage('about-screen', 'screen-title', event?.currentTarget);
 $('about-close').onclick = backPage;
 $('offline-settings').onclick = () => openPage('settings-screen', 'screen-title', $('offline-settings'));
 function syncSettings() {
@@ -507,7 +492,7 @@ progressView = new ProgressView({
     storageWritable = true; saveWarning = ''; syncSettings();
   },
 });
-$('progress-open').onclick = $('menu-progress').onclick = event => {
+$('menu-progress').onclick = event => {
   audio.stop(); state = 'progress'; openPage('progress-screen', 'screen-title', event?.currentTarget); progressView.open(catalog, selected, level);
 };
 
@@ -518,8 +503,6 @@ async function initialize() {
     const [songs, paths] = await Promise.all([json('assets/catalog.json'), json('assets/paths.json')]);
     if (id !== requestId) return;
     catalog = songs; selected = songs.find(song => !song.tutorial);
-    const tracks = catalog.filter(song => !song.tutorial);
-    $('catalog-count').textContent = `${formatCount(tracks.length, { one: 'трек', few: 'трека', many: 'треков', other: 'трека' })} · ${formatCount(tracks.reduce((total, song) => total + Object.keys(song.levels).length, 0), { one: 'карта', few: 'карты', many: 'карт', other: 'карты' })}`;
     renderer = new Renderer($('canvas'), paths);
     venueRenderer = new Renderer($('venue-canvas'), paths);
     previewRenderer = new Renderer($('song-canvas'), paths); previewGame = new Game([]);

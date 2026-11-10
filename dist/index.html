@@ -15,8 +15,8 @@
   <link rel="preload" href="assets/fonts/onest-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/unbounded-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/unbounded-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="style.css?v=0.9.2">
-  <script type="module" src="app.js?v=0.9.2"></script>
+  <link rel="stylesheet" href="style.css?v=0.10.0">
+  <script type="module" src="app.js?v=0.10.0"></script>
 </head>
 <body>
   <main class="layout">
@@ -42,14 +42,12 @@
         <p class="menu-version">WEB · <span id="app-version" title="Версия приложения"></span></p>
       </section>
       <section id="library" class="screen library" aria-label="Выбор трека">
-        <p class="catalog-caption"><span id="catalog-count"></span></p>
         <div id="tracks" role="group" aria-label="Выбрать трек"></div>
-        <nav class="library-nav" aria-label="Разделы игры"><button id="progress-open" class="text-button" disabled>↗ Мой прогресс</button><button id="about-open" class="text-button">Об игре</button><button id="calibration" class="text-button" disabled>Калибровка</button></nav>
       </section>
       <section id="song-screen" class="screen song-screen" hidden aria-labelledby="hero-title">
         <div class="selected-art"><h3 id="hero-title"></h3><p id="hero-artist"></p><div class="album-stage"><img id="hero-art" alt=""></div><p id="hero-meta"></p></div>
         <div class="song-controls">
-          <div class="difficulty-label"><span>Сложность</span><span id="note-count"></span></div><div id="difficulties" role="group" aria-label="Сложность"></div>
+          <div id="song-difficulty"><div class="difficulty-label"><span>Сложность</span><span id="note-count"></span></div><div id="difficulties" class="difficulty-cards" role="group" aria-label="Сложность"></div></div>
           <p id="record" class="record"></p>
           <p id="song-status" class="song-status" role="status"></p><button id="song-load-retry" class="text-button" hidden>Повторить загрузку</button>
           <button id="play" class="primary" disabled><span aria-hidden="true">▶</span><span id="play-label">Играть</span></button>
@@ -82,8 +80,7 @@
         <p id="save-warning" class="save-warning" role="status" hidden></p>
         <div id="records-panel">
           <div class="progress-song"><img id="progress-art" alt=""><div><label class="sr-only" for="progress-song">Трек</label><select id="progress-song"></select><p id="progress-artist" class="subtle"></p></div></div>
-          <div id="progress-levels" class="progress-tabs" role="group" aria-label="Сложность"></div>
-          <label for="progress-rules" class="progress-caption">Версия правил</label><select id="progress-rules" aria-describedby="progress-rules-help"></select><p id="progress-rules-help" class="subtle">Прежние рекорды сохранены отдельно от автоматического ×8.</p>
+          <div id="progress-levels" class="difficulty-cards" role="group" aria-label="Сложность"></div>
           <div id="personal-best"><p class="progress-caption">Личный рекорд</p><strong id="best-score" class="final-score"></strong><p id="best-delta" class="accent" hidden></p><div class="result-summary"><div><strong id="best-accuracy"></strong><span>Точность</span></div><div><strong id="best-combo"></strong><span>Макс. комбо</span></div></div></div>
           <div id="record-empty" class="progress-empty" hidden><h3>Рекорд впереди</h3><p class="subtle">Пройди эту карту, чтобы сохранить первый результат.</p></div>
           <section id="best-pulse" class="pulse-summary" hidden><h3>Лучший Pulse</h3><p id="best-pulse-value"></p><small>За одну попытку · отдельно от рекорда очков</small></section>
