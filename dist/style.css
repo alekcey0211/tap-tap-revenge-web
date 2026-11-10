@@ -350,9 +350,30 @@ body[data-screen="song-screen"] .appbar .icon-button { background: none; border-
 #hero-meta { font-size: 14px; margin-top: 8px; }
 .song-controls { padding-top: 10px; }
 .difficulty-label { font-size: 10px; color: #e9dcff; text-align: left; margin: 10px 0 8px; }
-#difficulties { border: 0; gap: 7px; }
-#difficulties button { background: linear-gradient(#291c46cc, #0e0c24dd); border: 1px solid #b19acaaa; border-radius: 10px; font-weight: 600; box-shadow: inset 0 1px 5px #a17bdb33; }
-#difficulties button[aria-pressed="true"] { color: #fff7ec; border-color: #ffe2a9; background: linear-gradient(#51202a, #2a1022); box-shadow: 0 0 4px #ffcf84, 0 0 13px #ff6a29, inset 0 0 12px #ff782955; }
+#difficulties { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 0; gap: 7px; }
+#difficulties button { --level-rgb: 100 229 246; position: relative; display: grid; grid-template-columns: 1fr auto; align-content: center; gap: 7px 2px; min-height: 100px; padding: 11px 6px; text-align: left; color: #e5dcee; background: linear-gradient(145deg, #332747e6, #100c23f2); border: 1px solid rgb(var(--level-rgb) / .28); border-radius: 13px; box-shadow: inset 0 1px 0 #e8cfff1c, 0 4px 9px #0004; }
+#difficulties button[data-level="2"] { --level-rgb: 195 155 255; }
+#difficulties button[data-level="3"] { --level-rgb: 255 184 99; }
+#difficulties button[data-level="4"] { --level-rgb: 255 112 164; }
+#difficulties button::after { content: ''; position: absolute; height: 3px; left: 12px; right: 12px; bottom: 0; background: rgb(var(--level-rgb) / .25); border-radius: 3px 3px 0 0; }
+.difficulty-meter { display: flex; align-items: end; gap: 3px; height: 23px; padding: 0 2px; }
+.difficulty-meter i { width: 5px; height: 8px; border-radius: 2px; background: #b9a5d42b; transform: skewX(-12deg); }
+.difficulty-meter i:nth-child(2) { height: 12px; }
+.difficulty-meter i:nth-child(3) { height: 17px; }
+.difficulty-meter i:nth-child(4) { height: 22px; }
+.difficulty-meter i[data-lit="true"] { background: rgb(var(--level-rgb) / .75); }
+.difficulty-check { width: 13px; height: 13px; margin-top: 2px; border: 1px solid #ac95c644; border-radius: 50%; }
+.difficulty-name { grid-column: 1 / -1; font-size: 12px; line-height: 1.2; letter-spacing: -.02em; }
+.difficulty-notes { grid-column: 1 / -1; color: #b7a9c8; font-size: 10px; line-height: 1.2; font-variant-numeric: tabular-nums; }
+#difficulties button[aria-pressed="true"] { color: #fff; border-color: rgb(var(--level-rgb)); background: radial-gradient(ellipse at 20% 0, rgb(var(--level-rgb) / .32), transparent 85%), #191027; box-shadow: inset 0 1px 0 #ffffff55, 0 0 13px rgb(var(--level-rgb) / .25); }
+#difficulties button[aria-pressed="true"]::after { background: rgb(var(--level-rgb)); box-shadow: 0 0 10px rgb(var(--level-rgb) / .7); }
+#difficulties button[aria-pressed="true"] .difficulty-notes { color: #f0e6fa; }
+#difficulties button[aria-pressed="true"] .difficulty-meter i[data-lit="true"] { background: rgb(var(--level-rgb)); box-shadow: 0 0 7px rgb(var(--level-rgb) / .4); }
+#difficulties button[aria-pressed="true"] .difficulty-check { background: rgb(var(--level-rgb)); border-color: transparent; }
+#difficulties button[aria-pressed="true"] .difficulty-check::after { content: ''; display: block; width: 5px; height: 3px; margin: 3px 2px; border: solid #151125; border-width: 0 0 2px 2px; transform: rotate(-45deg); }
+body:not([data-reduced-motion="true"]) #difficulties button { transition: border-color 160ms ease, box-shadow 160ms ease, transform 120ms ease; }
+body:not([data-reduced-motion="true"]) #difficulties button[aria-pressed="true"] .difficulty-meter { animation: difficulty-charge 260ms ease-out; }
+@keyframes difficulty-charge { from { opacity: .35; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
 .record { font-size: 11px; margin: 12px 0 4px; }
 .song-status { color: var(--muted); font-size: 11px; line-height: 1.4; min-height: 16px; margin-bottom: 14px; }
 .primary { color: #fffdf3; border: 2px solid #fff1b3; background: linear-gradient(180deg, #ffcf76, #ff963b 28%, #ff6626 72%, #f2913b); border-radius: 28px; text-shadow: 0 2px 3px #a23820; box-shadow: inset 0 2px 6px #fff7b9aa, 0 0 5px #ffc876, 0 0 18px #ff6f28aa, 0 7px 24px #f85b3333; }

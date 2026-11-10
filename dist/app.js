@@ -15,7 +15,7 @@ import { DEFAULT_SETTINGS, loadSave, saveSettings as writeSettings, recordAttemp
 import { ProgressView } from './progress.js?v=0.8.2';
 
 const $ = id => document.getElementById(id);
-const APP_VERSION = '0.8.3';
+const APP_VERSION = '0.8.4';
 if ($('app-version')) $('app-version').textContent = `v${APP_VERSION}`;
 $('settings-version').textContent = `v${APP_VERSION}`;
 $('pulse-target').textContent = formatPercent(90);
@@ -105,7 +105,16 @@ function refresh() {
   }
   $('difficulties').replaceChildren();
   for (const [value, name] of Object.entries(LEVELS)) {
-    const button = document.createElement('button'); button.textContent = name;
+    const button = document.createElement('button'); button.dataset.level = value;
+    const meter = document.createElement('span'); meter.className = 'difficulty-meter'; meter.setAttribute('aria-hidden', 'true');
+    for (let step = 1; step <= 4; step++) {
+      const bar = document.createElement('i'); bar.dataset.lit = String(step <= Number(value)); meter.append(bar);
+    }
+    const check = document.createElement('span'); check.className = 'difficulty-check'; check.setAttribute('aria-hidden', 'true');
+    const title = document.createElement('strong'); title.className = 'difficulty-name'; title.textContent = name;
+    const count = document.createElement('span'); count.className = 'difficulty-notes';
+    count.textContent = selected.levels[value] ? formatCount(selected.levels[value].notes, { one: 'нота', few: 'ноты', many: 'нот', other: 'ноты' }) : 'Недоступно';
+    button.append(meter, check, title, count);
     button.setAttribute('aria-pressed', String(level === value)); button.disabled = !selected.levels[value];
     button.onclick = () => { level = value; const loading = prepareSong(); $('difficulties').children[Number(value) - 1].focus({ preventScroll: true }); return loading; }; $('difficulties').append(button);
   }
