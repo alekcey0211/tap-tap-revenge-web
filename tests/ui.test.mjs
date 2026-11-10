@@ -64,9 +64,9 @@ test('track load failure stays on song detail; retry prepares it without autopla
   ui.audio.loadFailure = false;
   await ui.click('song-load-retry');
   assert.equal(ui.audio.starts.length, 0);
-  await ui.click('demo');
+  await ui.click('play');
   assert.equal(ui.document.body.dataset.screen, 'game-screen');
-  assert.match(ui.node('mode-label').textContent, /ДЕМО/);
+  assert.equal(ui.node('mode-label').textContent, 'Легко');
 });
 
 test('initialization failure can be retried without an unusable library button', async t => {
@@ -110,16 +110,17 @@ test('settings calibration opens the tutorial and keyboard focus stays on the so
   assert.deepEqual(ui.records(), {});
 });
 
-test('demo results cannot write records or award a personal full combo', async t => {
+test('calibration results cannot write records or award a personal full combo', async t => {
   const ui = await mount(t);
-  await ui.start('demo'); ui.tick(154);
+  await ui.click('menu-settings'); await ui.click('settings-calibration');
+  await ui.start(); ui.tick(154);
   assert.equal(ui.document.body.dataset.screen, 'results');
-  assert.match(ui.node('score-caption').textContent, /ДЕМО/);
+  assert.match(ui.node('score-caption').textContent, /КАЛИБРОВКА/);
   assert.notEqual(ui.node('result-rating').textContent, 'FULL COMBO');
   assert.equal(ui.node('record-delta').hidden, true);
   assert.deepEqual(ui.records(), {});
   await ui.click('retry');
-  assert.match(ui.node('mode-label').textContent, /ДЕМО/);
+  assert.match(ui.node('mode-label').textContent, /КАЛИБРОВКА/);
 });
 
 test('real play reports delta from the previous record and preserves it on a worse attempt', async t => {

@@ -98,7 +98,7 @@ test('no dialogs remain; updates and iPhone installation live in settings, not t
   assert.match(settings, /id="update-check"/); assert.match(settings, /На экран Домой/);
   assert.match(settings, /id="settings-version"/);
   assert.doesNotMatch(offline + song, /id="update-check"|«Поделиться»/);
-  assert.match(song, /↓ Скачать трек/);
+  assert.match(song, /↓ Сохранить для игры офлайн/);
 });
 
 test('silent runway preview has no gameplay or audio and the departing menu is inert', async t => {

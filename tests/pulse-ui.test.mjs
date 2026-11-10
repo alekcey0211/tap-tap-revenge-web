@@ -46,7 +46,7 @@ for (const compatibleAudio of [false, true]) {
     await ui.click('pause'); await ui.click('quit'); assert.equal(ui.progress().history.length, 1);
   });
 }
-test('old records survive a worse score with a new Pulse result; demo and calibration hide awards', async t => {
+test('old records survive a worse score with a new Pulse result; calibration hides awards', async t => {
   const id = '0734D2E4-7693-418B-82F8-C6D88A02A782';
   const old = { score: 98765, accuracy: 98, bestStreak: 100 };
   const ui = await mount(t, { chart, records: { [id + ':1']: old }, settings: { compatibleAudio: true } });
@@ -54,13 +54,10 @@ test('old records survive a worse score with a new Pulse result; demo and calibr
   assert.deepEqual(ui.progress().records.find(record => record.rulesVersion === 'web-v1').result, old);
   assert.equal(ui.progress().records.length, 2); assert.equal(ui.progress().history[0].pulse.captured, 0);
   const saved = structuredClone(ui.progress());
-  for (const mode of ['demo', 'calibration']) {
-    await ui.click('back-to-library');
-    if (mode === 'calibration') { await ui.click('settings-open'); await ui.click('settings-calibration'); await ui.start(); } else await ui.start('demo');
-    assert.equal(ui.node('pulse').hidden, true);
-    ui.native.instances.at(-1).currentTime = 151; ui.tick(151);
-    assert.equal(ui.node('result-pulse').hidden, true); assert.deepEqual(ui.progress(), saved);
-  }
+  await ui.click('back-to-library'); await ui.click('settings-open'); await ui.click('settings-calibration'); await ui.start();
+  assert.equal(ui.node('pulse').hidden, true);
+  ui.native.instances.at(-1).currentTime = 151; ui.tick(151);
+  assert.equal(ui.node('result-pulse').hidden, true); assert.deepEqual(ui.progress(), saved);
 });
 test('Pulse uses Intl percentages and handles all verdicts without hiding the playfield', async t => {
   const ui = await mount(t);
@@ -89,7 +86,7 @@ test('buffering does not advance Pulse or accept inputs; restart discards the un
   assert.equal(ui.progress().history[0].pulse.captured, 0); assert.equal(ui.progress().history.length, 1);
 });
 
-test('results explain a failed Pulse with zero misses and clear details for demo', async t => {
+test('results explain a failed Pulse with zero misses and clear details for calibration', async t => {
   const ui = await mount(t, { settings: { compatibleAudio: true }, chart: [{ time: 1, lane: 0, duration: 0 }] });
   await ui.start();
   ui.node('result-details').open = true;
@@ -103,7 +100,7 @@ test('results explain a failed Pulse with zero misses and clear details for demo
   assert.equal(ui.node('result-pulse-count').textContent, '0 / 1');
   assert.ok(ui.node('pulse-breakdown').children[0].textContent.includes(formatPercent(80)));
   assert.ok(ui.node('pulse-rule').textContent.includes(formatPercent(90)));
-  await ui.click('back-to-library'); await ui.start('demo');
+  await ui.click('back-to-library'); await ui.click('settings-open'); await ui.click('settings-calibration'); await ui.start();
   ui.native.instances.at(-1).currentTime = 151; ui.tick(151);
   assert.equal(ui.node('pulse-explanation').hidden, true);
   assert.equal(ui.node('pulse-breakdown').children.length, 0);

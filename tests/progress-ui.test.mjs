@@ -133,7 +133,7 @@ test('progress uses current rules only, preserving previous scores and history',
   const progress = recordAttempt({ records: [], history: [] }, { songId: song.id, level: '1', rulesVersion: 'web-v1',
     id: crypto.randomUUID(), playedAt: '2026-11-09T19:00Z', result: old });
   const ui = await mount(t, { saved: JSON.parse(exportProgress(DEFAULT_SETTINGS, progress)) });
-  assert.equal(ui.node('record').textContent, 'Рекорд ещё не установлен');
+  assert.equal(ui.node('song-best-empty').hidden, false);
   await ui.click('menu-progress');
   assert.equal(ui.node('record-empty').hidden, false);
   assert.equal(ui.node('personal-best').hidden, true);

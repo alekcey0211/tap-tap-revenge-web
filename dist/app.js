@@ -11,12 +11,12 @@ import { MediaSongAudio } from './media-audio.js?v=0.3.1';
 import { Renderer } from './renderer.js?v=0.9.0';
 
 import { Temporal } from './temporal.js';
-import { formatNumber, formatPercent, formatSigned, formatTime, formatCount } from './format.js?v=0.3.0';
+import { formatNumber, formatPercent, formatSigned, formatTime } from './format.js?v=0.3.0';
 import { DEFAULT_SETTINGS, loadSave, saveSettings as writeSettings, recordAttempt, currentRecords, importProgress } from './storage.js?v=0.8.2';
 import { ProgressView } from './progress.js?v=0.10.0';
 
 const $ = id => document.getElementById(id);
-const APP_VERSION = '0.10.1';
+const APP_VERSION = '0.10.2';
 if ($('app-version')) $('app-version').textContent = `v${APP_VERSION}`;
 $('settings-version').textContent = `v${APP_VERSION}`;
 $('pulse-target').textContent = formatPercent(90);
@@ -24,8 +24,8 @@ const webAudio = new SongAudio(), mediaAudio = new MediaSongAudio();
 let audio = webAudio, readyTrack = null, preparedAudio = null, previewSize = '';
 let venueRenderer, venueTime = 0, venueFrame = -Infinity, venueStamp = performance.now(), venueSize = '';
 let catalog, selected, level = '1', renderer, previewRenderer, previewGame, game, buffer, pulse;
-let state = 'boot', demo = false, run = null, requestId = 0, pausePosition = 0;
-let resumeGrace = -Infinity, demoActions = [], demoIndex = 0, calibrationOffset = null;
+let state = 'boot', run = null, requestId = 0, pausePosition = 0;
+let resumeGrace = -Infinity, calibrationOffset = null;
 const inputs = [new Set(), new Set(), new Set()];
 let browserStorage;
 try { browserStorage = localStorage; } catch { /* Storage access itself can be denied. */ }
@@ -107,10 +107,13 @@ function refresh() {
     $('tracks').append(button);
   }
   renderDifficulties($('difficulties'), selected, level, value => { level = value; return prepareSong(); });
-  for (const id of ['song-difficulty', 'record', 'demo', 'offline-open']) $(id).hidden = Boolean(selected.tutorial);
-  $('note-count').textContent = formatCount(selected.levels[level].notes, { one: 'нота', few: 'ноты', many: 'нот', other: 'ноты' });
+  for (const id of ['song-difficulty', 'record', 'offline-open']) $(id).hidden = Boolean(selected.tutorial);
   const best = records[`${selected.id}:${level}`];
-  $('record').textContent = Number.isFinite(best?.score) && Number.isFinite(best?.accuracy) ? `Рекорд ${formatNumber(best.score)} · ${formatPercent(best.accuracy)}` : 'Рекорд ещё не установлен';
+  const hasRecord = Number.isFinite(best?.score) && Number.isFinite(best?.accuracy);
+  $('song-best-score').hidden = $('song-best-accuracy').hidden = !hasRecord;
+  $('song-best-empty').hidden = hasRecord;
+  $('song-best-score').textContent = hasRecord ? formatNumber(best.score) : '';
+  $('song-best-accuracy').textContent = hasRecord ? `Точность ${formatPercent(best.accuracy)}` : '';
   $('settings-calibration').disabled = false;
   $('menu-play').disabled = false; $('menu-progress').disabled = false;
 }
@@ -154,7 +157,7 @@ async function prepareSong() {
   audio = settings.compatibleAudio ? mediaAudio : webAudio;
   const output = audio;
   state = 'song-loading'; refresh();
-  $('play').disabled = true; $('demo').disabled = true; $('play-label').textContent = 'Готовим трек…';
+  $('play').disabled = true; $('play-label').textContent = 'Готовим трек…';
   $('song-load-retry').hidden = true; $('song-status').textContent = 'Загружаем музыку и карту. Звук начнётся только после «Играть».';
   try {
     // Selecting a song is a gesture; Web Audio unlocks silently, native mode never creates a context.
@@ -168,9 +171,9 @@ async function prepareSong() {
     ]);
     if (id !== requestId) return;
     readyTrack = { chart, loadedBuffer, song, difficulty, output };
-    state = 'song-ready'; $('play').disabled = false; $('demo').disabled = false;
+    state = 'song-ready'; $('play').disabled = false;
     $('play-label').textContent = 'Играть';
-    $('song-status').textContent = output === mediaAudio ? 'Готово · совместимый звук' : 'Готово к выступлению';
+    $('song-status').textContent = '';
   } catch {
     if (id !== requestId) return;
     preparedAudio = null; state = 'song-error'; $('play-label').textContent = 'Играть';
@@ -189,34 +192,31 @@ $('song-screen').onanimationend = event => {
     $('song-screen').hidden = true; $('song-screen').inert = true; $('song-screen').dataset.departing = 'false';
   }
 };
-async function start(isDemo = false) {
+async function start() {
   if (document.hidden || !['song-ready', 'results', 'paused'].includes(state)) return;
   const expected = settings.compatibleAudio ? mediaAudio : webAudio;
   if (!readyTrack || readyTrack.song.id !== selected.id || readyTrack.difficulty !== level || readyTrack.output !== expected) return openSong(selected);
   const fromSong = state === 'song-ready';
   const { chart, loadedBuffer, song, difficulty, output } = readyTrack;
   const id = ++requestId;
-  audio = output; state = 'starting'; $('play').disabled = true; $('demo').disabled = true;
+  audio = output; state = 'starting'; $('play').disabled = true;
   try {
     // Native play below remains before any await. The Web Audio branch resumes from this same click.
     if (audio === webAudio) await audio.unlock();
     if (id !== requestId) return;
     renderer.effects.reset();
-    game = new Game(chart, { automaticRevenge: true }); buffer = loadedBuffer; demo = isDemo; run = { song, level: difficulty };
-    pulse = !demo && !song.tutorial && PULSE_CHARTS[song.id] ? new PhraseProgress(game.notes, PULSE_CHARTS[song.id],
+    game = new Game(chart, { automaticRevenge: true }); buffer = loadedBuffer; run = { song, level: difficulty };
+    pulse = !song.tutorial && PULSE_CHARTS[song.id] ? new PhraseProgress(game.notes, PULSE_CHARTS[song.id],
       choosePulseZones(game.notes, PULSE_CHARTS[song.id], PULSE_COUNTS[song.id])) : null;
     renderPulse(pulse?.view(0) ?? null);
     inputs.forEach(input => input.clear());
-    demoActions = chart.flatMap(note => [{ time: note.time, lane: note.lane, down: true },
-      { time: note.time + (note.duration || 0.035), lane: note.lane, down: false }])
-      .sort((a, b) => a.time - b.time || Number(a.down) - Number(b.down));
-    demoIndex = 0; resumeGrace = -Infinity;
+    resumeGrace = -Infinity;
     audio.setVolume(settings.volume / 100);
     const playback = audio.play(buffer, 0, 0);
     pageStack.length = 0; show('game-screen'); if (fromSong) stageEntrance();
     $('now-title').textContent = song.title; $('now-artist').textContent = artistName(song); $('now-art').src = artwork(song);
     $('pause-track').textContent = `${song.title} · ${LEVELS[difficulty]}`;
-    $('mode-label').textContent = demo ? 'ДЕМО · без рекорда' : song.tutorial ? 'КАЛИБРОВКА · без рекорда' : LEVELS[difficulty];
+    $('mode-label').textContent = song.tutorial ? 'КАЛИБРОВКА · без рекорда' : LEVELS[difficulty];
     $('pause').focus({ preventScroll: true });
     await playback;
     if (id !== requestId) return;
@@ -224,7 +224,7 @@ async function start(isDemo = false) {
   } catch {
     if (id !== requestId) return;
     audio.stop(); state = 'song-ready'; show('song-screen');
-    $('play').disabled = false; $('demo').disabled = false; $('play-label').textContent = 'Играть';
+    $('play').disabled = false; $('play-label').textContent = 'Играть';
     $('song-status').textContent = 'Не удалось включить звук. Нажми «Играть», чтобы попробовать снова.';
   }
 }
@@ -232,7 +232,7 @@ function gameTime() { return audio.position - settings.offset / 1000; }
 function pause() {
   if (state === 'starting') {
     requestId++; audio.stop(); state = 'song-ready'; show('song-screen');
-    $('play').disabled = false; $('demo').disabled = false; $('play-label').textContent = 'Играть';
+    $('play').disabled = false; $('play-label').textContent = 'Играть';
     $('song-status').textContent = 'Запуск остановлен. Нажми «Играть», чтобы начать снова.';
     $('play').focus({ preventScroll: true });
     return;
@@ -276,7 +276,7 @@ function releaseNote(lane, time) {
   renderer.effects.observeFailures(game, time);
 }
 function down(lane, source) {
-  if (state !== 'playing' || demo || audio.countdown > 0 || audio.waiting) return;
+  if (state !== 'playing' || audio.countdown > 0 || audio.waiting) return;
   const wasHeld = inputs[lane].size > 0; inputs[lane].add(source);
   if (!wasHeld) {
     const time = gameTime();
@@ -286,7 +286,7 @@ function down(lane, source) {
 }
 function up(lane, source) {
   const had = inputs[lane].delete(source);
-  if (had && inputs[lane].size === 0 && state === 'playing' && !demo && audio.countdown === 0) releaseNote(lane, gameTime());
+  if (had && inputs[lane].size === 0 && state === 'playing' && audio.countdown === 0) releaseNote(lane, gameTime());
 }
 function finish() {
   audio.stop(); state = 'results'; show('results');
@@ -298,21 +298,21 @@ function finish() {
   renderPulseBreakdown(pulse?.phrases);
   const key = `${run.song.id}:${run.level}`;
   const previousScore = records[key]?.score;
-  const isRecord = !demo && !run.song.tutorial && (!records[key] || result.score > records[key].score);
-  if (!demo && !run.song.tutorial) {
+  const isRecord = !run.song.tutorial && (!records[key] || result.score > records[key].score);
+  if (!run.song.tutorial) {
     progress = recordAttempt(progress, { songId: run.song.id, level: run.level, result, pulse: pulseResult,
       playedAt: Temporal.Now.instant().toString(), id: crypto.randomUUID() });
     records = currentRecords(progress); saveSettings();
   }
   $('result-art').src = artwork(run.song); $('result-heading').textContent = run.song.title;
   $('result-artist').textContent = `${artistName(run.song)} · ${LEVELS[run.level]}`;
-  $('score-caption').textContent = demo ? 'ДЕМО · БЕЗ РЕКОРДА' : run.song.tutorial ? 'КАЛИБРОВКА · БЕЗ РЕКОРДА' : isRecord ? 'НОВЫЙ РЕКОРД' : 'ТВОЙ РЕЗУЛЬТАТ';
+  $('score-caption').textContent = run.song.tutorial ? 'КАЛИБРОВКА · БЕЗ РЕКОРДА' : isRecord ? 'НОВЫЙ РЕКОРД' : 'ТВОЙ РЕЗУЛЬТАТ';
   $('score-caption').dataset.record = String(isRecord);
   $('record-delta').hidden = !isRecord || !Number.isFinite(previousScore);
   $('record-delta').textContent = isRecord && Number.isFinite(previousScore) ? `${formatSigned(result.score - previousScore)} к рекорду` : '';
   $('final-score').textContent = formatNumber(result.score);
-  $('results').dataset.fullCombo = String(!demo && !run.song.tutorial && result.misses === 0 && result.brokenHolds === 0 && result.strays === 0);
-  $('result-rating').textContent = demo ? 'ДЕМО ЗАВЕРШЕНО' : run.song.tutorial ? 'КАЛИБРОВКА' : result.misses === 0 && result.brokenHolds === 0 && result.strays === 0 ? 'FULL COMBO' : 'ТРЕК ПРОЙДЕН';
+  $('results').dataset.fullCombo = String(!run.song.tutorial && result.misses === 0 && result.brokenHolds === 0 && result.strays === 0);
+  $('result-rating').textContent = run.song.tutorial ? 'КАЛИБРОВКА' : result.misses === 0 && result.brokenHolds === 0 && result.strays === 0 ? 'FULL COMBO' : 'ТРЕК ПРОЙДЕН';
   $('result-accuracy').textContent = formatPercent(result.accuracy);
   $('result-combo').textContent = formatNumber(result.bestStreak);
   $('result-misses').textContent = `Пропуски: ${formatNumber(result.misses)}`;
@@ -325,7 +325,7 @@ function finish() {
     $('result-stats').append(dt, dd);
   }
   $('calibration-result').hidden = !run.song.tutorial; $('apply-calibration').hidden = true;
-  if (run.song.tutorial && !demo) {
+  if (run.song.tutorial) {
     const errors = [...game.errors].sort((a, b) => a - b);
     if (errors.length >= 8) {
       const median = errors[Math.floor(errors.length / 2)];
@@ -370,13 +370,7 @@ function frame() {
     const position = state === 'playing' ? audio.position : state === 'starting' ? 0 : pausePosition;
     const time = position - settings.offset / 1000, countdown = state === 'playing' ? audio.countdown : 0;
     if (state === 'playing' && countdown === 0 && !audio.waiting) {
-      if (demo) {
-        while (demoIndex < demoActions.length && demoActions[demoIndex].time <= time) {
-          const action = demoActions[demoIndex++];
-          if (action.down) pressNote(action.lane, action.time);
-          else releaseNote(action.lane, action.time);
-        }
-      } else if (time >= resumeGrace && resumeGrace !== -Infinity) {
+      if (time >= resumeGrace && resumeGrace !== -Infinity) {
         for (let lane = 0; lane < 3; lane++) if (!game.held[lane]) releaseNote(lane, time);
         resumeGrace = -Infinity;
       }
@@ -405,8 +399,7 @@ function frame() {
 }
 
 $('song-load-retry').onclick = prepareSong;
-$('play').onclick = () => start(false);
-$('demo').onclick = () => start(true);
+$('play').onclick = () => start();
 function goBack() {
   if (document.body.dataset.screen === 'library') return showMenu();
   if (document.body.dataset.screen === 'progress-screen') progressView.close();
@@ -416,9 +409,9 @@ function goBack() {
 $('home').onclick = goBack;
 $('pause').onclick = () => pause();
 $('resume').onclick = resume;
-$('restart').onclick = () => { if (document.hidden) return; selected = run.song; level = run.level; return start(demo); };
+$('restart').onclick = () => { if (document.hidden) return; selected = run.song; level = run.level; return start(); };
 $('quit').onclick = showLibrary;
-$('retry').onclick = () => { selected = run.song; level = run.level; return start(demo); };
+$('retry').onclick = () => { selected = run.song; level = run.level; return start(); };
 $('back-to-library').onclick = showLibrary;
 function selectCalibration() {
   showLibrary();

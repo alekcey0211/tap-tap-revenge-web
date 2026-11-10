@@ -89,11 +89,9 @@ body[data-screen="preparation"] .appbar h2 { font-size: 24px; }
 .track em { font: normal 12px/1.4 Onest, sans-serif; color: #bdb0d5; margin-top: 5px; }
 .track[aria-pressed="true"] { border-color: #c5a1ff; box-shadow: inset 0 1px 0 #d9bdff33, 0 0 16px #ac71ff22; }
 .difficulty-label { display: flex; justify-content: space-between; margin: 16px 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
-#note-count { color: var(--muted); text-transform: none; letter-spacing: 0; }
 .difficulty-cards { display: flex; border: 1px solid #626366; border-radius: 10px; }
 .difficulty-cards button { min-width: 0; flex: 1; min-height: 48px; padding: 8px 3px; font-size: 12px; background: none; border-radius: 9px; }
 .difficulty-cards button[aria-pressed="true"] { background: var(--accent); color: #090819; font-weight: 700; }
-.record { color: var(--muted); font-size: 13px; margin: 12px 0; min-height: 18px; }
 .primary, .secondary { display: block; width: 100%; min-height: 52px; padding: 12px 16px; font-size: 17px; font-weight: 700; border-radius: 12px; line-height: 1.3; }
 .primary { color: #090819; background: var(--accent); }
 .secondary { border: 1px solid #7d7f80; background: none; }
@@ -350,14 +348,19 @@ body[data-screen="song-screen"] .appbar .icon-button { background: none; border-
 body:not([data-reduced-motion="true"]) .difficulty-cards button { transition: border-color 160ms ease, box-shadow 160ms ease, transform 120ms ease; }
 body:not([data-reduced-motion="true"]) .difficulty-cards button[aria-pressed="true"] .difficulty-meter { animation: difficulty-charge 260ms ease-out; }
 @keyframes difficulty-charge { from { opacity: .35; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
-.record { font-size: 11px; margin: 12px 0 4px; }
-.song-status { color: var(--muted); font-size: 11px; line-height: 1.4; min-height: 16px; margin-bottom: 14px; }
+.record { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 10px 12px; padding: 16px; margin: 18px 0 20px; text-align: left; border: 1px solid #e6b67766; border-radius: 16px; background: radial-gradient(ellipse at 0 0, #80502e44, transparent 80%), #1a1027e6; box-shadow: inset 0 1px 0 #ffe8b51a; }
+.record-label { grid-column: 1 / -1; color: #f3cf96; text-transform: uppercase; font-size: 11px; font-weight: 700; letter-spacing: .08em; }
+.record-label > span { font-size: 16px; margin-right: 4px; }
+#song-best-score { font-family: var(--font-display); font-size: clamp(22px, 6vw, 30px); line-height: 1.3; color: #fff4d6; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+#song-best-accuracy { color: #e8d7f6; font-size: 13px; line-height: 1.6; }
+#song-best-empty { grid-column: 1 / -1; color: #e9dff3; font-size: 17px; line-height: 1.4; }
+.song-status { color: var(--muted); font-size: 13px; line-height: 1.4; margin: 12px 0 14px; }
+.song-status:empty { display: none; }
 .primary { color: #fffdf3; border: 2px solid #fff1b3; background: linear-gradient(180deg, #ffcf76, #ff963b 28%, #ff6626 72%, #f2913b); border-radius: 28px; text-shadow: 0 2px 3px #a23820; box-shadow: inset 0 2px 6px #fff7b9aa, 0 0 5px #ffc876, 0 0 18px #ff6f28aa, 0 7px 24px #f85b3333; }
 .secondary { background: linear-gradient(#48226277, #110b22cc); border-color: #d8adff; border-radius: 28px; box-shadow: inset 0 0 10px #b96fff44, 0 0 10px #9856cf55; }
 #play { min-height: 58px; font-size: 23px; }
-#demo, #offline-open { display: block; width: 100%; min-height: 48px; font-size: 13px; }
-#demo { margin-top: 6px; color: #e8d5ff; font-weight: 600; }
-#offline-open { color: #c7aee7; font-size: 11px; }
+#offline-open { display: block; width: 100%; min-height: 48px; font-size: 13px; }
+#offline-open { color: #c7aee7; margin-top: 10px; }
 /* The performance header uses one row; the venue now belongs to the runway, not the score. */
 body[data-screen="game-screen"] .stage-lights { display: none; }
 #game-screen { background: #090718 radial-gradient(ellipse at 50% 20%, #25104766, transparent 65%); padding-top: 8px; }

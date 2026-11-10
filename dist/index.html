@@ -15,8 +15,8 @@
   <link rel="preload" href="assets/fonts/onest-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/unbounded-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/unbounded-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="style.css?v=0.10.1">
-  <script type="module" src="app.js?v=0.10.1"></script>
+  <link rel="stylesheet" href="style.css?v=0.10.2">
+  <script type="module" src="app.js?v=0.10.2"></script>
 </head>
 <body>
   <main class="layout">
@@ -47,12 +47,11 @@
       <section id="song-screen" class="screen song-screen" hidden aria-labelledby="hero-title">
         <div class="selected-art"><h3 id="hero-title"></h3><p id="hero-artist"></p><div class="album-stage"><img id="hero-art" alt=""></div><p id="hero-meta"></p></div>
         <div class="song-controls">
-          <div id="song-difficulty"><div class="difficulty-label"><span>Сложность</span><span id="note-count"></span></div><div id="difficulties" class="difficulty-cards" role="group" aria-label="Сложность"></div></div>
-          <p id="record" class="record"></p>
+          <div id="song-difficulty"><div class="difficulty-label"><span>Сложность</span></div><div id="difficulties" class="difficulty-cards" role="group" aria-label="Сложность"></div></div>
+          <div id="record" class="record" aria-label="Личный рекорд"><span class="record-label"><span aria-hidden="true">☆</span> Личный рекорд</span><strong id="song-best-score"></strong><span id="song-best-accuracy"></span><p id="song-best-empty">Рекорд ещё не установлен</p></div>
           <p id="song-status" class="song-status" role="status"></p><button id="song-load-retry" class="text-button" hidden>Повторить загрузку</button>
           <button id="play" class="primary" disabled><span aria-hidden="true">▶</span><span id="play-label">Играть</span></button>
-          <button id="demo" class="text-button" disabled>▷ Демо · без рекорда</button>
-          <button id="offline-open" class="text-button">↓ Скачать трек</button>
+          <button id="offline-open" class="text-button">↓ Сохранить для игры офлайн</button>
         </div>
       </section>
       <section id="game-screen" class="screen" hidden aria-label="Игра">
@@ -88,7 +87,7 @@
           <button id="progress-play" class="text-button">К выбранному треку</button>
           <section class="transfer-section" aria-labelledby="transfer-heading"><h3 id="transfer-heading">Твой прогресс — с тобой</h3><p class="subtle">Хранится только в этом браузере.</p><button id="progress-export" class="primary">Сохранить в файл</button><button id="progress-import" class="secondary">Восстановить из файла</button><input id="progress-file" type="file" accept=".json,application/json" hidden><p class="subtle">Настройки и прогресс. Без музыки и аккаунта.</p></section>
         </div>
-        <div id="history-panel" hidden><div class="history-filters"><div><label class="sr-only" for="history-song">Фильтр по треку</label><select id="history-song"></select></div><div><label class="sr-only" for="history-level">Фильтр по сложности</label><select id="history-level"></select></div></div><p id="history-caption" class="subtle"></p><div id="history-list"></div><div id="history-empty" class="progress-empty" hidden><h3>Пока нет попыток</h3><p id="history-empty-help" class="subtle"></p><button id="history-reset" class="secondary" hidden>Сбросить фильтры</button></div><p class="subtle history-help">Демо и калибровка сюда не попадают.</p></div>
+        <div id="history-panel" hidden><div class="history-filters"><div><label class="sr-only" for="history-song">Фильтр по треку</label><select id="history-song"></select></div><div><label class="sr-only" for="history-level">Фильтр по сложности</label><select id="history-level"></select></div></div><p id="history-caption" class="subtle"></p><div id="history-list"></div><div id="history-empty" class="progress-empty" hidden><h3>Пока нет попыток</h3><p id="history-empty-help" class="subtle"></p><button id="history-reset" class="secondary" hidden>Сбросить фильтры</button></div><p class="subtle history-help">Калибровка сюда не попадает.</p></div>
         <p id="progress-message" class="status" role="status"></p>
       </section>
       <section id="preparation" class="screen preparation" hidden aria-label="Подготовка трека">

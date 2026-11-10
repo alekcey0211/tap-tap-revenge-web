@@ -105,22 +105,22 @@ test('pause can cancel a pending native start; late failure cannot replace the n
   assert.equal(ui.document.body.dataset.screen, 'song-screen');
   assert.equal(ui.node('play').disabled, false);
   assert.equal(ui.native.instances[0].paused, true);
-  ui.native.gate = null; await ui.click('demo');
+  ui.native.gate = null; await ui.click('play');
   gate.reject(new Error('cancelled playback')); await old;
   assert.equal(ui.document.body.dataset.screen, 'game-screen');
   assert.equal(ui.native.instances.at(-1).paused, false);
-  assert.match(ui.node('mode-label').textContent, /ДЕМО/);
+  assert.equal(ui.node('mode-label').textContent, 'Легко');
 });
 
-for (const mode of ['perfect', 'miss', 'demo']) test(`result celebration uses real full combo only: ${mode}`, async t => {
+for (const mode of ['perfect', 'miss']) test(`result celebration uses real full combo only: ${mode}`, async t => {
   const ui = await mount(t, { chart: [{ time: 1, lane: 0, duration: 0 }] });
   await ui.openSong('Restless Urban Groove');
   assert.equal(ui.node('hero-artist').textContent, 'ezhik0211 · Suno');
-  await ui.click(mode === 'demo' ? 'demo' : 'play');
+  await ui.click('play');
   if (mode === 'perfect') { ui.tick(1); ui.lanes[0].onclick({ detail: 0 }); }
   ui.tick(151);
   assert.equal(ui.document.body.dataset.screen, 'results');
   assert.equal(ui.node('results').dataset.fullCombo, String(mode === 'perfect'));
   assert.equal(ui.node('result-artist').textContent, 'ezhik0211 · Suno · Легко');
-  assert.equal(ui.progress().history.length, mode === 'demo' ? 0 : 1);
+  assert.equal(ui.progress().history.length, 1);
 });

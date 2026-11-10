@@ -38,11 +38,11 @@ test('calibration exposes only its existing easy chart, without invented counts 
 test('calibration hides game-only controls and restores them for a song', async t => {
   const ui = await mount(t);
   await ui.click('menu-settings'); await ui.click('settings-calibration');
-  for (const id of ['song-difficulty', 'record', 'demo', 'offline-open']) assert.equal(ui.node(id).hidden, true);
+  for (const id of ['song-difficulty', 'record', 'offline-open']) assert.equal(ui.node(id).hidden, true);
   assert.equal(ui.node('hero-art').src, 'assets/scene/calibration.png');
   assert.equal(ui.node('play').disabled, false);
   await ui.click('home'); await ui.openSong();
-  for (const id of ['song-difficulty', 'record', 'demo', 'offline-open']) assert.equal(ui.node(id).hidden, false);
+  for (const id of ['song-difficulty', 'record', 'offline-open']) assert.equal(ui.node(id).hidden, false);
 });
 
 test('progress reuses song difficulty cards without starting audio', async t => {

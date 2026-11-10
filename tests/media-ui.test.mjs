@@ -40,22 +40,22 @@ test('native loading and pending playback can be cancelled without resurrecting 
   ui.audio.loadGate = null; await ui.openSong();
   const gate = deferred(); ui.native.gate = gate; const started = ui.click('play');
   ui.events.pagehide();
-  ui.native.gate = null; await ui.start('demo');
+  ui.native.gate = null; await ui.start();
   gate.reject(new Error('stale')); await started;
   assert.equal(ui.document.body.dataset.screen, 'game-screen');
-  assert.match(ui.node('mode-label').textContent, /ДЕМО/);
+  assert.equal(ui.node('mode-label').textContent, 'Легко');
   assert.equal(ui.native.instances.at(-1).paused, false);
 });
 
-test('native play failure offers retry, preserving difficulty and demo', async t => {
+test('native play failure offers retry, preserving difficulty', async t => {
   const ui = await mount(t, options);
   await ui.openSong(); await ui.node('difficulties').children[2].onclick();
-  ui.native.failure = true; await ui.click('demo');
+  ui.native.failure = true; await ui.click('play');
   assert.equal(ui.document.body.dataset.screen, 'song-screen');
   assert.match(ui.node('song-status').textContent, /включить звук/);
   assert.equal(ui.node('difficulties').children[2].attrs['aria-pressed'], 'true');
-  ui.native.failure = false; await ui.click('demo');
-  assert.match(ui.node('mode-label').textContent, /ДЕМО/);
+  ui.native.failure = false; await ui.click('play');
+  assert.equal(ui.node('mode-label').textContent, 'Сложно');
 });
 
 test('native pause/resume uses the exact position and supports retry and interruption', async t => {
@@ -94,11 +94,11 @@ test('buffering freezes scoring and ignores new presses', async t => {
   assert.equal(ui.node('revenge').tagName, 'DIV');
 });
 
-for (const mode of ['play', 'demo', 'calibration']) {
+for (const mode of ['play', 'calibration']) {
   test(`native ${mode} reaches results and preserves record rules`, async t => {
     const ui = await mount(t, options);
     if (mode === 'calibration') { await ui.click('settings-open'); await ui.click('settings-calibration'); }
-    await ui.start(mode === 'demo' ? 'demo' : 'play');
+    await ui.start();
     const song = ui.catalog.find(song => Boolean(song.tutorial) === (mode === 'calibration'));
     const chart = JSON.parse(await readFile(new URL('../dist/assets/tracks/' + song.id + '/1.json', import.meta.url)));
     const media = ui.native.instances[0];
