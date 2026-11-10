@@ -252,3 +252,74 @@ test('x8 adds translucent halos without changing note circles, and lights six ar
   assert.ok(shifts.some(([x, y]) => x === 0 && y === -90 * 1024 / 320));
   game.streak = 0; const ended = draw(2); assert.equal(ended.panels.length + ended.halos.length, 0);
 });
+
+test('Pulse zones approach the hit line without labels and remain behind round heads', () => {
+  const labels = [], fills = [], boundaries = [], operations = []; let path = [];
+  const ctx = new Proxy({}, { get(target, name) {
+    if (name in target) return target[name];
+    if (['createLinearGradient', 'createRadialGradient'].includes(name)) return () => ({ addColorStop() {} });
+    if (name === 'beginPath') return () => { path = []; };
+    if (name === 'moveTo' || name === 'lineTo') return (...p) => path.push(p);
+    if (name === 'fill') return () => { if (['#53e7f406', '#c592ff06'].includes(target.fillStyle)) fills.push([...path]); };
+    if (name === 'stroke') return () => {
+      if (['#53e7f4', '#c592ff'].includes(target.strokeStyle) && path.length === 2 && path[0][1] === path[1][1]) { boundaries.push([...path]); operations.push('boundary'); }
+    };
+    if (name === 'fillText') return (...args) => { labels.push(args); operations.push('label'); };
+    if (name === 'arc') return () => operations.push('head');
+    return () => {};
+  } });
+  const renderer = new Renderer({ clientWidth: 390, clientHeight: 630, getContext: () => ctx }, paths);
+  const game = new Game([{ time: 10, lane: 0, duration: 0 }]);
+  const zones = [{ index: 1, start: 0, end: 10 }, { index: 2, start: 10, end: 20 }];
+  const draw = (time, reduced = false) => { labels.length = fills.length = boundaries.length = operations.length = 0; renderer.render(game, time, '4', 66, 0, reduced, zones); return { labels: structuredClone(labels), fills: structuredClone(fills), boundaries: structuredClone(boundaries) }; };
+  const before = JSON.stringify(game), first = draw(9.5);
+  assert.equal(first.fills.length, 2); assert.equal(first.labels.length, 0);
+  const boundaryY = stagePosition(paths, 1, 1 - .5 / 1.4)[1];
+  assert.equal(first.boundaries[0][0][1], boundaryY);
+  assert.ok(operations.indexOf('boundary') < operations.indexOf('head'));
+  assert.deepEqual(draw(9.5), first); assert.deepEqual(draw(9.5, true), first);
+  assert.notDeepEqual(draw(9.8).fills, first.fills);
+  assert.equal(JSON.stringify(game), before);
+  labels.length = fills.length = 0; renderer.render(game, 9.5, '4', 66);
+  assert.equal(fills.length, 0, 'demo and calibration without Pulse data stay clear');
+});
+
+test('lane guides stop before inset targets; target centres and hit areas stay unchanged', () => {
+  const guides = [], targets = []; let path = [], ellipse = null;
+  const ctx = new Proxy({}, { get(target, name) {
+    if (name in target) return target[name];
+    if (['createLinearGradient', 'createRadialGradient'].includes(name)) return () => ({ stops: [], addColorStop(offset, color) { this.stops.push(color); } });
+    if (name === 'beginPath') return () => { path = []; ellipse = null; };
+    if (name === 'moveTo' || name === 'lineTo') return (...point) => path.push(point);
+    if (name === 'ellipse') return (...args) => { ellipse = args; };
+    if (name === 'stroke') return () => { if (path.length > 3 && ['#ff686899', '#c9ff5699', '#49e6ef99'].includes(target.strokeStyle)) guides.push([...path]); };
+    if (name === 'fill') return () => { if (ellipse?.[2] === 31 && ellipse?.[3] === 13) targets.push({ centre: ellipse.slice(0, 2), colors: target.fillStyle.stops }); };
+    return () => {};
+  } });
+  const renderer = new Renderer({ clientWidth: 320, clientHeight: 270, getContext: () => ctx }, paths);
+  const game = new Game([]), before = JSON.stringify(game);
+  renderer.render(game, 0, '4', 66);
+  assert.equal(guides.length, 3); assert.ok(guides.every(path => path.at(-1)[1] === 404 && path.every(([, y]) => y <= 404)));
+  assert.deepEqual(targets.map(t => t.centre), [[54, 422], [160, 422], [266, 422]]);
+  assert.ok(targets.every(t => t.colors.every(color => /^#[0-9a-f]{6}$/.test(color))), 'opaque target interiors');
+  assert.equal(JSON.stringify(game), before);
+});
+
+test('miss feedback no longer recolors the hit circle; successful feedback remains', () => {
+  const rings = []; let ellipse;
+  const ctx = new Proxy({}, { get(target, name) {
+    if (name in target) return target[name];
+    if (['createLinearGradient', 'createRadialGradient'].includes(name)) return () => ({ addColorStop() {} });
+    if (name === 'beginPath') return () => { ellipse = null; };
+    if (name === 'ellipse') return (...args) => { ellipse = args; };
+    if (name === 'stroke') return () => { if (ellipse?.[2] === 31 && ellipse?.[3] === 13) rings.push(target.strokeStyle); };
+    return () => {};
+  } });
+  const renderer = new Renderer({ clientWidth: 390, clientHeight: 630, getContext: () => ctx }, paths);
+  const game = new Game([]);
+  renderer.render(game, 1, '4', 66); const neutral = [...rings];
+  renderer.effects.recordJudgment(0, 'МИМО', 1.1, true); rings.length = 0;
+  renderer.render(game, 1.2, '4', 66); assert.deepEqual(rings, neutral);
+  renderer.effects.recordHit({ lane: 0, judgment: 'PERFECT' }, 1.3, 1); rings.length = 0;
+  renderer.render(game, 1.35, '4', 66); assert.equal(rings[0], '#f3f2ee');
+});

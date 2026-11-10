@@ -146,7 +146,7 @@ test('a maximum-size valid export remains within the import size limit', () => {
   assert.equal(parseProgress(text).progress.history.length, 100);
 });
 
-const pulse = (captured = 6, perfect = 2, total = 8) => ({ pulseRules: 'strict-v1', phraseVersion: 'phrases-v1', total, captured, perfect });
+const pulse = (captured = 6, perfect = 2, total = 8) => ({ pulseRules: 'strict-v1', phraseVersion: 'random-zones-v1', total, captured, perfect });
 test('Pulse best is independent of score, legacy records and sound survive round trip', () => {
   const settings = { ...DEFAULT_SETTINGS, compatibleAudio: true, offset: 35 };
   let progress = recordAttempt(empty(), attempt({ result: { ...base, score: 500 } }));
@@ -228,4 +228,30 @@ test('manual records and history retain their rules and values when automatic re
   const migrated = loadSave(store({ 'ttr-web-records': JSON.stringify({ [songId + ':1']: base }) }));
   assert.equal(migrated.progress.records[0].rulesVersion, 'web-v1');
   assert.deepEqual(currentRecords(migrated.progress), {});
+});
+
+test('authorized old Pulse reset preserves scores, settings, attempts and new-map awards on load and import', () => {
+  const settings = { ...DEFAULT_SETTINGS, compatibleAudio: true, offset: 35 };
+  let progress = recordAttempt(empty(), attempt({ pulse: { ...pulse(8, 8), phraseVersion: 'phrases-v1' } }));
+  progress = recordAttempt(progress, attempt({ pulse: { ...pulse(5, 4, 6), phraseVersion: 'random-zones-v1' } }));
+  const original = exportProgress(settings, progress), storage = store({ [SAVE_KEY]: original, unrelated: 'keep' });
+  const reset = loadSave(storage);
+  assert.equal(reset.writable, true); assert.deepEqual(reset.settings, settings);
+  assert.deepEqual(reset.progress.records, progress.records);
+  assert.equal(reset.progress.history.length, 2); assert.equal(reset.progress.history.filter(entry => entry.pulse).length, 1);
+  assert.deepEqual(reset.progress.pulseRecords.map(entry => entry.pulse.phraseVersion), ['random-zones-v1']);
+  assert.equal(storage.getItem('unrelated'), 'keep');
+  const stored = storage.getItem(SAVE_KEY);
+  assert.deepEqual(loadSave(storage).progress, reset.progress); assert.equal(storage.getItem(SAVE_KEY), stored);
+  assert.deepEqual(importProgress(storage, original).progress, reset.progress, 'import does not resurrect obsolete awards');
+  assert.deepEqual(parseProgress(stored).progress, reset.progress);
+});
+
+test('failed Pulse reset write leaves original save bytes intact and reports read-only state', () => {
+  const original = exportProgress(DEFAULT_SETTINGS, recordAttempt(empty(), attempt({ pulse: { ...pulse(), phraseVersion: 'phrases-v1' } })));
+  const storage = store({ [SAVE_KEY]: original }); storage.setItem = () => { throw new Error('quota'); };
+  const reset = loadSave(storage);
+  assert.equal(reset.writable, false); assert.ok(reset.warning.includes('Pulse'));
+  assert.equal(storage.getItem(SAVE_KEY), original);
+  assert.equal(reset.progress.records.length, 1); assert.equal(reset.progress.pulseRecords.length, 0);
 });

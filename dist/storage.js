@@ -127,12 +127,28 @@ function legacy(storage, defaults) {
   } catch { /* Keep valid settings when old records are damaged. */ }
   return { settings, progress: { records, history: [] } };
 }
+function resetLegacyPulse(progress) {
+  const legacy = entry => ['phrases-v1', 'phrases-v2', 'phrases-v3'].includes(entry.pulse?.phraseVersion);
+  if (!progress.history.some(legacy) && !progress.pulseRecords?.some(legacy)) return progress;
+  // User-approved reset of the old Pulse map only. Scores and attempts stay intact.
+  return { ...progress,
+    history: progress.history.map(entry => { if (!legacy(entry)) return entry; const { pulse, ...attempt } = entry; return attempt; }),
+    ...(progress.pulseRecords ? { pulseRecords: progress.pulseRecords.filter(entry => !legacy(entry)) } : {}) };
+}
 export function loadSave(storage, defaults = DEFAULT_SETTINGS) {
   const empty = { settings: { ...defaults }, progress: { records: [], history: [] } };
   try {
     const text = storage.getItem(SAVE_KEY);
     if (text !== null) {
-      try { return { ...parseProgress(text), writable: true, warning: '' }; }
+      try {
+        const snapshot = parseProgress(text), progress = resetLegacyPulse(snapshot.progress);
+        if (progress !== snapshot.progress) {
+          try { saveProgress(storage, progress, snapshot.settings); }
+          catch { return { ...snapshot, progress, writable: false,
+            warning: 'Не удалось сохранить сброс старого Pulse. Исходный файл не изменён; новые результаты доступны только до закрытия страницы.' }; }
+        }
+        return { ...snapshot, progress, writable: true, warning: '' };
+      }
       catch { return { ...legacy(storage, defaults), writable: false, warning: 'Сохранение не удалось прочитать. Исходные данные не изменены; новые результаты доступны только до закрытия страницы.' }; }
     }
     const migrated = legacy(storage, defaults);
@@ -155,6 +171,7 @@ export function saveProgress(storage, progress, settings) {
 export function saveSettings(storage, settings, progress = loadProgress(storage)) { saveProgress(storage, progress, settings); }
 export function importProgress(storage, text) {
   const snapshot = parseProgress(text);
+  snapshot.progress = resetLegacyPulse(snapshot.progress);
   // One key/write: validation and user confirmation happen before this atomic replacement.
   storage.setItem(SAVE_KEY, JSON.stringify(snapshot));
   return snapshot;

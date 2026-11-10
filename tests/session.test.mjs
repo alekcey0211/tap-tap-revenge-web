@@ -180,7 +180,7 @@ for (const compatibleAudio of [false, true]) test(`automatic x8 UI survives paus
   assert.equal(ui.node('multiplier').textContent, '×8');
   assert.equal(ui.node('revenge').tagName, 'DIV');
   assert.equal(ui.node('game-screen').dataset.energy, 'active');
-  assert.match(ui.node('revenge-label').textContent, /ДО ОШИБКИ/);
+  assert.equal(ui.node('revenge-label').textContent, '×8');
   await ui.click('pause'); ui.tick(1000); assert.equal(ui.node('multiplier').textContent, '×8');
   await ui.click('resume');
   if (compatibleAudio) ui.native.instances[0].currentTime = 70;

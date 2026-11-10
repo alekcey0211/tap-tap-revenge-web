@@ -1,10 +1,10 @@
 import { artwork } from './artwork.js';
-import { PULSE_RULES } from './phrase-progress.js';
-import { PHRASE_VERSION } from './phrase-charts.js';
-import { pulseSummary } from './pulse-view.js';
+import { PULSE_RULES } from './phrase-progress.js?v=0.8.2';
+import { PHRASE_VERSION } from './phrase-charts.js?v=0.8.2';
+import { pulseSummary } from './pulse-view.js?v=0.8.2';
 import { Temporal } from './temporal.js';
 import { formatNumber, formatPercent, formatSigned, formatCount, formatAttemptTime, formatDay } from './format.js?v=0.3.0';
-import { CHART_VERSION, RULES_VERSION, HISTORY_LIMIT, IMPORT_LIMIT, recordKey, exportProgress, parseProgress } from './storage.js?v=0.6.0';
+import { CHART_VERSION, RULES_VERSION, HISTORY_LIMIT, IMPORT_LIMIT, recordKey, exportProgress, parseProgress } from './storage.js?v=0.8.2';
 
 const $ = id => document.getElementById(id);
 const LEVELS = { 1: 'Легко', 2: 'Средне', 3: 'Сложно', 4: 'Экстрим' };
@@ -88,7 +88,7 @@ export class ProgressView {
     const rules = [...new Set([RULES_VERSION, ...progress.records.map(entry => entry.rulesVersion)])];
     if (!rules.includes(this.rules)) this.rules = RULES_VERSION;
     $('progress-rules').replaceChildren(...rules.map(value => option(value, value === RULES_VERSION
-      ? 'Авто ×8 · до ошибки' : value === 'web-v1' ? 'Ручной ×8 · прежние рекорды' : `Правила: ${value}`)));
+      ? 'Авто ×8' : value === 'web-v1' ? 'Ручной ×8 · прежние рекорды' : `Правила: ${value}`)));
     $('progress-rules').value = this.rules;
     const key = recordKey({ songId: song.id, level, rulesVersion: this.rules });
     const best = progress.records.find(entry => recordKey(entry) === key);

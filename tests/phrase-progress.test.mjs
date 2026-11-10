@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { Game } from '../dist/engine.js';
 import { PhraseProgress, PULSE_RULES } from '../dist/phrase-progress.js';
-import { PULSE_CHARTS, PHRASE_VERSION } from '../dist/phrase-charts.js';
+import { PULSE_CHARTS, PHRASE_VERSION, PULSE_COUNTS } from '../dist/phrase-charts.js';
 import { replayChart } from '../scripts/snapshot-baseline.mjs';
 
 const note = (time, lane = 0, duration = 0) => ({ time, lane, duration });
@@ -113,4 +113,34 @@ test('after the last verdict the outro shows a summary, not a promise of another
   assert.equal(s.pulse.view(10).recent, true);
   const view = s.pulse.view(12);
   assert.equal(view.finished, true); assert.equal(view.recent, false); assert.equal(view.captured, 1); assert.equal(view.perfect, 1);
+});
+
+test('eight of ten Pulse awards can coexist with zero missed notes', () => {
+  const s = session(Array.from({ length: 10 }, (_, i) => note(i * 10 + 1)), Array.from({ length: 10 }, (_, i) => (i + 1) * 10));
+  for (let i = 0; i < 10; i++) s.hit(0, i * 10 + 1 + ([2, 8].includes(i) ? .06 : 0));
+  s.advance(101);
+  assert.equal(s.game.misses, 0); assert.equal(s.game.hits, 10);
+  assert.equal(s.pulse.finish().captured, 8);
+  assert.equal(s.pulse.phrases[2].result.accuracy, 80);
+});
+
+test('visible Pulse zones follow musical boundaries, including crossing holds and empty gaps', () => {
+  const s = session([note(9, 0, 3), note(11, 1), note(31)], [10, 20, 30, 40]);
+  const before = JSON.stringify(s.pulse);
+  const zones = s.pulse.zones(9, 2);
+  assert.deepEqual(zones, [{ index: 1, start: 0, end: 10 }, { index: 2, start: 10, end: 20 }]);
+  assert.deepEqual(s.pulse.zones(9, 2), zones, 'pause freezes the visible sections');
+  assert.equal(JSON.stringify(s.pulse), before, 'render data never changes awards or notes');
+  assert.deepEqual(s.pulse.zones(10.1, 2), [{ index: 2, start: 10, end: 20 }], 'old hold does not delay the next boundary');
+  assert.deepEqual(s.pulse.zones(25, 2), []);
+  assert.deepEqual(s.pulse.zones(29, 2), [{ index: 3, start: 30, end: 40 }]);
+  assert.deepEqual(s.pulse.zones(41, 2), []);
+});
+
+test('random layout requests three zones in short tracks and four or five in longer tracks', () => {
+  assert.equal(PHRASE_VERSION, 'random-zones-v1'); assert.equal(PULSE_RULES, 'strict-v1');
+  const counts = { 'overdrive-v1': 3, 'neon-circuit-v1': 3,
+    '0734D2E4-7693-418B-82F8-C6D88A02A782': 4, 'D0FE6721-1476-45C2-A8BA-0686488282BF': 5,
+    'F522698F-40CC-4E05-9164-00CFFF8576B7': 5 };
+  assert.deepEqual(PULSE_COUNTS, counts);
 });

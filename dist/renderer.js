@@ -257,7 +257,41 @@ export class Renderer {
     }
     c.globalAlpha = 1;
   }
-  render(game, time, difficulty, duration, countdown = 0, reducedMotion = false) {
+  renderPulseZones(zones, time, difficulty) {
+    const c = this.ctx, travel = TRAVEL[difficulty];
+    const position = stamp => stagePosition(this.paths, 1, 1 - (stamp - time) / travel)[1];
+    const edge = y => 132 - (y - 53) / 395 * 130;
+    c.save();
+    // These are musical sections, not hit windows. Notes are drawn on top later.
+    for (const zone of zones) {
+      const top = Math.max(53, position(zone.end)), bottom = Math.min(422, position(zone.start));
+      if (top >= bottom) continue;
+      const color = zone.index % 2 ? '#53e7f4' : '#c592ff';
+      c.beginPath(); c.moveTo(edge(top), top); c.lineTo(320 - edge(top), top);
+      c.lineTo(320 - edge(bottom), bottom); c.lineTo(edge(bottom), bottom); c.closePath();
+      c.fillStyle = color + '06'; c.fill();
+      // Broad colored gutters mark the entire section outside the playable runway.
+      for (const side of [0, 1]) {
+        const inner = y => side ? 326 - edge(y) : edge(y) - 6;
+        const outer = side ? 320 : 0;
+        c.beginPath(); c.moveTo(outer, top); c.lineTo(inner(top), top);
+        c.lineTo(inner(bottom), bottom); c.lineTo(outer, bottom); c.closePath();
+        c.fillStyle = color + '42'; c.fill();
+        c.beginPath(); c.moveTo(inner(top), top); c.lineTo(inner(bottom), bottom);
+        c.strokeStyle = color + 'cc'; c.lineWidth = 2; c.stroke();
+      }
+      const boundaries = [zone.start];
+      if (!zones.some(next => next.start === zone.end)) boundaries.push(zone.end);
+      for (const stamp of boundaries) {
+        if (stamp < time || stamp > time + travel) continue;
+        const y = position(stamp), left = edge(y);
+        c.beginPath(); c.moveTo(left, y); c.lineTo(320 - left, y);
+        c.strokeStyle = color; c.lineWidth = 1.5; c.stroke();
+      }
+    }
+    c.restore();
+  }
+  render(game, time, difficulty, duration, countdown = 0, reducedMotion = false, pulseZones = []) {
     const c = this.ctx;
     const dpr = Math.min(globalThis.devicePixelRatio || 1, 2);
     const width = Math.round(this.canvas.clientWidth * dpr);
@@ -274,6 +308,7 @@ export class Renderer {
     const rhythm = revenge ? this.rhythm.frame(game.notes, time) : { index: -1, age: Infinity, pulse: 0 };
     if (revenge) this.renderVenue(time, rhythm.pulse, reducedMotion);
     this.renderStage(time, revenge, reducedMotion, rhythm.pulse);
+    this.renderPulseZones(pulseZones, time, difficulty);
     this.renderEnergy(effects, reducedMotion, time, rhythm);
     for (let lane = 0; lane < 3; lane++) {
       const [x] = stagePosition(this.paths, lane, 1);
@@ -286,17 +321,29 @@ export class Renderer {
       c.beginPath();
       for (let i = 0; i <= 36; i++) {
         const [px, py] = stagePosition(this.paths, lane, i / 36);
+        if (py >= 404) {
+          c.lineTo(160 + (lane - 1) * (14 + 92 * (404 - 53) / 369), 404);
+          break;
+        }
         if (!i) c.moveTo(px, py); else c.lineTo(px, py);
       }
       c.strokeStyle = COLORS[lane] + '99'; c.lineWidth = revenge ? 1.6 : 1; c.shadowColor = COLORS[lane]; c.shadowBlur = reducedMotion ? 0 : 6; c.stroke(); c.shadowBlur = 0;
-      c.beginPath(); c.ellipse(x, 422, 31, 13, 0, 0, Math.PI * 2);
-      c.fillStyle = COLORS[lane] + (revenge ? '18' : '0d'); c.fill();
       const judgment = effects.judgments[lane];
-      const failed = judgment?.failed && judgment.age < .35;
-      const active = !failed && (game.held[lane] || (judgment && judgment.age < .18));
-      c.strokeStyle = failed ? '#ff777e' : active ? '#f3f2ee' : COLORS[lane]; c.lineWidth = active ? 3 : 2;
+      const active = !judgment?.failed && (game.held[lane] || (judgment && judgment.age < .18));
+      // An opaque inset keeps lane lines out of the target; the hit centre is unchanged.
+      c.beginPath(); c.ellipse(x, 426, 34, 15, 0, 0, Math.PI * 2);
+      c.fillStyle = '#030413cc'; c.fill();
+      c.beginPath(); c.ellipse(x, 422, 34, 16, 0, 0, Math.PI * 2);
+      c.strokeStyle = COLORS[lane] + '66'; c.lineWidth = 1.5; c.stroke();
+      const inset = c.createLinearGradient(x, 409, x, 435);
+      inset.addColorStop(0, '#24213e'); inset.addColorStop(.45, '#090b1d'); inset.addColorStop(1, '#151c32');
+      c.beginPath(); c.ellipse(x, 422, 31, 13, 0, 0, Math.PI * 2);
+      c.fillStyle = inset; c.fill();
+      c.strokeStyle = active ? '#f3f2ee' : COLORS[lane]; c.lineWidth = active ? 3 : 2;
       c.shadowColor = COLORS[lane]; c.shadowBlur = reducedMotion ? 0 : active ? 22 : 10;
       c.stroke(); c.shadowBlur = 0;
+      c.beginPath(); c.ellipse(x, 422, 28, 10, 0, Math.PI * 1.12, Math.PI * 1.88);
+      c.strokeStyle = active ? '#ffffff' : COLORS[lane] + '99'; c.lineWidth = active ? 2 : 1; c.stroke();
       if (revenge) {
         const turn = reducedMotion ? 0 : time * 1.3;
         c.strokeStyle = COLORS[lane]; c.lineWidth = 1.4;

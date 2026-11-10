@@ -1,12 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mount, deferred } from './helpers/ui-harness.mjs';
-import { renderPulse } from '../dist/pulse-view.js';
+import { renderPulse, pulseReasons } from '../dist/pulse-view.js';
 import { formatPercent } from '../dist/format.js';
 const pointer = { pointerId: 1, preventDefault() {} };
-const chart = [{ time: 1, lane: 0, duration: 0 }, { time: 13, lane: 1, duration: 0 }];
+const chart = [{ time: 1, lane: 0, duration: 0 }, { time: 26, lane: 1, duration: 0 }];
 for (const compatibleAudio of [false, true]) {
   test(`Pulse in ${compatibleAudio ? 'compatible' : 'Web Audio'} mode: pause, score, history and retry`, async t => {
+    t.mock.method(Math, 'random', () => 0);
     const ui = await mount(t, { settings: { compatibleAudio }, chart });
     await ui.openSong(); if (compatibleAudio) {
       const gate = deferred(); ui.native.gate = gate;
@@ -20,12 +21,12 @@ for (const compatibleAudio of [false, true]) {
       ui.tick(compatibleAudio ? position : position + (afterResume ? 2 : 0));
     }
     advance(1); ui.lanes[0].onpointerdown(pointer); ui.lanes[0].onpointerup(pointer);
-    advance(12); assert.equal(ui.node('pulse').dataset.outcome, 'perfect');
+    advance(6.1); assert.equal(ui.node('pulse').dataset.outcome, 'perfect');
     await ui.click('pause'); const title = ui.node('pulse-title').textContent;
     ui.tick(999); assert.equal(ui.node('pulse-title').textContent, title); assert.equal(ui.progress().history.length, 0);
     // Resume context starts from the current mocked clock. Restore it to pause time.
-    ui.audio.currentTime = 12; await ui.click('resume');
-    advance(13, true); ui.lanes[1].onpointerdown(pointer); ui.lanes[1].onpointerup(pointer);
+    ui.audio.currentTime = 6.1; await ui.click('resume');
+    advance(26, true); ui.lanes[1].onpointerdown(pointer); ui.lanes[1].onpointerup(pointer);
     advance(151, true);
     const attempt = ui.progress().history[0];
     assert.equal(attempt.pulse.total, 2); assert.equal(attempt.pulse.perfect, 2); assert.equal(attempt.result.score, 200);
@@ -68,17 +69,48 @@ test('Pulse uses Intl percentages and handles all verdicts without hiding the pl
   }
 });
 test('buffering does not advance Pulse or accept inputs; restart discards the unfinished run', async t => {
+  t.mock.method(Math, 'random', () => 0);
   const ui = await mount(t, { chart, settings: { compatibleAudio: true } });
   await ui.start();
   const media = ui.native.instances.at(-1); media.currentTime = 1; ui.tick(1);
   ui.lanes[0].onpointerdown(pointer); ui.lanes[0].onpointerup(pointer);
-  media.readyState = 2; media.currentTime = 12; ui.tick(12);
+  media.readyState = 2; media.currentTime = 6.1; ui.tick(6.1);
   assert.equal(ui.node('pulse').dataset.outcome, 'active');
   ui.lanes[2].onpointerdown(pointer); ui.lanes[2].onpointerup(pointer);
-  media.readyState = 4; ui.tick(12);
+  media.readyState = 4; ui.tick(6.1);
   assert.equal(ui.node('pulse').dataset.outcome, 'perfect');
   await ui.click('pause'); await ui.click('restart');
   assert.equal(ui.node('pulse').dataset.outcome, 'active'); assert.equal(ui.progress().history.length, 0);
   ui.native.instances.at(-1).currentTime = 151; ui.tick(151);
   assert.equal(ui.progress().history[0].pulse.captured, 0); assert.equal(ui.progress().history.length, 1);
+});
+
+test('results explain a failed Pulse with zero misses and clear details for demo', async t => {
+  const ui = await mount(t, { settings: { compatibleAudio: true }, chart: [{ time: 1, lane: 0, duration: 0 }] });
+  await ui.start();
+  ui.node('result-details').open = true;
+  ui.native.instances.at(-1).currentTime = 1.06; ui.tick(1.06);
+  ui.lanes[0].onpointerdown(pointer); ui.lanes[0].onpointerup(pointer);
+  ui.native.instances.at(-1).currentTime = 151; ui.tick(151);
+  assert.equal(ui.progress().history[0].result.misses, 0);
+  assert.equal(ui.progress().history[0].pulse.captured, 0);
+  assert.equal(ui.node('pulse-explanation').hidden, false);
+  assert.equal(ui.node('result-details').open, false);
+  assert.equal(ui.node('result-pulse-count').textContent, '0 / 1');
+  assert.ok(ui.node('pulse-breakdown').children[0].textContent.includes(formatPercent(80)));
+  assert.ok(ui.node('pulse-rule').textContent.includes(formatPercent(90)));
+  await ui.click('back-to-library'); await ui.start('demo');
+  ui.native.instances.at(-1).currentTime = 151; ui.tick(151);
+  assert.equal(ui.node('pulse-explanation').hidden, true);
+  assert.equal(ui.node('pulse-breakdown').children.length, 0);
+});
+
+test('Pulse explains every failed condition and never rounds a failed accuracy into a pass', () => {
+  const reasons = pulseReasons({ misses: 0, broken: 1, strays: 2, accuracy: 80 });
+  assert.equal(reasons.length, 3);
+  assert.ok(reasons.some(reason => reason.includes('удержаний')));
+  assert.ok(reasons.some(reason => reason.includes('Лишние')));
+  assert.ok(reasons.some(reason => reason.includes(formatPercent(80))));
+  assert.deepEqual(pulseReasons({ accuracy: 89.999, misses: 0, broken: 0, strays: 0 }), [`Точность ниже ${formatPercent(90)}`]);
+  assert.deepEqual(pulseReasons({ accuracy: 90, misses: 0, broken: 0, strays: 0 }), []);
 });

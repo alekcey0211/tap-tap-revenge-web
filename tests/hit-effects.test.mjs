@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { HitEffects } from '../dist/hit-effects.js';
 import { Game } from '../dist/engine.js';
 import { mount } from './helpers/ui-harness.mjs';
-import { Renderer } from '../dist/renderer.js?v=0.8.1';
+import { Renderer } from '../dist/renderer.js?v=0.8.2';
 
 const note = { lane: 1, judgment: 'PERFECT' };
 test('only successful heads generate bursts; effects use song time and bounded memory', () => {

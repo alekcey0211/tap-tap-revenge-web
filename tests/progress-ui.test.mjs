@@ -142,3 +142,23 @@ test('manual bests remain visible through the rules selector without mixing new 
   assert.equal(ui.node('record-empty').hidden, false);
   assert.deepEqual(ui.progress().records[0].result, old);
 });
+
+test('merged Pulse zones reset old awards but retain current Pulse and score history', async t => {
+  let progress = { records: [], history: [] };
+  const attempt = pulse => ({ songId: song.id, level: '1', id: crypto.randomUUID(), playedAt: '2026-11-10T10:00Z',
+    result: { score: 1000, accuracy: 100, bestStreak: 50 }, pulse });
+  const old = { pulseRules: 'strict-v1', phraseVersion: 'phrases-v1', captured: 8, perfect: 8, total: 8 };
+  const current = { pulseRules: 'strict-v1', phraseVersion: 'random-zones-v1', captured: 5, perfect: 4, total: 6 };
+  progress = recordAttempt(progress, attempt(old));
+  progress = recordAttempt(progress, attempt(current));
+  const saved = JSON.parse(exportProgress(DEFAULT_SETTINGS, progress));
+  const ui = await mount(t, { saved }); await ui.click('menu-progress');
+  assert.ok(ui.node('best-pulse-value').textContent.includes('5 / 6'));
+  assert.deepEqual(ui.progress().records, saved.progress.records);
+  assert.equal(ui.progress().history.length, 2);
+  assert.equal(ui.progress().records.length, 1, 'score records do not fork with the Pulse map');
+  assert.equal(ui.progress().pulseRecords.length, 1);
+  await ui.click('history-tab');
+  const rows = ui.node('history-list').children.filter(node => node.tagName === 'ARTICLE');
+  assert.equal(rows.filter(row => row.children.at(-1).children.some(node => node.textContent.includes('Pulse:'))).length, 1);
+});

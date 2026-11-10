@@ -1,20 +1,21 @@
 import { artwork } from './artwork.js';
-import { PhraseProgress } from './phrase-progress.js';
-import { PULSE_CHARTS } from './phrase-charts.js';
-import { renderPulse, pulseSummary } from './pulse-view.js';
+import { PhraseProgress } from './phrase-progress.js?v=0.8.2';
+import { PULSE_CHARTS, PULSE_COUNTS } from './phrase-charts.js?v=0.8.2';
+import { choosePulseZones } from './pulse-zones.js?v=0.8.2';
+import { renderPulse, renderPulseBreakdown } from './pulse-view.js?v=0.8.2';
 import { OfflineView } from './offline-view.js?v=0.8.0';
-import { Game } from './engine.js';
+import { Game, TRAVEL } from './engine.js';
 import { SongAudio } from './audio.js?v=0.5.3';
 import { MediaSongAudio } from './media-audio.js?v=0.3.1';
-import { Renderer } from './renderer.js?v=0.8.1';
+import { Renderer } from './renderer.js?v=0.8.2';
 
 import { Temporal } from './temporal.js';
 import { formatNumber, formatPercent, formatSigned, formatTime, formatCount } from './format.js?v=0.3.0';
-import { DEFAULT_SETTINGS, loadSave, saveSettings as writeSettings, recordAttempt, currentRecords, importProgress } from './storage.js?v=0.6.0';
-import { ProgressView } from './progress.js?v=0.8.0';
+import { DEFAULT_SETTINGS, loadSave, saveSettings as writeSettings, recordAttempt, currentRecords, importProgress } from './storage.js?v=0.8.2';
+import { ProgressView } from './progress.js?v=0.8.2';
 
 const $ = id => document.getElementById(id);
-const APP_VERSION = '0.8.1';
+const APP_VERSION = '0.8.2';
 if ($('app-version')) $('app-version').textContent = `v${APP_VERSION}`;
 $('settings-version').textContent = `v${APP_VERSION}`;
 $('pulse-target').textContent = formatPercent(90);
@@ -205,7 +206,8 @@ async function start(isDemo = false) {
     if (id !== requestId) return;
     renderer.effects.reset();
     game = new Game(chart, { automaticRevenge: true }); buffer = loadedBuffer; demo = isDemo; run = { song, level: difficulty };
-    pulse = !demo && !song.tutorial && PULSE_CHARTS[song.id] ? new PhraseProgress(game.notes, PULSE_CHARTS[song.id]) : null;
+    pulse = !demo && !song.tutorial && PULSE_CHARTS[song.id] ? new PhraseProgress(game.notes, PULSE_CHARTS[song.id],
+      choosePulseZones(game.notes, PULSE_CHARTS[song.id], PULSE_COUNTS[song.id])) : null;
     renderPulse(pulse?.view(0) ?? null);
     inputs.forEach(input => input.clear());
     demoActions = chart.flatMap(note => [{ time: note.time, lane: note.lane, down: true },
@@ -294,7 +296,9 @@ function finish() {
   const result = game.finish();
   const pulseResult = pulse?.finish();
   $('result-pulse').hidden = !pulseResult;
-  $('result-pulse').textContent = pulseResult ? pulseSummary(pulseResult) : '';
+  $('result-pulse-count').textContent = pulseResult ? `${formatNumber(pulseResult.captured)} / ${formatNumber(pulseResult.total)}` : '';
+  $('result-pulse-perfect').textContent = pulseResult ? `Идеальных: ${formatNumber(pulseResult.perfect)}` : '';
+  renderPulseBreakdown(pulse?.phrases);
   const key = `${run.song.id}:${run.level}`;
   const previousScore = records[key]?.score;
   const isRecord = !demo && !run.song.tutorial && (!records[key] || result.score > records[key].score);
@@ -315,7 +319,7 @@ function finish() {
   $('result-accuracy').textContent = formatPercent(result.accuracy);
   $('result-combo').textContent = formatNumber(result.bestStreak);
   $('result-misses').textContent = `Пропуски: ${formatNumber(result.misses)}`;
-  document.querySelector('.result-details').open = false;
+  $('result-details').open = false;
   $('result-stats').replaceChildren();
   for (const [label, value] of [['Точность', formatPercent(result.accuracy)], ['Лучшая серия', formatNumber(result.bestStreak)],
     ['Попадания / пропуски', `${formatNumber(result.hits)} / ${formatNumber(result.misses)}`], ['Perfect / Great', `${formatNumber(result.counts.PERFECT)} / ${formatNumber(result.counts.GREAT)}`],
@@ -374,7 +378,7 @@ function frame() {
       pulse?.advance(time);
     }
     renderPulse(pulse?.view(time) ?? null);
-    if (!$('game-screen').hidden) renderer.render(game, time, run.level, buffer.duration, countdown, settings.motion);
+    if (!$('game-screen').hidden) renderer.render(game, time, run.level, buffer.duration, countdown, settings.motion, pulse?.zones(time, TRAVEL[run.level]));
     text('time', `${formatTime(position)} / ${formatTime(buffer.duration)}`);
     text('live-score', formatNumber(game.score));
     text('live-combo', formatNumber(game.streak));
@@ -384,7 +388,7 @@ function frame() {
     $('game-screen').dataset.energy = multiplier === 8 ? 'active' : 'charging';
     $('song-progress').value = Math.min(1, Math.max(0, position / buffer.duration));
     $('revenge-progress').value = Math.min(50, game.streak);
-    text('revenge-label', multiplier === 8 ? `×${formatNumber(8)} · ДО ОШИБКИ` : `АВТО ×${formatNumber(8)} · ${formatNumber(Math.min(50, game.streak))} / ${formatNumber(50)}`);
+    text('revenge-label', multiplier === 8 ? `×${formatNumber(8)}` : `АВТО ×${formatNumber(8)} · ${formatNumber(Math.min(50, game.streak))} / ${formatNumber(50)}`);
     $('audio-status').hidden = audio !== mediaAudio;
     text('audio-status', audio.waiting ? 'Ожидаем звук…' : 'Совместимый звук');
     text('game-stats', `Очки: ${formatNumber(game.score)}; попадания: ${formatNumber(game.hits)}; пропуски: ${formatNumber(game.misses)}`);

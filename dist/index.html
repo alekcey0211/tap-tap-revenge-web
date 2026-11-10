@@ -11,8 +11,8 @@
   <link rel="apple-touch-icon" href="assets/identity/icon-180.png">
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="apple-mobile-web-app-title" content="Tap Tap Web">
-  <link rel="stylesheet" href="style.css?v=0.8.0">
-  <script type="module" src="app.js?v=0.8.1"></script>
+  <link rel="stylesheet" href="style.css?v=0.8.2">
+  <script type="module" src="app.js?v=0.8.2"></script>
 </head>
 <body>
   <main class="layout">
@@ -20,7 +20,7 @@
       <p class="eyebrow">TAP TAP REVENGE / WEB</p>
       <h1>Поймай<br>свой ритм<span class="accent">.</span></h1>
       <p class="subtle">Три дорожки. Музыка. Точность.</p>
-      <div class="instructions"><h2>Как играть</h2><p>Нажимай, когда ноты достигают колец. Длинные ноты удерживай до конца хвоста.</p><div class="key-row"><kbd>D</kbd><kbd>F</kbd><kbd>J</kbd></div><p><kbd>Esc</kbd> — пауза</p><p class="subtle">После 50 попаданий подряд ×8 включается автоматически и действует до ошибки.</p></div>
+      <div class="instructions"><h2>Как играть</h2><p>Нажимай, когда ноты достигают колец. Длинные ноты удерживай до конца хвоста.</p><div class="key-row"><kbd>D</kbd><kbd>F</kbd><kbd>J</kbd></div><p><kbd>Esc</kbd> — пауза</p><p class="subtle">После 50 попаданий подряд ×8 включается автоматически.</p></div>
     </aside>
     <div class="game-shell"><div class="stage-lights" aria-hidden="true"><i></i><i></i><i></i></div>
       <header class="appbar" id="appbar"><button id="home" class="icon-button" aria-label="К трекам" hidden>‹</button><span class="music-mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><h2 id="screen-title" tabindex="-1">Музыка</h2><button id="settings-open" class="icon-button" aria-label="Настройки">⚙</button></header>
@@ -68,8 +68,9 @@
         <div class="result-stage"><img id="result-art" class="result-art" alt=""></div><h3 id="result-heading"></h3><p id="result-artist"></p>
         <div class="score-caption" id="score-caption"></div><div id="final-score" class="final-score"></div><p id="record-delta" class="subtle" hidden></p><div id="result-rating"></div>
         <div class="result-summary"><div><strong id="result-accuracy"></strong><span>Точность</span></div><div><strong id="result-combo"></strong><span>Макс. комбо</span></div></div><p id="result-misses"></p>
-        <p id="result-pulse" class="pulse-summary" hidden></p>
-        <details class="result-details"><summary>Подробности</summary><dl id="result-stats"></dl></details>
+        <section id="result-pulse" class="pulse-summary pulse-result" aria-label="Результат Pulse" hidden><div><span class="pulse-result-label">PULSE</span><span id="result-pulse-caption">Фрагменты взяты</span></div><strong id="result-pulse-count"></strong><span id="result-pulse-perfect"></span></section>
+        <details id="pulse-explanation" class="result-details" hidden><summary><span class="detail-icon" aria-hidden="true">◈</span>Как засчитан Pulse</summary><p id="pulse-rule"></p><ul id="pulse-breakdown"></ul></details>
+        <details id="result-details" class="result-details"><summary><span class="detail-icon" aria-hidden="true">≋</span>Подробнее</summary><dl id="result-stats"></dl></details>
         <p id="calibration-result" hidden></p><button id="apply-calibration" class="primary" hidden>Применить поправку</button><button id="retry" class="primary">Ещё раз</button><button id="back-to-library" class="secondary">Выбрать трек</button>
       </section>
       <section id="progress-screen" class="screen progress-screen" hidden aria-label="Личный прогресс">
@@ -111,7 +112,7 @@
         <div class="settings-section"><label class="check" for="motion"><span>Меньше движения</span><input id="motion" type="checkbox" role="switch"></label><p class="subtle">Уменьшает движение фона и эффектов.</p></div>
         <p class="subtle">Настройки и рекорды — только в этом браузере.</p><button id="settings-close" class="primary">Готово</button>
       </section>
-      <section id="about-screen" class="screen utility-screen" hidden inert aria-labelledby="about-heading"><h2 id="about-heading" class="sr-only">Об игре</h2><p>Неофициальный веб-перенос Tap Tap Revenge 4 на основе APK 4.5.</p><p>Первые три песни, их карты и обложки — из оригинальной игры. Neon Circuit и Overdrive — оригинальные инструментальные композиции Pulse Lab: программный синтез без вокала и сторонних семплов, не нейрогенерация. Интерфейс и веб-движок написаны заново. Окна попадания, очки, бонусы удержания и длительность Revenge приближённые.</p><p>Tapulous и исполнители сохраняют права на оригинальные материалы.</p><h3>Как играть</h3><p>Нажимай на дорожки у колец. Длинные ноты удерживай. На клавиатуре — D / F / J. Стрелки встряхивания здесь нажимаются как обычные ноты. После 50 попаданий подряд ×8 включается автоматически и действует до ошибки.</p><h3>Pulse</h3><p>Бери фрагменты с точностью от <span id="pulse-target"></span>, без пропусков, лишних нажатий и срывов удержаний. Все попадания PERFECT — идеальный Pulse. Награды не меняют очки и Revenge; ошибка не отнимает уже взятые фрагменты.</p><p>Для калибровки нажимай на среднюю дорожку или F в такт метроному, не ориентируясь на ноты.</p><button id="about-close" class="primary">Понятно</button></section>
+      <section id="about-screen" class="screen utility-screen" hidden inert aria-labelledby="about-heading"><h2 id="about-heading" class="sr-only">Об игре</h2><p>Неофициальный веб-перенос Tap Tap Revenge 4 на основе APK 4.5.</p><p>Первые три песни, их карты и обложки — из оригинальной игры. Neon Circuit и Overdrive — оригинальные инструментальные композиции Pulse Lab: программный синтез без вокала и сторонних семплов, не нейрогенерация. Интерфейс и веб-движок написаны заново. Окна попадания, очки, бонусы удержания и длительность Revenge приближённые.</p><p>Tapulous и исполнители сохраняют права на оригинальные материалы.</p><h3>Как играть</h3><p>Нажимай на дорожки у колец. Длинные ноты удерживай. На клавиатуре — D / F / J. Стрелки встряхивания здесь нажимаются как обычные ноты. После 50 попаданий подряд ×8 включается автоматически.</p><h3>Pulse</h3><p>Бери фрагменты с точностью от <span id="pulse-target"></span>, без пропусков, лишних нажатий и срывов удержаний. Все попадания PERFECT — идеальный Pulse. Награды не меняют очки и Revenge; ошибка не отнимает уже взятые фрагменты.</p><p>Для калибровки нажимай на среднюю дорожку или F в такт метроному, не ориентируясь на ноты.</p><button id="about-close" class="primary">Понятно</button></section>
       <p id="status" role="status" class="status"></p>
     </div>
   </main>
