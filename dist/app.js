@@ -16,7 +16,7 @@ import { DEFAULT_SETTINGS, loadSave, saveSettings as writeSettings, recordAttemp
 import { ProgressView } from './progress.js?v=0.10.0';
 
 const $ = id => document.getElementById(id);
-const APP_VERSION = '0.10.0';
+const APP_VERSION = '0.10.1';
 if ($('app-version')) $('app-version').textContent = `v${APP_VERSION}`;
 $('settings-version').textContent = `v${APP_VERSION}`;
 $('pulse-target').textContent = formatPercent(90);

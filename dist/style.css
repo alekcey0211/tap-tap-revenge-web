@@ -491,7 +491,15 @@ body[data-reduced-motion="true"] *, body[data-reduced-motion="true"] *::before, 
 .menu-version { margin-top: 24px; font-size: 11px; letter-spacing: .06em; color: var(--muted); }
 /* A silent preview of the same renderer sits behind the song's controls. */
 .song-backdrop { position: absolute; top: 126px; bottom: 82px; left: 0; right: 0; pointer-events: none; opacity: .55; }
-.song-screen .selected-art, .song-controls { position: relative; }
+/* Soften only the lower preview; the scene, artwork and controls stay sharp. */
+.song-backdrop::after {
+  content: ''; position: absolute; inset: 50% 0 0;
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  background: linear-gradient(transparent, #10091b99);
+  -webkit-mask-image: linear-gradient(transparent, #000 35%);
+  mask-image: linear-gradient(transparent, #000 35%);
+}
+.song-screen .selected-art, .song-controls, body[data-screen="song-screen"] #status { position: relative; }
 .song-controls { background: linear-gradient(#10091b00, #10091be6 45%); border-radius: 18px; }
 #song-screen[data-departing="true"] { animation: song-depart 340ms ease-in both; }
 #song-screen[data-departing="true"] .selected-art > h3,
