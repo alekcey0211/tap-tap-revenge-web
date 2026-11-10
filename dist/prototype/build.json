@@ -21,7 +21,7 @@
     "lab.css": "53481389277fd4d4ee0c170c1d61048311e6284f219db6138850357c63927bb0",
     "build.mjs": "311d540c5edfb08ec882a1acb63409872b3e962325e8e9df35dac830acc8e902",
     "package.json": "3e35a43e33c3f2ee9d5bc1751d055ea3746872710eada522e679d2fcfcc926a7",
-    "package-lock.json": "d093f726a93d283acd43b139df87f78379bf49edbb76fd86a9a5b7644f62607e"
+    "package-lock.json": "09d23d4db78ede7dca7d426c7a54cfdf0881cef17ea4be76f29fe6925e8b06c0"
   },
   "mainSources": {
     "app.js": "dfbf1e2035c086bd3a763ede5a0b59d94e54e04803269d25594cae6919fa3137",

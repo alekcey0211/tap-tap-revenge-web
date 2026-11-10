@@ -116,6 +116,10 @@ for (const failure of ['corrupt', 'quota']) test(`migration ${failure} does not 
 });
 
 test('release CI builds Babylon and runs both full test suites before publication', async () => {
+  const lock = JSON.parse(await read('../prototype/package-lock.json'));
+  for (const entry of Object.values(lock.packages)) {
+    if (entry.resolved) assert.equal(new URL(entry.resolved).origin, 'https://registry.npmjs.org');
+  }
   for (const name of ['checks', 'pages']) {
     const text = await read(`../.github/workflows/${name}.yml`);
     for (const command of ['npm ci --prefix prototype', 'npm run build', 'npm run test:scene', 'npm test']) assert.ok(text.includes(`run: ${command}`));
