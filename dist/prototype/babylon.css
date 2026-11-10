@@ -21,9 +21,10 @@
 .babylon-background { position: absolute; inset: 0; overflow: clip; border-radius: inherit; pointer-events: none; z-index: -1; }
 .babylon-viewport { position: sticky; top: 0; height: 100svh; max-height: 100%; }
 #babylon-background-canvas { opacity: 0; }
-.babylon-viewport::after { content: ''; position: absolute; inset: 0; background: linear-gradient(#0b061b44, #10082233 30%, #10082288); }
+.babylon-viewport::after { content: ''; position: absolute; inset: 0; background: linear-gradient(#0b061b77, #10082266 30%, #100822aa); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 body[data-screen='game-screen'] .babylon-background { visibility: hidden; }
 .utility-screen { background: #100b2044; }
+.song-controls { background: none; }
 body[data-utility='true'] .appbar { position: relative; top: auto; background: transparent; }
 /* HUD overlays the venue; it no longer takes height away from the runway. */
 #game-screen { position: relative; isolation: isolate; padding: 8px 0 0; }
