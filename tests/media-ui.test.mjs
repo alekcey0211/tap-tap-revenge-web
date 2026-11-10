@@ -118,6 +118,7 @@ test('hiding the page during native start stops audio even when play resolves la
   const ui = await mount(t, options); await ui.openSong();
   const gate = deferred(); ui.native.gate = gate; const started = ui.click('play');
   ui.document.hidden = true; ui.events.visibilitychange(); gate.resolve(); await started;
-  assert.equal(ui.document.body.dataset.screen, 'library');
+  assert.equal(ui.document.body.dataset.screen, 'song-screen');
+  assert.match(ui.location.hash, /^#\/song\//);
   assert.equal(ui.native.instances[0].paused, true);
 });

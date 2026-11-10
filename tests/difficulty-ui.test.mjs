@@ -57,3 +57,47 @@ test('progress reuses song difficulty cards without starting audio', async t => 
   }
   assert.equal(ui.audio.starts.length + ui.native.plays.length, 0);
 });
+
+test('switching difficulty preserves DOM, art and button label without a transient status block', async t => {
+  const ui = await mount(t); await ui.openSong();
+  const cards = [...ui.node('difficulties').children];
+  const tracks = [...ui.node('tracks').children];
+  const artwork = ui.node('hero-art').src;
+  const loads = ui.audio.loads.length;
+  const { deferred } = await import('./helpers/ui-harness.mjs');
+  const gate = deferred(); ui.chartNetwork.gates.set('3', gate);
+  const loading = cards[2].onclick();
+  assert.equal(ui.node('play').disabled, true);
+  assert.equal(ui.node('play-label').textContent, 'Играть');
+  assert.equal(ui.node('song-status').textContent, '');
+  assert.equal(ui.node('song-load-retry').hidden, true);
+  assert.equal(ui.node('play').attrs['aria-busy'], 'true');
+  for (let i = 0; i < 4; i++) assert.equal(ui.node('difficulties').children[i], cards[i]);
+  for (let i = 0; i < tracks.length; i++) assert.equal(ui.node('tracks').children[i], tracks[i]);
+  assert.equal(ui.node('hero-art').src, artwork);
+  gate.resolve(); await loading;
+  assert.equal(ui.node('play').attrs['aria-busy'], 'false');
+  assert.equal(ui.node('song-status').textContent, '');
+  assert.equal(ui.audio.loads.length, loads);
+  const requests = ui.chartNetwork.requests.length;
+  await cards[2].onclick();
+  assert.equal(ui.chartNetwork.requests.length, requests, 'reselecting current card does not reload');
+});
+
+test('rapid changes ignore stale chart completion; errors remain visible and retryable', async t => {
+  const ui = await mount(t, { settings: { compatibleAudio: true } }); await ui.openSong();
+  const { deferred } = await import('./helpers/ui-harness.mjs');
+  const gate = deferred(); ui.chartNetwork.gates.set('2', gate);
+  const old = ui.node('difficulties').children[1].onclick();
+  await ui.node('difficulties').children[3].onclick();
+  gate.resolve(); await old;
+  await ui.click('play'); assert.equal(ui.node('mode-label').textContent, 'Экстрим');
+  await ui.click('pause'); await ui.click('quit'); await ui.openSong();
+  ui.chartNetwork.failures.add('3');
+  await ui.node('difficulties').children[2].onclick();
+  assert.equal(ui.node('play').disabled, true);
+  assert.equal(ui.node('song-load-retry').hidden, false);
+  assert.match(ui.node('song-status').textContent, /Не удалось/);
+  ui.chartNetwork.failures.clear(); await ui.click('song-load-retry');
+  assert.equal(ui.node('play').disabled, false);
+});

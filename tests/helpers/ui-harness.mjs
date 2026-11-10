@@ -11,7 +11,7 @@ export function deferred() {
 }
 
 // Minimal DOM/audio doubles. Browser layout and native input are checked separately.
-export async function mount(t, { records = {}, settings = {}, bootFailure = false, saved = null, storageFailure = false, chart = null } = {}) {
+export async function mount(t, { records = {}, settings = {}, bootFailure = false, saved = null, storageFailure = false, chart = null, hash = '' } = {}) {
   const html = await readFile(new URL('../../dist/index.html', import.meta.url), 'utf8');
   const elements = new Map(), lanes = [], events = {}, frames = [], values = new Map();
   values.set('ttr-web-settings', JSON.stringify(settings));
@@ -83,8 +83,23 @@ export async function mount(t, { records = {}, settings = {}, bootFailure = fals
     removeAttribute(name) { delete this[name]; }
     load() {}
   }
+  const entries = [{ hash, state: null }];
+  let historyIndex = 0;
+  const location = { hash };
+  const history = {
+    get state() { return entries[historyIndex].state; },
+    pushState(state, _, hash) { entries.splice(historyIndex + 1); entries.push({ hash, state }); historyIndex++; location.hash = hash; },
+    replaceState(state, _, hash) { entries[historyIndex] = { hash, state }; location.hash = hash; },
+    go(delta) {
+      if (!entries[historyIndex + delta]) return;
+      historyIndex += delta; location.hash = entries[historyIndex].hash;
+      events.popstate?.(); events.hashchange?.();
+    },
+    back() { this.go(-1); }, forward() { this.go(1); },
+  };
+  const chartNetwork = { requests: [], gates: new Map(), failures: new Set() };
   const globals = {
-    document, window: { scrollY: 0, scrollTo({ top }) { this.scrollY = top; }, addEventListener: (name, fn) => { events[name] = fn; } },
+    document, window: { location, history, scrollY: 0, scrollTo({ top }) { this.scrollY = top; }, addEventListener: (name, fn) => { events[name] = fn; } },
     AudioContext, Audio, performance: { now: () => native.now }, matchMedia: () => ({ matches: false }),
     requestAnimationFrame: callback => { frames.push(callback); },
     localStorage: { getItem: key => values.get(key) || null, setItem: (key, value) => { if (storageFailure) throw new Error('quota'); values.set(key, value); } },
@@ -96,7 +111,13 @@ export async function mount(t, { records = {}, settings = {}, bootFailure = fals
         if (audio.loadFailure) return { ok: false };
         return { ok: true, blob: async () => new Blob(['music'], { type: 'audio/mp4' }) };
       }
-      if (chart && /assets\/tracks\/.*\/\d\.json$/.test(url)) return { ok: true, json: async () => chart };
+      if (/assets\/tracks\/.*\/\d\.json$/.test(url)) {
+        chartNetwork.requests.push(url);
+        const level = url.match(/(\d)\.json$/)[1];
+        if (chartNetwork.gates.has(level)) await chartNetwork.gates.get(level).promise;
+        if (chartNetwork.failures.has(level)) return { ok: false };
+        if (chart) return { ok: true, json: async () => chart };
+      }
       return { ok: true, json: async () => JSON.parse(await readFile(new URL('../../dist/' + url, import.meta.url))) };
     },
   };
@@ -114,7 +135,8 @@ export async function mount(t, { records = {}, settings = {}, bootFailure = fals
   await import('../../dist/app.js?ui-test=' + sequence++);
   const node = id => document.getElementById(id);
   return {
-    node, audio, native, catalog, document, lanes, values, events, detail,
+    node, audio, native, catalog, document, lanes, values, events, detail, history, location, chartNetwork,
+    navigate(hash) { history.pushState(null, '', hash); events.hashchange(); },
     openSong(title = catalog.find(song => !song.tutorial).title) {
       if (document.body.dataset.screen === 'menu') node('menu-play').onclick();
       return node('tracks').children.find(button => button.children[1].children[0].textContent === title).onclick();

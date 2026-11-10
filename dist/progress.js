@@ -1,4 +1,4 @@
-import { LEVELS, renderDifficulties } from './difficulty.js?v=0.10.0';
+import { LEVELS, renderDifficulties } from './difficulty.js?v=0.10.3';
 import { artwork } from './artwork.js?v=0.10.0';
 import { PULSE_RULES } from './phrase-progress.js?v=0.9.0';
 import { PHRASE_VERSION } from './phrase-charts.js?v=0.9.0';

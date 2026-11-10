@@ -43,7 +43,9 @@ for (const compatibleAudio of [false, true]) {
       const starting = ui.openSong(); await Promise.resolve();
       if (event === 'visibilitychange') ui.document.hidden = true;
       ui.events[event](); gate.resolve(); await starting;
-      assert.equal(ui.document.body.dataset.screen, 'library'); assert.equal(plays(ui), 0);
+      assert.equal(ui.document.body.dataset.screen, 'song-screen'); assert.equal(plays(ui), 0);
+      assert.equal(ui.node('song-load-retry').hidden, false);
+      assert.match(ui.location.hash, /^#\/song\//);
     });
   }
 

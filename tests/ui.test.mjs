@@ -162,7 +162,8 @@ test('hiding the page during loading cancels the pending start', async t => {
   const start = ui.openSong(); await Promise.resolve();
   ui.document.hidden = true; ui.events.visibilitychange();
   ui.audio.loadGate.resolve(); await start;
-  assert.equal(ui.document.body.dataset.screen, 'library');
+  assert.equal(ui.document.body.dataset.screen, 'song-screen');
+  assert.match(ui.location.hash, /^#\/song\//);
   assert.equal(ui.audio.starts.length, 0);
 });
 

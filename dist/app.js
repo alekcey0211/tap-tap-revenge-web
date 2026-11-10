@@ -1,4 +1,5 @@
-import { LEVELS, renderDifficulties } from './difficulty.js?v=0.10.0';
+import { HashRouter, parseRoute, routeHash } from './routing.js?v=0.10.3';
+import { LEVELS, renderDifficulties } from './difficulty.js?v=0.10.3';
 import { artwork } from './artwork.js?v=0.10.0';
 import { PhraseProgress } from './phrase-progress.js?v=0.9.0';
 import { PULSE_CHARTS, PULSE_COUNTS } from './phrase-charts.js?v=0.9.0';
@@ -13,10 +14,10 @@ import { Renderer } from './renderer.js?v=0.9.0';
 import { Temporal } from './temporal.js';
 import { formatNumber, formatPercent, formatSigned, formatTime } from './format.js?v=0.3.0';
 import { DEFAULT_SETTINGS, loadSave, saveSettings as writeSettings, recordAttempt, currentRecords, importProgress } from './storage.js?v=0.8.2';
-import { ProgressView } from './progress.js?v=0.10.0';
+import { ProgressView } from './progress.js?v=0.10.3';
 
 const $ = id => document.getElementById(id);
-const APP_VERSION = '0.10.2';
+const APP_VERSION = '0.10.3';
 if ($('app-version')) $('app-version').textContent = `v${APP_VERSION}`;
 $('settings-version').textContent = `v${APP_VERSION}`;
 $('pulse-target').textContent = formatPercent(90);
@@ -32,7 +33,7 @@ try { browserStorage = localStorage; } catch { /* Storage access itself can be d
 const loaded = loadSave(browserStorage, { ...DEFAULT_SETTINGS, motion: matchMedia('(prefers-reduced-motion: reduce)').matches });
 const settings = loaded.settings;
 let progress = loaded.progress, records = currentRecords(progress), saveWarning = loaded.warning, storageWritable = loaded.writable;
-let progressView;
+let progressView, router;
 const pageStack = [];
 const screenTitles = { menu: 'Главное меню', library: 'Музыка', 'song-screen': 'Песня', 'game-screen': 'Игра', results: 'Результат',
   preparation: 'Подготовка трека', 'progress-screen': 'Прогресс', 'settings-screen': 'Настройки',
@@ -52,6 +53,7 @@ function show(screen) {
     $(name).hidden = name !== screen; $(name).inert = name !== screen;
   }
   document.body.dataset.screen = screen;
+  router?.write(currentRoute());
   document.body.dataset.utility = String(['settings-screen', 'about-screen', 'offline-screen', 'pause-screen', 'import-screen'].includes(screen));
   $('appbar').hidden = ['menu', 'game-screen'].includes(screen);
   $('home').hidden = ['menu', 'game-screen', 'preparation', 'pause-screen'].includes(screen);
@@ -66,24 +68,27 @@ function show(screen) {
 function openPage(screen, focus = 'screen-title', returnFocus = document.activeElement) {
   if (document.hidden || document.body.dataset.screen === screen) return;
   if (['playing', 'resuming', 'starting'].includes(state)) pause();
-  pageStack.push({ screen: document.body.dataset.screen, focus: returnFocus, scroll: window.scrollY });
+  pageStack.push({ screen: document.body.dataset.screen, focus: returnFocus, scroll: window.scrollY, hash: currentRoute() });
   show(screen); $(focus).focus({ preventScroll: true });
 }
-function backPage() {
+function backPage(fromHistory = false) {
+  if (fromHistory !== true && pageStack.length && router?.backTo(pageStack.at(-1).hash)) return;
   const previous = pageStack.pop();
-  if (!previous) return showLibrary();
+  if (!previous) return document.body.dataset.screen === 'offline-screen' ? openSong(selected) : showMenu();
   show(previous.screen);
   window.scrollTo({ top: previous.scroll, behavior: 'instant' });
   if (previous.focus?.isConnected && !previous.focus.disabled) previous.focus.focus({ preventScroll: true });
 }
-function showLibrary() {
+function resetSession() {
   requestId++; progressView?.close();
   audio.stop(); mediaAudio.dispose(); readyTrack = null; preparedAudio = null; state = 'library'; inputs.forEach(input => input.clear());
   pageStack.length = 0;
-  show('library'); refresh(); if (saveWarning) $('status').textContent = saveWarning; $('tracks').children[0]?.focus({ preventScroll: true });
+}
+function showLibrary() {
+  resetSession(); show('library'); refresh(); if (saveWarning) $('status').textContent = saveWarning; $('tracks').children[0]?.focus({ preventScroll: true });
 }
 function showMenu() {
-  showLibrary(); state = 'menu'; show('menu'); $('menu-play').focus({ preventScroll: true });
+  resetSession(); state = 'menu'; show('menu'); refresh(); $('menu-play').focus({ preventScroll: true });
 }
 function artistName(song) { return song.artist.replace(' · программный синтез', ''); }
 function refresh() {
@@ -106,7 +111,14 @@ function refresh() {
     button.onclick = () => openSong(song);
     $('tracks').append(button);
   }
-  renderDifficulties($('difficulties'), selected, level, value => { level = value; return prepareSong(); });
+  refreshSongControls();
+  $('settings-calibration').disabled = false;
+  $('menu-play').disabled = false; $('menu-progress').disabled = false;
+}
+function refreshSongControls() {
+  renderDifficulties($('difficulties'), selected, level, value => {
+    level = value; router?.write(currentRoute(), true); return prepareSong({ difficultyOnly: true });
+  });
   for (const id of ['song-difficulty', 'record', 'offline-open']) $(id).hidden = Boolean(selected.tutorial);
   const best = records[`${selected.id}:${level}`];
   const hasRecord = Number.isFinite(best?.score) && Number.isFinite(best?.accuracy);
@@ -114,8 +126,6 @@ function refresh() {
   $('song-best-empty').hidden = hasRecord;
   $('song-best-score').textContent = hasRecord ? formatNumber(best.score) : '';
   $('song-best-accuracy').textContent = hasRecord ? `Точность ${formatPercent(best.accuracy)}` : '';
-  $('settings-calibration').disabled = false;
-  $('menu-play').disabled = false; $('menu-progress').disabled = false;
 }
 async function json(url) {
   const response = await fetch(url);
@@ -144,21 +154,28 @@ function preparation(song, difficulty, error = false) {
     : (song ? 'Игра начнётся после загрузки.' : 'Готовим список треков.');
   if (error) $('load-retry').focus({ preventScroll: true });
 }
-function openSong(song = selected) {
+function openSong(song = selected, options) {
   if (document.hidden || !song) return;
   pageStack.length = 0;
   selected = song; if (!song.levels[level]) level = '1';
   show('song-screen'); $('home').focus({ preventScroll: true });
-  return prepareSong();
+  return prepareSong(options);
 }
-async function prepareSong() {
+async function prepareSong({ difficultyOnly = false, gesture = true } = {}) {
   const id = ++requestId, song = selected, difficulty = level;
   audio.stop(); mediaAudio.dispose(); readyTrack = null;
   audio = settings.compatibleAudio ? mediaAudio : webAudio;
   const output = audio;
-  state = 'song-loading'; refresh();
-  $('play').disabled = true; $('play-label').textContent = 'Готовим трек…';
-  $('song-load-retry').hidden = true; $('song-status').textContent = 'Загружаем музыку и карту. Звук начнётся только после «Играть».';
+  state = 'song-loading';
+  if (difficultyOnly) refreshSongControls(); else refresh();
+  $('play').disabled = true; $('play-label').textContent = 'Играть';
+  $('play').setAttribute('aria-busy', 'true');
+  $('song-load-retry').hidden = true; $('song-status').textContent = '';
+  // A restored URL is not a user gesture. Defer Web Audio unlock to Play.
+  if (!gesture && output === webAudio) {
+    state = 'song-unprepared'; $('play').disabled = false; $('play').setAttribute('aria-busy', 'false');
+    return;
+  }
   try {
     // Selecting a song is a gesture; Web Audio unlocks silently, native mode never creates a context.
     if (output === webAudio) await output.unlock();
@@ -179,7 +196,7 @@ async function prepareSong() {
     preparedAudio = null; state = 'song-error'; $('play-label').textContent = 'Играть';
     $('song-load-retry').hidden = false;
     $('song-status').textContent = 'Не удалось подготовить трек. Повтори загрузку. Без сети доступны заранее скачанные песни.';
-  }
+  } finally { if (id === requestId) $('play').setAttribute('aria-busy', 'false'); }
 }
 function stageEntrance() {
   if (settings.motion || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -193,6 +210,13 @@ $('song-screen').onanimationend = event => {
   }
 };
 async function start() {
+  if (document.hidden) return;
+  if (state === 'song-unprepared') {
+    const id = requestId + 1;
+    await prepareSong();
+    if (requestId === id && state === 'song-ready' && document.body.dataset.screen === 'song-screen') return start();
+    return;
+  }
   if (document.hidden || !['song-ready', 'results', 'paused'].includes(state)) return;
   const expected = settings.compatibleAudio ? mediaAudio : webAudio;
   if (!readyTrack || readyTrack.song.id !== selected.id || readyTrack.difficulty !== level || readyTrack.output !== expected) return openSong(selected);
@@ -401,10 +425,12 @@ function frame() {
 $('song-load-retry').onclick = prepareSong;
 $('play').onclick = () => start();
 function goBack() {
-  if (document.body.dataset.screen === 'library') return showMenu();
+  if (document.body.dataset.screen === 'library') { if (!router?.backTo('#/')) showMenu(); return; }
+  if (document.body.dataset.screen === 'song-screen' && router?.backTo('#/library')) return;
   if (document.body.dataset.screen === 'progress-screen') progressView.close();
   if (document.body.dataset.screen === 'import-screen') return progressView.cancelImport();
-  return pageStack.length ? backPage() : showLibrary();
+  if (pageStack.length) return backPage();
+  return document.body.dataset.screen === 'song-screen' ? showLibrary() : showMenu();
 }
 $('home').onclick = goBack;
 $('pause').onclick = () => pause();
@@ -414,7 +440,7 @@ $('quit').onclick = showLibrary;
 $('retry').onclick = () => { selected = run.song; level = run.level; return start(); };
 $('back-to-library').onclick = showLibrary;
 function selectCalibration() {
-  showLibrary();
+  resetSession();
   selected = catalog.find(song => song.tutorial); level = '1';
   const loading = openSong(selected);
   $('status').textContent = 'Нажимай среднюю дорожку или F в такт метроному. Первые ноты начинаются на 12-й секунде.';
@@ -442,7 +468,7 @@ $('compatible-audio').onchange = event => {
   settings.compatibleAudio = event.target.checked;
   $('volume').disabled = settings.compatibleAudio;
   saveSettings();
-  if (['song-ready', 'song-loading', 'song-error'].includes(state)) return prepareSong();
+  if (['song-ready', 'song-loading', 'song-error', 'song-unprepared'].includes(state)) return prepareSong();
 };
 $('volume').oninput = event => { settings.volume = Number(event.target.value); $('volume-value').value = formatPercent(settings.volume); audio.setVolume(settings.volume / 100); saveSettings(); };
 $('offset').onchange = event => { const value = Number(event.target.value); settings.offset = Number.isFinite(value) ? Math.max(-500, Math.min(500, value)) : 0; event.target.value = settings.offset; saveSettings(); };
@@ -469,7 +495,12 @@ window.addEventListener('keydown', event => {
 });
 window.addEventListener('keyup', event => { if (event.code in keys) up(keys[event.code], event.code); });
 function leavePage() {
-  if (['song-loading', 'starting'].includes(state)) showLibrary(); else pause();
+  if (state === 'song-loading') {
+    requestId++; audio.stop(); mediaAudio.dispose(); readyTrack = null;
+    state = 'song-error'; $('play').disabled = true; $('play').setAttribute('aria-busy', 'false');
+    $('song-load-retry').hidden = false;
+    $('song-status').textContent = 'Подготовка прервана. Повтори загрузку.';
+  } else pause();
 }
 document.addEventListener('visibilitychange', () => { if (document.hidden) leavePage(); });
 window.addEventListener('pagehide', leavePage);
@@ -489,6 +520,39 @@ $('menu-progress').onclick = event => {
   audio.stop(); state = 'progress'; openPage('progress-screen', 'screen-title', event?.currentTarget); progressView.open(catalog, selected, level);
 };
 
+function currentRoute() {
+  return routeHash({ screen: document.body.dataset.screen, song: selected, level });
+}
+function applyRoute(hash) {
+  const route = parseRoute(hash, catalog);
+  const canonical = routeHash(route);
+  // Returning from utility pages preserves the paused run and the existing audio preparation.
+  const previous = pageStack.findLastIndex(page => page.hash === canonical);
+  if (previous >= 0) {
+    if (document.body.dataset.screen === 'import-screen') progressView.close();
+    pageStack.splice(previous + 1);
+    backPage(true);
+    return;
+  }
+  const sameSong = route.song?.id === selected?.id && route.level === level;
+  if (!['boot', 'boot-error'].includes(state) && sameSong && ['settings-screen', 'about-screen', 'offline-screen'].includes(route.screen)) {
+    openPage(route.screen);
+    return;
+  }
+  resetSession();
+  selected = route.song || selected; level = route.level || level;
+  refresh();
+  if (route.screen === 'song-screen') {
+    const loading = openSong(selected, { gesture: false });
+    if (selected.tutorial) $('status').textContent = 'Нажимай среднюю дорожку или F в такт метроному. Первые ноты начинаются на 12-й секунде.';
+    return loading;
+  }
+  if (route.screen === 'progress-screen') {
+    state = 'progress'; show('progress-screen'); progressView.open(catalog, selected, level);
+  } else if (route.screen === 'menu') showMenu();
+  else show(route.screen);
+}
+
 async function initialize() {
   const id = ++requestId;
   state = 'boot'; preparation(null);
@@ -499,7 +563,11 @@ async function initialize() {
     renderer = new Renderer($('canvas'), paths);
     venueRenderer = new Renderer($('venue-canvas'), paths);
     previewRenderer = new Renderer($('song-canvas'), paths); previewGame = new Game([]);
-    state = 'menu'; show('menu'); refresh(); if (saveWarning) $('status').textContent = saveWarning; $('menu-play').focus({ preventScroll: true }); requestAnimationFrame(frame);
+    refresh();
+    router = new HashRouter(window, applyRoute);
+    await router.start();
+    if (saveWarning) $('status').textContent = saveWarning;
+    requestAnimationFrame(frame);
   } catch {
     if (id !== requestId) return;
     state = 'boot-error'; preparation(null, null, true);
