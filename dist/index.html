@@ -11,8 +11,8 @@
   <link rel="apple-touch-icon" href="assets/identity/icon-180.png">
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="apple-mobile-web-app-title" content="Tap Tap Web">
-  <link rel="stylesheet" href="style.css?v=0.7.1">
-  <script type="module" src="app.js?v=0.7.1"></script>
+  <link rel="stylesheet" href="style.css?v=0.8.0">
+  <script type="module" src="app.js?v=0.8.0"></script>
 </head>
 <body>
   <main class="layout">
@@ -23,9 +23,22 @@
       <div class="instructions"><h2>Как играть</h2><p>Нажимай, когда ноты достигают колец. Длинные ноты удерживай до конца хвоста.</p><div class="key-row"><kbd>D</kbd><kbd>F</kbd><kbd>J</kbd></div><p><kbd>Esc</kbd> — пауза</p><p class="subtle">После 50 попаданий подряд ×8 включается автоматически и действует до ошибки.</p></div>
     </aside>
     <div class="game-shell"><div class="stage-lights" aria-hidden="true"><i></i><i></i><i></i></div>
-      <header class="appbar" id="appbar"><button id="home" class="icon-button" aria-label="К трекам" hidden>‹</button><span class="music-mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><h2 id="screen-title">Музыка</h2><button id="settings-open" class="icon-button" aria-label="Настройки">⚙</button></header>
+      <header class="appbar" id="appbar"><button id="home" class="icon-button" aria-label="К трекам" hidden>‹</button><span class="music-mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><h2 id="screen-title" tabindex="-1">Музыка</h2><button id="settings-open" class="icon-button" aria-label="Настройки">⚙</button></header>
+      <div id="song-backdrop" class="song-backdrop" aria-hidden="true" hidden><canvas id="song-canvas"></canvas></div>
+      <section id="menu" class="screen main-menu" hidden aria-labelledby="menu-heading">
+        <p class="eyebrow">МУЗЫКА · РИТМ · ТОЧНОСТЬ</p>
+        <h2 id="menu-heading">TAP TAP<span>REVENGE</span></h2>
+        <p class="menu-subtitle">Поймай свой ритм</p>
+        <nav class="menu-actions" aria-label="Главное меню">
+          <button id="menu-play" class="primary" disabled>▶ Играть</button>
+          <button id="menu-progress" class="secondary" disabled>Мой прогресс</button>
+          <button id="menu-settings" class="secondary">Настройки</button>
+          <button id="menu-about" class="text-button">Об игре</button>
+        </nav>
+        <p class="menu-version">WEB · <span id="app-version" title="Версия приложения"></span></p>
+      </section>
       <section id="library" class="screen library" aria-label="Выбор трека">
-        <p class="catalog-caption"><span id="catalog-count"></span> · <span id="app-version" title="Версия приложения"></span></p>
+        <p class="catalog-caption"><span id="catalog-count"></span></p>
         <div id="tracks" role="group" aria-label="Выбрать трек"></div>
         <nav class="library-nav" aria-label="Разделы игры"><button id="progress-open" class="text-button" disabled>↗ Мой прогресс</button><button id="about-open" class="text-button">Об игре</button><button id="calibration" class="text-button" disabled>Калибровка</button></nav>
       </section>
@@ -37,7 +50,7 @@
           <p id="song-status" class="song-status" role="status"></p><button id="song-load-retry" class="text-button" hidden>Повторить загрузку</button>
           <button id="play" class="primary" disabled><span aria-hidden="true">▶</span><span id="play-label">Играть</span></button>
           <button id="demo" class="text-button" disabled>▷ Демо · без рекорда</button>
-          <button id="offline-open" class="text-button">↓ Установка и офлайн</button>
+          <button id="offline-open" class="text-button">↓ Скачать трек</button>
         </div>
       </section>
       <section id="game-screen" class="screen" hidden aria-label="Игра">
@@ -81,25 +94,27 @@
         <div class="preparation-message" role="status"><div id="loading-indicator" class="spinner" aria-hidden="true"></div><div id="error-icon" aria-hidden="true" hidden>!</div><h3 id="preparation-heading">Загружаем трек…</h3><p id="preparation-description">Игра начнётся после загрузки.</p></div>
         <div class="preparation-actions"><button id="load-begin" class="primary" hidden>Начать со звуком</button><button id="load-retry" class="primary" hidden>Повторить загрузку</button><button id="load-cancel" class="secondary">К трекам</button></div>
       </section>
+      <section id="offline-screen" class="screen utility-screen" hidden inert aria-labelledby="offline-heading">
+        <h2 id="offline-heading" class="sr-only">Скачать трек</h2>
+        <section class="settings-section"><h3 id="offline-track"></h3><p id="offline-state" role="status">Для скачивания дождись подготовки офлайна.</p><button id="offline-download" class="primary" disabled>Скачать для офлайна</button><button id="offline-remove" class="secondary" hidden>Удалить скачанный трек</button><p>Музыка, обложка и все сложности выбранного трека. Удаление скачивания не удаляет рекорды. Другой трек можно выбрать в библиотеке.</p></section>
+        <p>Установка на домашний экран и обновления приложения находятся в настройках.</p><button id="offline-settings" class="secondary">Открыть настройки</button>
+        <button id="offline-close" class="primary">Готово</button>
+      </section>
+      <section id="pause-screen" class="screen utility-screen" hidden inert aria-labelledby="pause-heading"><span class="pause-symbol" aria-hidden="true">Ⅱ</span><h2 id="pause-heading">Пауза</h2><p>Ритм подождёт.</p><p id="pause-track"></p><p id="pause-error" role="status" hidden></p><button id="resume" class="primary">Продолжить</button><button id="restart" class="secondary">Начать заново</button><button id="quit" class="text-button">К трекам</button></section>
+      <section id="import-screen" class="screen utility-screen" hidden inert aria-labelledby="import-heading"><h2 id="import-heading">Восстановить прогресс?</h2><p id="import-summary"></p><p>Файл заменит текущие рекорды, историю и настройки, включая режим звука. Сначала сохрани текущий прогресс, если хочешь оставить копию.</p><p id="import-error" class="save-warning" role="status" hidden></p><button id="import-confirm" class="primary">Заменить прогресс</button><button id="import-cancel" class="secondary">Отмена</button></section>
+      <section id="settings-screen" class="screen utility-screen" hidden inert aria-labelledby="settings-heading">
+        <h2 id="settings-heading" class="sr-only">Настройки</h2>
+        <section class="settings-section"><h3>Версия и обновления</h3><p class="installed-version">Текущая версия <strong id="settings-version"></strong></p><p id="update-status" role="status">Готовим игру для офлайна…</p><button id="update-check" class="secondary" disabled>Проверить обновления</button></section>
+        <section class="settings-section"><h3>На домашнем экране</h3><p>На iPhone открой игру в Safari: «Поделиться» → «На экран Домой». Если доступен переключатель «Открывать как веб-приложение», включи его.</p><p>После установки открой игру с новой иконки с интернетом и скачай нужные треки именно там. Настройки и прогресс между браузером и приложением могут не переноситься: используй файл из «Моего прогресса».</p><p>Браузер может освободить место и удалить скачанное. Перед поездкой проверь запуск без сети; прогресс сохраняй в файл.</p></section>
+        <div class="settings-section"><h3>Звук</h3><label class="check" for="compatible-audio"><span>Совместимый звук</span><input id="compatible-audio" type="checkbox" role="switch" aria-describedby="compatible-help"></label><p id="compatible-help" class="subtle">Включи, если музыка не слышна. Используется обычный аудиоплеер, громкость — кнопками телефона. Старт и продолжение без отсчёта. Режим применяется со следующего запуска трека.</p><label for="volume">Громкость <output id="volume-value"></output></label><input id="volume" type="range" min="0" max="100" value="75"></div>
+        <div class="settings-section"><h3>Синхронизация</h3><div class="offset-row"><label for="offset">Сдвиг нот</label><input id="offset" type="number" min="-500" max="500" step="5" value="0" aria-describedby="offset-help"><span>мс</span></div><p id="offset-help" class="subtle">Положительное значение — ноты позже. Для Bluetooth-наушников настрой синхронизацию.</p><button id="settings-calibration" class="settings-link" disabled>Калибровка <span aria-hidden="true">›</span></button></div>
+        <div class="settings-section"><label class="check" for="motion"><span>Меньше движения</span><input id="motion" type="checkbox" role="switch"></label><p class="subtle">Уменьшает движение фона и эффектов.</p></div>
+        <p class="subtle">Настройки и рекорды — только в этом браузере.</p><button id="settings-close" class="primary">Готово</button>
+      </section>
+      <section id="about-screen" class="screen utility-screen" hidden inert aria-labelledby="about-heading"><h2 id="about-heading" class="sr-only">Об игре</h2><p>Неофициальный веб-перенос Tap Tap Revenge 4 на основе APK 4.5.</p><p>Первые три песни, их карты и обложки — из оригинальной игры. Neon Circuit и Overdrive — оригинальные инструментальные композиции Pulse Lab: программный синтез без вокала и сторонних семплов, не нейрогенерация. Интерфейс и веб-движок написаны заново. Окна попадания, очки, бонусы удержания и длительность Revenge приближённые.</p><p>Tapulous и исполнители сохраняют права на оригинальные материалы.</p><h3>Как играть</h3><p>Нажимай на дорожки у колец. Длинные ноты удерживай. На клавиатуре — D / F / J. Стрелки встряхивания здесь нажимаются как обычные ноты. После 50 попаданий подряд ×8 включается автоматически и действует до ошибки.</p><h3>Pulse</h3><p>Бери фрагменты с точностью от <span id="pulse-target"></span>, без пропусков, лишних нажатий и срывов удержаний. Все попадания PERFECT — идеальный Pulse. Награды не меняют очки и Revenge; ошибка не отнимает уже взятые фрагменты.</p><p>Для калибровки нажимай на среднюю дорожку или F в такт метроному, не ориентируясь на ноты.</p><button id="about-close" class="primary">Понятно</button></section>
       <p id="status" role="status" class="status"></p>
     </div>
   </main>
-  <dialog id="offline-dialog" aria-labelledby="offline-heading">
-    <h2 id="offline-heading" tabindex="-1">Игра с собой</h2>
-    <section class="settings-section"><h3>На домашнем экране</h3><p>На iPhone открой игру в Safari: «Поделиться» → «На экран Домой». Если доступен переключатель «Открывать как веб-приложение», включи его.</p><p>После установки открой игру с новой иконки с интернетом и скачай нужные треки именно там. Настройки и прогресс между браузером и приложением могут не переноситься: используй файл из «Моего прогресса».</p></section>
-    <section class="settings-section"><h3 id="offline-track"></h3><p id="offline-state" role="status">Для скачивания дождись подготовки офлайна.</p><button id="offline-download" class="primary" disabled>Скачать для офлайна</button><button id="offline-remove" class="secondary" hidden>Удалить скачанный трек</button><p>Музыка, обложка и все сложности выбранного трека. Удаление скачивания не удаляет рекорды. Другой трек можно выбрать в библиотеке.</p></section>
-    <section class="settings-section"><h3>Версия и обновления</h3><p id="update-status" role="status">Готовим игру для офлайна…</p><button id="update-check" class="secondary" disabled>Проверить обновления</button><p>Браузер может освободить место и удалить скачанное. Перед поездкой проверь запуск без сети; прогресс сохраняй в файл.</p></section>
-    <button id="offline-close" class="primary">Готово</button>
-  </dialog>
-  <dialog id="pause-dialog" aria-labelledby="pause-heading"><span class="pause-symbol" aria-hidden="true">Ⅱ</span><h2 id="pause-heading">Пауза</h2><p>Ритм подождёт.</p><p id="pause-track"></p><p id="pause-error" role="status" hidden></p><button id="resume" class="primary">Продолжить</button><button id="restart" class="secondary">Начать заново</button><button id="quit" class="text-button">К трекам</button></dialog>
-  <dialog id="import-dialog" aria-labelledby="import-heading"><h2 id="import-heading">Восстановить прогресс?</h2><p id="import-summary"></p><p>Файл заменит текущие рекорды, историю и настройки, включая режим звука. Сначала сохрани текущий прогресс, если хочешь оставить копию.</p><p id="import-error" class="save-warning" role="status" hidden></p><button id="import-confirm" class="primary">Заменить прогресс</button><button id="import-cancel" class="secondary">Отмена</button></dialog>
-  <dialog id="settings-dialog" aria-labelledby="settings-heading">
-    <h2 id="settings-heading">Настройки</h2>
-    <div class="settings-section"><h3>Звук</h3><label class="check" for="compatible-audio"><span>Совместимый звук</span><input id="compatible-audio" type="checkbox" role="switch" aria-describedby="compatible-help"></label><p id="compatible-help" class="subtle">Включи, если музыка не слышна. Используется обычный аудиоплеер, громкость — кнопками телефона. Старт и продолжение без отсчёта. Режим применяется со следующего запуска трека.</p><label for="volume">Громкость <output id="volume-value"></output></label><input id="volume" type="range" min="0" max="100" value="75"></div>
-    <div class="settings-section"><h3>Синхронизация</h3><div class="offset-row"><label for="offset">Сдвиг нот</label><input id="offset" type="number" min="-500" max="500" step="5" value="0" aria-describedby="offset-help"><span>мс</span></div><p id="offset-help" class="subtle">Положительное значение — ноты позже. Для Bluetooth-наушников настрой синхронизацию.</p><button id="settings-calibration" class="settings-link" disabled>Калибровка <span aria-hidden="true">›</span></button></div>
-    <div class="settings-section"><label class="check" for="motion"><span>Меньше движения</span><input id="motion" type="checkbox" role="switch"></label><p class="subtle">Уменьшает движение фона и эффектов.</p></div>
-    <p class="subtle">Настройки и рекорды — только в этом браузере.</p><button id="settings-close" class="primary">Готово</button>
-  </dialog>
-  <dialog id="about-dialog" aria-labelledby="about-heading"><h2 id="about-heading">Об игре</h2><p>Неофициальный веб-перенос Tap Tap Revenge 4 на основе APK 4.5.</p><p>Первые три песни, их карты и обложки — из оригинальной игры. Neon Circuit и Overdrive — оригинальные инструментальные композиции Pulse Lab: программный синтез без вокала и сторонних семплов, не нейрогенерация. Интерфейс и веб-движок написаны заново. Окна попадания, очки, бонусы удержания и длительность Revenge приближённые.</p><p>Tapulous и исполнители сохраняют права на оригинальные материалы.</p><h3>Как играть</h3><p>Нажимай на дорожки у колец. Длинные ноты удерживай. На клавиатуре — D / F / J. Стрелки встряхивания здесь нажимаются как обычные ноты. После 50 попаданий подряд ×8 включается автоматически и действует до ошибки.</p><h3>Pulse</h3><p>Бери фрагменты с точностью от <span id="pulse-target"></span>, без пропусков, лишних нажатий и срывов удержаний. Все попадания PERFECT — идеальный Pulse. Награды не меняют очки и Revenge; ошибка не отнимает уже взятые фрагменты.</p><p>Для калибровки нажимай на среднюю дорожку или F в такт метроному, не ориентируясь на ноты.</p><button id="about-close" class="primary">Понятно</button></dialog>
+
 </body>
 </html>

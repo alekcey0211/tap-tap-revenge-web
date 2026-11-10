@@ -21,18 +21,18 @@ async function chooseFile(ui, text, size = new Blob([text]).size) {
 }
 
 test('empty progress has clear empty states, navigation and no fake chart data', async t => {
-  const ui = await mount(t); await ui.click('progress-open');
+  const ui = await mount(t); await ui.click('menu-progress');
   assert.equal(ui.document.body.dataset.screen, 'progress-screen');
   assert.equal(ui.node('screen-title').textContent, 'Прогресс');
   assert.equal(ui.node('record-empty').hidden, false);
   assert.equal(ui.node('accuracy-plot').children.length, 0);
   await ui.click('history-tab'); assert.equal(ui.node('history-empty').hidden, false);
   assert.equal(ui.node('history-reset').hidden, true);
-  await ui.click('home'); assert.equal(ui.document.body.dataset.screen, 'library');
+  await ui.click('home'); assert.equal(ui.document.body.dataset.screen, 'menu');
 });
 
 test('record screen displays best, delta and percent formatting; chart uses only the chosen card', async t => {
-  const ui = await mount(t, { saved: snapshot() }); await ui.click('progress-open');
+  const ui = await mount(t, { saved: snapshot() }); await ui.click('menu-progress');
   assert.equal(ui.node('personal-best').hidden, false);
   assert.equal(ui.node('best-score').textContent, new Intl.NumberFormat('ru-RU').format(1400));
   assert.equal(ui.node('best-accuracy').textContent, '94\u00a0%');
@@ -45,7 +45,7 @@ test('record screen displays best, delta and percent formatting; chart uses only
 });
 
 test('history filters attempts by song and level, retains dates and excludes empty filter results', async t => {
-  const ui = await mount(t, { saved: snapshot() }); await ui.click('progress-open'); await ui.click('history-tab');
+  const ui = await mount(t, { saved: snapshot() }); await ui.click('menu-progress'); await ui.click('history-tab');
   const rows = () => ui.node('history-list').children.filter(node => node.tagName === 'ARTICLE');
   assert.equal(rows().length, 5);
   assert.equal(rows()[0].children[2].children.at(-1).textContent, `${formatPercent(94)} · Комбо 44`);
@@ -58,29 +58,29 @@ test('history filters attempts by song and level, retains dates and excludes emp
 });
 
 test('validated file requires confirmation; cancel keeps data; confirm replaces and refreshes settings', async t => {
-  const ui = await mount(t); await ui.click('progress-open');
+  const ui = await mount(t); await ui.click('menu-progress');
   const original = ui.values.get(SAVE_KEY), imported = JSON.stringify(snapshot());
   await chooseFile(ui, imported);
-  assert.equal(ui.node('import-dialog').open, true); assert.equal(ui.values.get(SAVE_KEY), original);
+  assert.equal(ui.node('import-screen').hidden, false); assert.equal(ui.values.get(SAVE_KEY), original);
   assert.equal(ui.document.activeElement, ui.node('import-cancel'));
   await ui.click('import-cancel'); assert.equal(ui.values.get(SAVE_KEY), original);
   await chooseFile(ui, imported); await ui.click('import-confirm');
   assert.equal(ui.progress().history.length, 5); assert.equal(ui.node('best-accuracy').textContent, formatPercent(94));
   assert.equal(ui.node('compatible-audio').checked, true); assert.equal(ui.node('volume').disabled, true);
-  assert.equal(ui.node('import-dialog').open, false);
+  assert.equal(ui.node('import-screen').hidden, true);
   await chooseFile(ui, imported); await ui.click('import-confirm'); assert.equal(ui.progress().history.length, 5);
 });
 
 test('bad and oversized imports never show confirmation or replace saves', async t => {
-  const ui = await mount(t); await ui.click('progress-open'); const original = ui.values.get(SAVE_KEY);
-  await chooseFile(ui, '{'); assert.equal(ui.node('import-dialog').open, false);
+  const ui = await mount(t); await ui.click('menu-progress'); const original = ui.values.get(SAVE_KEY);
+  await chooseFile(ui, '{'); assert.equal(ui.node('import-screen').hidden, true);
   assert.match(ui.node('progress-message').textContent, /повреждён/);
   await chooseFile(ui, '{}', IMPORT_LIMIT + 1); assert.match(ui.node('progress-message').textContent, /512/);
   assert.equal(ui.values.get(SAVE_KEY), original);
 });
 
 test('storage error during import preserves UI and disk; retry works without losing pending import', async t => {
-  const ui = await mount(t); await ui.click('progress-open'); const original = ui.values.get(SAVE_KEY);
+  const ui = await mount(t); await ui.click('menu-progress'); const original = ui.values.get(SAVE_KEY);
   await chooseFile(ui, JSON.stringify(snapshot())); ui.setStorageFailure(true); await ui.click('import-confirm');
   assert.equal(ui.node('import-error').hidden, false); assert.equal(ui.values.get(SAVE_KEY), original);
   assert.equal(ui.node('record-empty').hidden, false);
@@ -88,15 +88,15 @@ test('storage error during import preserves UI and disk; retry works without los
 });
 
 test('leaving progress cancels a pending file read', async t => {
-  const ui = await mount(t); await ui.click('progress-open'); const gate = deferred();
+  const ui = await mount(t); await ui.click('menu-progress'); const gate = deferred();
   ui.node('progress-file').files = [{ size: 50, text: () => gate.promise }];
   const reading = ui.node('progress-file').onchange(); await ui.click('home');
   gate.resolve(JSON.stringify(snapshot())); await reading;
-  assert.equal(ui.node('import-dialog').open, false); assert.equal(ui.document.body.dataset.screen, 'library');
+  assert.equal(ui.node('import-screen').hidden, true); assert.equal(ui.document.body.dataset.screen, 'menu');
 });
 
 test('export prepares the complete save and a Temporal ISO filename, never music', async t => {
-  const ui = await mount(t, { saved: snapshot() }); await ui.click('progress-open');
+  const ui = await mount(t, { saved: snapshot() }); await ui.click('menu-progress');
   let blob, revoke;
   t.mock.method(URL, 'createObjectURL', value => { blob = value; return 'blob:test'; });
   t.mock.method(globalThis, 'setTimeout', callback => { revoke = callback; });
@@ -132,7 +132,7 @@ test('manual bests remain visible through the rules selector without mixing new 
   const old = { score: 9000, accuracy: 98, bestStreak: 70 };
   const ui = await mount(t, { records: { [song.id + ':1']: old } });
   assert.match(ui.node('record').textContent, /Прежний рекорд/);
-  await ui.click('progress-open');
+  await ui.click('menu-progress');
   assert.equal(ui.node('record-empty').hidden, false);
   ui.node('progress-rules').value = 'web-v1'; ui.node('progress-rules').onchange();
   assert.equal(ui.node('personal-best').hidden, false);

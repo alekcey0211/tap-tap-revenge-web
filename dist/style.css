@@ -9,7 +9,7 @@
 }
 * { box-sizing: border-box; }
 /* Keep vertical menu scrolling, but do not interpret game taps as page zoom. */
-html, body, dialog { touch-action: pan-y; }
+html, body { touch-action: pan-y; }
 body { margin: 0; min-width: 280px; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
 button, input, select { font: inherit; }
@@ -100,17 +100,22 @@ canvas { display: block; width: 100%; height: 100%; position: absolute; inset: 0
 .game-footer { padding: 0 20px; }
 #revenge { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; font-size: 15px; }
 #revenge-progress { width: 34%; height: 9px; }
-dialog { color: #f3f2ee; background: #161029; border: 1px solid #5b5c5e; border-radius: 24px; width: min(420px, calc(100vw - 32px)); padding: 24px; max-height: calc(100dvh - 32px); overflow: auto; box-shadow: 0 24px 80px #0008; }
-dialog::backdrop { background: #070515cc; }
-dialog h2 { margin-bottom: 18px; }
-dialog p { color: var(--muted); line-height: 1.5; font-size: 14px; margin: 10px 0; }
-dialog h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; }
-dialog .primary { margin-top: 18px; }
-#pause-dialog { text-align: center; }
-.pause-symbol { display: inline-grid; place-items: center; width: 48px; height: 48px; border: 1px solid #626366; border-radius: 12px; font-size: 24px; margin-bottom: 14px; }
-#pause-dialog h2 { margin-bottom: 8px; }
-#pause-dialog .text-button { width: 100%; margin-top: 4px; }
+/* Utility sections are ordinary pages: inactive content is hidden and inert. */
+.utility-screen { padding: 12px 24px 28px; min-height: 650px; background: linear-gradient(#100b20bb, #100b20 240px); }
+.utility-screen p { color: var(--muted); line-height: 1.6; font-size: 14px; margin: 10px 0; }
+.utility-screen h3 { font-size: 14px; letter-spacing: .04em; }
+.utility-screen .primary { margin-top: 18px; }
+.utility-screen > h2:not(.sr-only) { margin: 16px 0; }
+body[data-utility="true"] .game-shell { overflow: visible; }
+body[data-utility="true"] .appbar { position: sticky; top: 0; z-index: 5; padding-top: 12px; padding-bottom: 12px; background: #120c23f5; border-radius: 28px 28px 0 0; }
+body[data-utility="true"] .appbar h2 { font-size: 24px; }
+body[data-utility="true"] .utility-screen { border-radius: 0 0 28px 28px; }
+#pause-screen { text-align: center; padding-top: 60px; }
+.pause-symbol { display: inline-grid; place-items: center; width: 64px; height: 64px; border: 1px solid #b68cdd; border-radius: 50%; font-size: 28px; margin-bottom: 14px; box-shadow: 0 0 24px #aa67ff55; }
+#pause-screen .text-button { width: 100%; margin-top: 4px; }
 #pause-error { color: #ffaba0; }
+#settings-screen .settings-section:first-of-type { padding-top: 4px; }
+.installed-version strong { color: #fff1c8; white-space: nowrap; }
 .settings-section { padding: 20px 0; border-bottom: 1px solid var(--line); }
 .settings-section h3 { margin-bottom: 14px; }
 label { display: block; font-size: 16px; font-weight: 600; }
@@ -172,8 +177,6 @@ body[data-reduced-motion="true"] .spinner { animation: none; }
   .appbar { padding-top: 12px; }
   #game-screen { height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom)); padding-top: 12px; }
   .preparation { min-height: calc(100dvh - 64px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
-  #pause-dialog { position: fixed; inset: auto 0 0; margin: 0 auto; width: min(440px, 100%); max-width: 100%; border-radius: 24px 24px 0 0; padding-bottom: max(20px, env(safe-area-inset-bottom)); }
-  #settings-dialog { width: min(440px, 100%); max-width: 100%; height: 100dvh; max-height: 100dvh; margin: 0 auto; border: 0; border-radius: 0; padding-top: max(24px, env(safe-area-inset-top)); padding-bottom: max(24px, env(safe-area-inset-bottom)); }
 }
 @media (max-width: 350px) {
   .screen { padding-left: 16px; padding-right: 16px; }
@@ -381,7 +384,6 @@ body[data-screen="results"] .appbar h2 { font-size: 18px; text-align: center; co
 .result-details summary { font-size: 11px; }
 .result-screen .primary, .result-screen .secondary { min-height: 48px; }
 .result-screen .pulse-summary { padding: 8px; font-size: 11px; }
-dialog { background: linear-gradient(150deg, #2e1c49, #100d20 65%); border-color: #b594d2aa; box-shadow: 0 20px 90px #000b, 0 0 30px #8554c744; }
 .progress-tabs, .progress-screen select { border-color: #926bbd77; }
 img[src$="scene/concert.jpg"] { object-position: center top; }
 body:not([data-reduced-motion="true"]) button { transition: transform 120ms ease, filter 120ms ease; }
@@ -392,12 +394,11 @@ body:not([data-reduced-motion="true"]) .stage-lights i:nth-child(2) { animation-
 body:not([data-reduced-motion="true"]) .stage-lights i:nth-child(3) { animation-delay: -3s; }
 body:not([data-reduced-motion="true"]) #library:not([hidden]) .track,
 body:not([data-reduced-motion="true"]) #results:not([hidden]) .result-stage { animation: card-enter 350ms ease-out both; }
-body:not([data-reduced-motion="true"]) dialog[open] { animation: card-enter 180ms ease-out both; }
 body:not([data-reduced-motion="true"]) #multiplier[data-level="8"] { animation: multiplier-enter 260ms ease-out; }
 #song-screen[data-departing="true"] { position: absolute; z-index: 3; top: 70px; left: 0; right: 0; pointer-events: none; animation: song-depart 340ms ease-in both; }
 #song-screen[data-departing="true"] .album-stage img { animation: none !important; }
 body:not([data-reduced-motion="true"]) #game-screen { animation: stage-reveal 340ms ease-out both; }
-@keyframes song-depart { to { opacity: 0; transform: translateY(-28px) scale(1.05); } }
+@keyframes song-depart { to { opacity: 0; } }
 @keyframes stage-reveal { from { opacity: .15; } to { opacity: 1; } }
 @keyframes album-float { 50% { transform: translateY(-6px) rotateY(3deg) rotateZ(-1deg); } }
 @keyframes light-sweep { to { rotate: 18deg; opacity: .55; } }
@@ -428,4 +429,42 @@ body[data-reduced-motion="true"] *, body[data-reduced-motion="true"] *::before, 
   .result-art { width: 138px; height: 138px; }
   .result-stage { padding-top: 8px; padding-bottom: 16px; }
   .hud { padding-top: 0; }
+}
+
+@media (max-width: 760px) {
+  .utility-screen { min-height: calc(100dvh - 78px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
+  body[data-utility="true"] .appbar { top: 0; padding-top: max(12px, env(safe-area-inset-top)); border-radius: 0; }
+  body[data-utility="true"] .utility-screen { border-radius: 0; padding-bottom: max(24px, env(safe-area-inset-bottom)); }
+}
+
+/* The home screen is a game menu; choosing a song is a separate step. */
+.main-menu { min-height: 760px; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 74px 28px 22px; }
+.main-menu .eyebrow { font-size: 10px; letter-spacing: .18em; margin-bottom: 26px; color: #e2cdff; }
+#menu-heading { font-size: clamp(48px, 12vw, 62px); line-height: .95; font-style: italic; font-weight: 900; letter-spacing: -3px; text-shadow: 0 0 8px #b7afff, 0 0 30px #7d4afa; }
+#menu-heading span { display: block; font-size: .52em; letter-spacing: .12em; margin-top: 16px; color: #ffd99f; text-shadow: 0 0 12px #ff8b43; }
+.menu-subtitle { margin-top: 22px; color: #e8d8ff; font-size: 15px; }
+.menu-actions { width: 100%; margin-top: auto; padding-top: 90px; display: grid; gap: 14px; }
+.menu-actions .primary { min-height: 62px; font-size: 24px; }
+.menu-actions .secondary { margin: 0; }
+.menu-version { margin-top: 24px; font-size: 11px; letter-spacing: .06em; color: var(--muted); }
+/* A silent preview of the same renderer sits behind the song's controls. */
+.song-backdrop { position: absolute; top: 126px; bottom: 82px; left: 0; right: 0; pointer-events: none; opacity: .55; }
+.song-screen .selected-art, .song-controls { position: relative; }
+.song-controls { background: linear-gradient(#10091b00, #10091be6 45%); border-radius: 18px; }
+#song-screen[data-departing="true"] { animation: song-depart 340ms ease-in both; }
+#song-screen[data-departing="true"] .selected-art > h3,
+#song-screen[data-departing="true"] .selected-art > p { animation: title-depart 340ms ease-in both; }
+#song-screen[data-departing="true"] .album-stage { animation: cover-depart 340ms ease-in both; }
+#song-screen[data-departing="true"] .song-controls { animation: controls-depart 340ms ease-in both; }
+@keyframes title-depart { to { opacity: 0; translate: -150% -30px; } }
+@keyframes cover-depart { to { opacity: 0; translate: -130% 20px; rotate: -18deg; } }
+@keyframes controls-depart { to { opacity: 0; translate: 130% 60px; rotate: 8deg; } }
+@media (max-width: 760px) {
+  .main-menu { min-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
+  .song-backdrop { height: calc(100dvh - 208px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); bottom: auto; }
+}
+@media (max-height: 650px) {
+  .main-menu { padding-top: 36px; }
+  .main-menu .eyebrow { margin-bottom: 18px; }
+  .menu-actions { padding-top: 42px; gap: 10px; }
 }

@@ -4,14 +4,13 @@ const megabytes = new Intl.NumberFormat(LOCALE, { maximumFractionDigits: 1 });
 const $ = id => document.getElementById(id);
 
 export class OfflineView {
-  constructor() {
+  constructor({ onOpen, onClose }) {
     this.library = new OfflineLibrary();
     this.song = null; this.generation = 0; this.busy = false;
     $('offline-download').onclick = () => this.change('downloadTrack');
     $('offline-remove').onclick = () => this.change('removeTrack');
-    $('offline-open').onclick = () => { $('offline-dialog').showModal(); $('offline-heading').focus({ preventScroll: true }); this.refresh(); };
-    $('offline-close').onclick = () => $('offline-dialog').close();
-    $('offline-dialog').oncancel = event => { event.preventDefault(); $('offline-dialog').close(); };
+    $('offline-open').onclick = () => { onOpen(); this.refresh(); };
+    $('offline-close').onclick = onClose;
     $('update-check').onclick = async () => {
       $('update-check').disabled = true;
       $('update-status').textContent = 'Проверяем обновления…';

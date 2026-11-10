@@ -24,16 +24,16 @@ for (const compatibleAudio of [false, true]) {
       const before = ui.node('game-stats').textContent;
       if (event === 'visibilitychange') ui.document.hidden = true;
       ui.events[event](); ui.events[event]();
-      assert.equal(ui.node('pause-dialog').open, true);
+      assert.equal(ui.node('pause-screen').hidden, false);
       ui.tick(1000);
       assert.equal(ui.node('game-stats').textContent, before);
       assert.equal(ui.node('time').textContent, '0:07 / 2:30');
       if (compatibleAudio) assert.equal(ui.native.instances[0].paused, true);
       ui.document.hidden = false; ui.events.visibilitychange();
-      assert.equal(plays(ui), 1); assert.equal(ui.node('pause-dialog').open, true);
+      assert.equal(plays(ui), 1); assert.equal(ui.node('pause-screen').hidden, false);
       await ui.click('resume');
       assert.equal(lastOffset(ui), 7.25); assert.equal(plays(ui), 2);
-      assert.equal(ui.node('pause-dialog').open, false);
+      assert.equal(ui.node('pause-screen').hidden, true);
       assert.equal(ui.settings().compatibleAudio, compatibleAudio);
     });
 
@@ -53,8 +53,8 @@ for (const compatibleAudio of [false, true]) {
     await ui.click('resume'); await ui.click('restart');
     assert.equal(plays(ui), 1);
     ui.document.hidden = false; ui.events.visibilitychange();
-    // Restart click in a hidden document must not close the pause dialog either.
-    assert.equal(ui.node('pause-dialog').open, true);
+    // Restart click in a hidden document must not close the pause screen either.
+    assert.equal(ui.node('pause-screen').hidden, false);
   });
 
   test(`${mode}: interruption is handled immediately without waiting for animation`, async t => {
@@ -64,7 +64,7 @@ for (const compatibleAudio of [false, true]) {
     } else {
       ui.audio.state = 'interrupted'; ui.audio.contexts[0].onstatechange();
     }
-    assert.equal(ui.node('pause-dialog').open, true);
+    assert.equal(ui.node('pause-screen').hidden, false);
     assert.equal(ui.node('pause-error').hidden, false);
     await ui.click('resume'); assert.equal(lastOffset(ui), 8);
   });
@@ -109,7 +109,7 @@ test('native resume interrupted while play is pending preserves the newly reache
   const resuming = ui.click('resume');
   assert.equal(ui.native.plays.at(-1), 9); // Synchronous user-gesture play remains intact.
   media.currentTime = 9.5; ui.events.pagehide(); gate.resolve(); await resuming;
-  assert.equal(media.paused, true); assert.equal(ui.node('pause-dialog').open, true);
+  assert.equal(media.paused, true); assert.equal(ui.node('pause-screen').hidden, false);
   ui.native.gate = null; await ui.click('resume');
   assert.equal(ui.native.plays.at(-1), 9.5);
 });
@@ -118,7 +118,7 @@ test('Web Audio pending unlock cannot restart a session after pagehide', async t
   const ui = await mount(t); await ui.start(); ui.tick(10); await ui.click('pause');
   const gate = deferred(); ui.audio.resumeGate = gate;
   const resuming = ui.click('resume'); ui.events.pagehide(); gate.resolve(); await resuming;
-  assert.equal(ui.audio.starts.length, 1); assert.equal(ui.node('pause-dialog').open, true);
+  assert.equal(ui.audio.starts.length, 1); assert.equal(ui.node('pause-screen').hidden, false);
   ui.audio.resumeGate = null; await ui.click('resume');
   assert.equal(ui.audio.starts.at(-1).offset, 10);
 });
@@ -143,7 +143,7 @@ test('frozen Web Audio countdown returns to pause, then explicit retry resumes f
   await ui.click('pause'); await ui.click('resume');
   const old = ui.audio.contexts[0], score = ui.node('game-stats').textContent;
   ui.native.now = 1600; ui.tick(.2); // context reports running but its clock has stopped
-  assert.equal(ui.node('pause-dialog').open, true);
+  assert.equal(ui.node('pause-screen').hidden, false);
   assert.equal(ui.node('pause-error').hidden, false);
   assert.equal(ui.node('resume').disabled, false);
   assert.equal(ui.node('game-stats').textContent, score);
@@ -151,7 +151,7 @@ test('frozen Web Audio countdown returns to pause, then explicit retry resumes f
   await ui.click('resume'); assert.equal(old.closed, true); assert.equal(ui.audio.contexts.length, 2);
   assert.ok(Math.abs(ui.audio.starts.at(-1).offset - .2) < 1e-9);
   ui.native.now = 1700; ui.tick(2.3);
-  assert.equal(ui.node('pause-dialog').open, false);
+  assert.equal(ui.node('pause-screen').hidden, true);
   assert.equal(ui.settings().compatibleAudio, false);
 });
 
@@ -160,7 +160,7 @@ test('Web Audio resume timeout restores an enabled pause button; late resolution
   t.mock.timers.enable({ apis: ['setTimeout'] });
   const gate = deferred(); ui.audio.resumeGate = gate;
   const pending = ui.click('resume'); t.mock.timers.tick(4000); await pending;
-  assert.equal(ui.node('pause-dialog').open, true); assert.equal(ui.node('resume').disabled, false);
+  assert.equal(ui.node('pause-screen').hidden, false); assert.equal(ui.node('resume').disabled, false);
   assert.equal(ui.audio.starts.length, 1);
   ui.audio.resumeGate = null; await ui.click('resume');
   assert.equal(ui.audio.starts.length, 2); assert.equal(ui.audio.starts.at(-1).offset, 6);

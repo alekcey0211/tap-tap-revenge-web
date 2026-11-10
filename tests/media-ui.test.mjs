@@ -64,9 +64,9 @@ test('native pause/resume uses the exact position and supports retry and interru
   await ui.click('pause'); assert.equal(media.paused, true);
   ui.native.failure = true; await ui.click('resume'); assert.equal(ui.node('pause-error').hidden, false);
   ui.native.failure = false; await ui.click('resume');
-  assert.equal(ui.native.plays.at(-1), 12); assert.equal(ui.node('pause-dialog').open, false);
+  assert.equal(ui.native.plays.at(-1), 12); assert.equal(ui.node('pause-screen').hidden, true);
   media.currentTime = 15; media.paused = true; ui.tick(15);
-  assert.equal(ui.node('pause-dialog').open, true); assert.equal(ui.node('pause-error').hidden, false);
+  assert.equal(ui.node('pause-screen').hidden, false); assert.equal(ui.node('pause-error').hidden, false);
   await ui.click('resume'); assert.equal(ui.native.plays.at(-1), 15);
 });
 
@@ -79,9 +79,9 @@ test('background keeps prepared native song silent and pending resume without a 
   const media = ui.native.instances[0]; media.currentTime = 9; await ui.click('pause');
   const gate = deferred(); ui.native.gate = gate; const resuming = ui.click('resume');
   ui.document.hidden = true; ui.events.visibilitychange(); gate.resolve(); await resuming;
-  assert.equal(media.paused, true); assert.equal(ui.node('pause-dialog').open, true);
+  assert.equal(media.paused, true); assert.equal(ui.node('pause-screen').hidden, false);
   ui.native.gate = null; ui.document.hidden = false; await ui.click('resume');
-  assert.equal(ui.native.plays.at(-1), 9); assert.equal(ui.node('pause-dialog').open, false);
+  assert.equal(ui.native.plays.at(-1), 9); assert.equal(ui.node('pause-screen').hidden, true);
 });
 
 test('buffering freezes scoring and ignores new presses', async t => {

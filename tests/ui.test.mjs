@@ -14,7 +14,8 @@ test('library shows the running app version matching the entry asset version', a
 
 test('library selects all existing tracks and four difficulties; persisted settings survive', async t => {
   const ui = await mount(t, { settings: { volume: 35, offset: 25, motion: true } });
-  assert.equal(ui.document.body.dataset.screen, 'library');
+  assert.equal(ui.document.body.dataset.screen, 'menu');
+  await ui.click('menu-play');
   assert.equal(ui.node('tracks').children.length, 5);
   assert.equal(ui.node('difficulties').children.length, 4);
   assert.equal(ui.node('volume').value, 35);
@@ -75,30 +76,30 @@ test('initialization failure can be retried without an unusable library button',
   assert.equal(ui.node('preparation').dataset.error, 'true');
   ui.setBootFailure(false);
   await ui.click('load-retry');
-  assert.equal(ui.document.body.dataset.screen, 'library');
+  assert.equal(ui.document.body.dataset.screen, 'menu');
 });
 
 test('pause and retrying an unlock failure resume the same audio position', async t => {
   const ui = await mount(t);
   await ui.start(); ui.tick(13);
   await ui.click('pause');
-  assert.equal(ui.node('pause-dialog').open, true);
+  assert.equal(ui.node('pause-screen').hidden, false);
   ui.audio.resumeFailure = true;
   await ui.click('resume');
-  assert.equal(ui.node('pause-dialog').open, true);
+  assert.equal(ui.node('pause-screen').hidden, false);
   assert.equal(ui.node('pause-error').hidden, false);
   ui.audio.resumeFailure = false; ui.audio.currentTime = 20;
   await ui.click('resume');
-  assert.equal(ui.node('pause-dialog').open, false);
+  assert.equal(ui.node('pause-screen').hidden, true);
   assert.deepEqual(ui.audio.starts.at(-1), { at: 22, offset: 13 });
 });
 
 test('settings calibration opens the tutorial and keyboard focus stays on the song screen', async t => {
   const ui = await mount(t);
-  await ui.click('settings-open');
-  assert.equal(ui.node('settings-dialog').open, true);
+  await ui.click('menu-settings');
+  assert.equal(ui.node('settings-screen').hidden, false);
   await ui.click('settings-calibration');
-  assert.equal(ui.node('settings-dialog').open, false);
+  assert.equal(ui.node('settings-screen').hidden, true);
   assert.equal(ui.document.activeElement, ui.node('home'));
   assert.match(ui.node('status').textContent, /среднюю дорожку/);
   await ui.start();

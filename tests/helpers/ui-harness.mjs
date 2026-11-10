@@ -24,6 +24,7 @@ export async function mount(t, { records = {}, settings = {}, bootFailure = fals
       this.tagName = tagName.toUpperCase(); this.attrs = {}; this.dataset = {};
       this.children = []; this.textContent = ''; this.hidden = /\bhidden\b/.test(attrs);
       this.disabled = /\bdisabled\b/.test(attrs); this.open = false; this.value = '';
+      this.isConnected = true; this.scrollTop = 0; this.inert = /\binert\b/.test(attrs);
       this.clientWidth = 390; this.clientHeight = 500;
       for (const [, name, value] of attrs.matchAll(/([\w-]+)="([^"]*)"/g)) this.setAttribute(name, value);
     }
@@ -31,8 +32,6 @@ export async function mount(t, { records = {}, settings = {}, bootFailure = fals
     append(...nodes) { this.children.push(...nodes); }
     replaceChildren(...nodes) { this.children = nodes; }
     focus() { document.activeElement = this; }
-    showModal() { this.open = true; }
-    close() { this.open = false; }
     click() { return this.onclick?.(); }
     remove() {}
     getContext() { return canvasContext; }
@@ -85,7 +84,7 @@ export async function mount(t, { records = {}, settings = {}, bootFailure = fals
     load() {}
   }
   const globals = {
-    document, window: { addEventListener: (name, fn) => { events[name] = fn; } },
+    document, window: { scrollY: 0, scrollTo({ top }) { this.scrollY = top; }, addEventListener: (name, fn) => { events[name] = fn; } },
     AudioContext, Audio, performance: { now: () => native.now }, matchMedia: () => ({ matches: false }),
     requestAnimationFrame: callback => { frames.push(callback); },
     localStorage: { getItem: key => values.get(key) || null, setItem: (key, value) => { if (storageFailure) throw new Error('quota'); values.set(key, value); } },
@@ -117,14 +116,15 @@ export async function mount(t, { records = {}, settings = {}, bootFailure = fals
   return {
     node, audio, native, catalog, document, lanes, values, events, detail,
     openSong(title = catalog.find(song => !song.tutorial).title) {
+      if (document.body.dataset.screen === 'menu') node('menu-play').onclick();
       return node('tracks').children.find(button => button.children[1].children[0].textContent === title).onclick();
     },
     // Explicit navigation helper for gameplay regressions, not a replacement for click().
     async start(mode = 'play') {
-      if (document.body.dataset.screen === 'library') await this.openSong();
+      if (['menu', 'library'].includes(document.body.dataset.screen)) await this.openSong();
       await this.click(mode);
     },
-    click: async id => { assert.equal(node(id).disabled, false, id); await node(id).onclick(); },
+    click: async id => { assert.equal(node(id).disabled, false, id); node(id).focus(); await node(id).onclick(); },
     tick(time) { audio.currentTime = time; const callback = frames.shift(); assert.ok(callback); callback(); },
     setBootFailure(value) { bootFailure = value; },
     records: () => values.has(SAVE_KEY) ? currentRecords(JSON.parse(values.get(SAVE_KEY)).progress) : records,

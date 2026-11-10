@@ -22,8 +22,8 @@ function svgNode(tag, attributes) {
   return element;
 }
 export class ProgressView {
-  constructor({ getProgress, getSettings, getWarning, onImport, onSelect }) {
-    Object.assign(this, { getProgress, getSettings, getWarning, onImport, onSelect });
+  constructor({ getProgress, getSettings, getWarning, onImport, onSelect, onOpenImport, onCloseImport }) {
+    Object.assign(this, { getProgress, getSettings, getWarning, onImport, onSelect, onOpenImport, onCloseImport });
     this.songs = []; this.level = '1'; this.tab = 'records'; this.fileRequest = 0; this.pendingImport = null;
     this.rules = RULES_VERSION;
     $('progress-rules').onchange = () => { this.rules = $('progress-rules').value; this.renderRecords(); };
@@ -37,7 +37,6 @@ export class ProgressView {
     $('progress-import').onclick = () => { $('progress-file').value = ''; $('progress-file').click(); };
     $('progress-file').onchange = () => this.readFile($('progress-file').files?.[0]);
     $('import-cancel').onclick = () => this.cancelImport();
-    $('import-dialog').oncancel = event => { event.preventDefault(); this.cancelImport(); };
     $('import-confirm').onclick = () => {
       if (!this.pendingImport) return;
       try {
@@ -62,7 +61,7 @@ export class ProgressView {
     $('progress-message').textContent = '';
     this.setTab('records'); $('records-tab').focus({ preventScroll: true });
   }
-  close() { this.fileRequest++; this.pendingImport = null; $('import-dialog').close(); }
+  close() { this.fileRequest++; this.pendingImport = null; }
   setTab(tab) {
     this.tab = tab;
     $('records-tab').setAttribute('aria-pressed', String(tab === 'records'));
@@ -168,10 +167,10 @@ export class ProgressView {
       const snapshot = parseProgress(text);
       this.pendingImport = text;
       $('import-summary').textContent = `В файле: ${formatCount(snapshot.progress.records.length, { one: 'рекорд', few: 'рекорда', many: 'рекордов', other: 'рекорда' })}, ${formatCount(snapshot.progress.history.length, attemptForms)}. Заменить текущие данные?`;
-      $('import-error').hidden = true; $('import-dialog').showModal(); $('import-cancel').focus({ preventScroll: true });
+      $('import-error').hidden = true; this.onOpenImport();
     } catch (error) {
       if (request === this.fileRequest) $('progress-message').textContent = error.message;
     }
   }
-  cancelImport() { this.fileRequest++; this.pendingImport = null; $('import-dialog').close(); $('progress-import').focus({ preventScroll: true }); }
+  cancelImport() { this.fileRequest++; this.pendingImport = null; this.onCloseImport(); $('progress-import').focus({ preventScroll: true }); }
 }

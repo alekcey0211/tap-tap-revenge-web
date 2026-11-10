@@ -27,7 +27,7 @@ for (const compatibleAudio of [false, true]) {
     assert.equal(ui.node('song-screen').hidden, false);
     ui.node('song-screen').onanimationend({ target: ui.node('song-screen') });
     assert.equal(ui.node('song-screen').hidden, true);
-    assert.equal(ui.node('song-screen').inert, false);
+    assert.equal(ui.node('song-screen').inert, true);
     await ui.click('pause'); await ui.click('quit'); await ui.openSong('Neon Circuit');
     ui.node('song-screen').onanimationend({ target: ui.node('song-screen') });
     assert.equal(ui.node('song-screen').hidden, false, 'a stale end event cannot hide a new song');
@@ -52,7 +52,7 @@ for (const compatibleAudio of [false, true]) {
     const ui = await mount(t, { settings: { compatibleAudio, motion: true } });
     await ui.start();
     assert.equal(ui.node('song-screen').hidden, true);
-    assert.equal(ui.node('song-screen').inert, false);
+    assert.equal(ui.node('song-screen').inert, true);
     assert.equal(ui.audio.starts.length + ui.native.plays.length, 1);
   });
 }

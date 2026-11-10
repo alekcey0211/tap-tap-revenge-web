@@ -2,7 +2,7 @@ import { artwork } from './artwork.js';
 import { PhraseProgress } from './phrase-progress.js';
 import { PULSE_CHARTS } from './phrase-charts.js';
 import { renderPulse, pulseSummary } from './pulse-view.js';
-import { OfflineView } from './offline-view.js?v=0.4.0';
+import { OfflineView } from './offline-view.js?v=0.8.0';
 import { Game } from './engine.js';
 import { SongAudio } from './audio.js?v=0.5.3';
 import { MediaSongAudio } from './media-audio.js?v=0.3.1';
@@ -11,16 +11,17 @@ import { Renderer } from './renderer.js?v=0.7.1';
 import { Temporal } from './temporal.js';
 import { formatNumber, formatPercent, formatSigned, formatTime, formatCount } from './format.js?v=0.3.0';
 import { DEFAULT_SETTINGS, loadSave, saveSettings as writeSettings, recordAttempt, currentRecords, importProgress } from './storage.js?v=0.6.0';
-import { ProgressView } from './progress.js?v=0.7.0';
+import { ProgressView } from './progress.js?v=0.8.0';
 
 const $ = id => document.getElementById(id);
-const APP_VERSION = '0.7.1';
+const APP_VERSION = '0.8.0';
 if ($('app-version')) $('app-version').textContent = `v${APP_VERSION}`;
+$('settings-version').textContent = `v${APP_VERSION}`;
 $('pulse-target').textContent = formatPercent(90);
 const LEVELS = { 1: 'Легко', 2: 'Средне', 3: 'Сложно', 4: 'Экстрим' };
 const webAudio = new SongAudio(), mediaAudio = new MediaSongAudio();
-let audio = webAudio, readyTrack = null, preparedAudio = null;
-let catalog, selected, level = '1', renderer, game, buffer, pulse;
+let audio = webAudio, readyTrack = null, preparedAudio = null, previewSize = '';
+let catalog, selected, level = '1', renderer, previewRenderer, previewGame, game, buffer, pulse;
 let state = 'boot', demo = false, run = null, requestId = 0, pausePosition = 0;
 let resumeGrace = -Infinity, demoActions = [], demoIndex = 0, calibrationOffset = null;
 const inputs = [new Set(), new Set(), new Set()];
@@ -30,7 +31,11 @@ const loaded = loadSave(browserStorage, { ...DEFAULT_SETTINGS, motion: matchMedi
 const settings = loaded.settings;
 let progress = loaded.progress, records = currentRecords(progress), saveWarning = loaded.warning, storageWritable = loaded.writable;
 let progressView;
-const offlineView = new OfflineView();
+const pageStack = [];
+const screenTitles = { menu: 'Главное меню', library: 'Музыка', 'song-screen': 'Песня', 'game-screen': 'Игра', results: 'Результат',
+  preparation: 'Подготовка трека', 'progress-screen': 'Прогресс', 'settings-screen': 'Настройки',
+  'about-screen': 'Об игре', 'offline-screen': 'Скачать трек', 'pause-screen': 'Пауза', 'import-screen': 'Восстановление' };
+const offlineView = new OfflineView({ onOpen: () => openPage('offline-screen', 'screen-title', $('offline-open')), onClose: backPage });
 function saveSettings() {
   if (storageWritable) {
     try { writeSettings(browserStorage, settings, progress); }
@@ -39,20 +44,43 @@ function saveSettings() {
   if (saveWarning) $('status').textContent = saveWarning;
 }
 function show(screen) {
-  $('song-screen').dataset.departing = 'false'; $('song-screen').inert = false;
-  for (const name of ['library', 'song-screen', 'game-screen', 'results', 'preparation', 'progress-screen']) $(name).hidden = name !== screen;
+  $('song-screen').dataset.departing = 'false';
+  $('song-backdrop').hidden = screen !== 'song-screen';
+  for (const name of Object.keys(screenTitles)) {
+    $(name).hidden = name !== screen; $(name).inert = name !== screen;
+  }
   document.body.dataset.screen = screen;
-  $('appbar').hidden = screen === 'game-screen';
-  $('home').hidden = !['song-screen', 'results', 'progress-screen'].includes(screen);
-  $('settings-open').hidden = ['preparation', 'progress-screen'].includes(screen);
-  $('screen-title').textContent = screen === 'progress-screen' ? 'Прогресс' : screen === 'results' ? 'Результат' : screen === 'preparation' ? 'Подготовка трека' : screen === 'song-screen' ? 'Песня' : 'Музыка';
+  document.body.dataset.utility = String(['settings-screen', 'about-screen', 'offline-screen', 'pause-screen', 'import-screen'].includes(screen));
+  $('appbar').hidden = ['menu', 'game-screen'].includes(screen);
+  $('home').hidden = ['menu', 'game-screen', 'preparation', 'pause-screen'].includes(screen);
+  $('home').setAttribute('aria-label', pageStack.length ? 'Назад' : screen === 'library' ? 'Главное меню' : 'К трекам');
+  $('settings-open').hidden = ['game-screen', 'preparation', 'progress-screen', 'settings-screen', 'offline-screen', 'about-screen', 'import-screen'].includes(screen);
+  $('screen-title').textContent = screenTitles[screen];
   $('status').textContent = '';
+  window.scrollTo({ top: 0, behavior: 'instant' });
+  if (!['menu', 'game-screen'].includes(screen)) $('screen-title').focus({ preventScroll: true });
+}
+function openPage(screen, focus = 'screen-title', returnFocus = document.activeElement) {
+  if (document.hidden || document.body.dataset.screen === screen) return;
+  if (['playing', 'resuming', 'starting'].includes(state)) pause();
+  pageStack.push({ screen: document.body.dataset.screen, focus: returnFocus, scroll: window.scrollY });
+  show(screen); $(focus).focus({ preventScroll: true });
+}
+function backPage() {
+  const previous = pageStack.pop();
+  if (!previous) return showLibrary();
+  show(previous.screen);
+  window.scrollTo({ top: previous.scroll, behavior: 'instant' });
+  if (previous.focus?.isConnected && !previous.focus.disabled) previous.focus.focus({ preventScroll: true });
 }
 function showLibrary() {
   requestId++; progressView?.close();
   audio.stop(); mediaAudio.dispose(); readyTrack = null; preparedAudio = null; state = 'library'; inputs.forEach(input => input.clear());
-  for (const dialog of document.querySelectorAll('dialog[open]')) dialog.close();
+  pageStack.length = 0;
   show('library'); refresh(); if (saveWarning) $('status').textContent = saveWarning; $('tracks').children[0]?.focus({ preventScroll: true });
+}
+function showMenu() {
+  showLibrary(); state = 'menu'; show('menu'); $('menu-play').focus({ preventScroll: true });
 }
 function artistName(song) { return song.artist.replace(' · программный синтез', ''); }
 function refresh() {
@@ -86,6 +114,7 @@ function refresh() {
     ? 'Новые правила ×8. Прежний рекорд — в «Мой прогресс».' : 'Рекорд ещё не установлен';
   $('calibration').disabled = false;
   $('settings-calibration').disabled = false; $('progress-open').disabled = false;
+  $('menu-play').disabled = false; $('menu-progress').disabled = false;
 }
 async function json(url) {
   const response = await fetch(url);
@@ -116,6 +145,7 @@ function preparation(song, difficulty, error = false) {
 }
 function openSong(song = selected) {
   if (document.hidden || !song) return;
+  pageStack.length = 0;
   selected = song; if (!song.levels[level]) level = '1';
   show('song-screen'); $('home').focus({ preventScroll: true });
   return prepareSong();
@@ -158,7 +188,7 @@ function stageEntrance() {
 }
 $('song-screen').onanimationend = event => {
   if (event.target === $('song-screen') && $('song-screen').dataset.departing === 'true') {
-    $('song-screen').hidden = true; $('song-screen').inert = false; $('song-screen').dataset.departing = 'false';
+    $('song-screen').hidden = true; $('song-screen').inert = true; $('song-screen').dataset.departing = 'false';
   }
 };
 async function start(isDemo = false) {
@@ -184,7 +214,7 @@ async function start(isDemo = false) {
     demoIndex = 0; resumeGrace = -Infinity;
     audio.setVolume(settings.volume / 100);
     const playback = audio.play(buffer, 0, 0);
-    show('game-screen'); if (fromSong) stageEntrance();
+    pageStack.length = 0; show('game-screen'); if (fromSong) stageEntrance();
     $('now-title').textContent = song.title; $('now-artist').textContent = artistName(song); $('now-art').src = artwork(song);
     $('pause-track').textContent = `${song.title} · ${LEVELS[difficulty]}`;
     $('mode-label').textContent = demo ? 'ДЕМО · без рекорда' : song.tutorial ? 'КАЛИБРОВКА · без рекорда' : LEVELS[difficulty];
@@ -200,7 +230,7 @@ async function start(isDemo = false) {
   }
 }
 function gameTime() { return audio.position - settings.offset / 1000; }
-function pause(openDialog = true) {
+function pause() {
   if (state === 'starting') {
     requestId++; audio.stop(); state = 'song-ready'; show('song-screen');
     $('play').disabled = false; $('demo').disabled = false; $('play-label').textContent = 'Играть';
@@ -214,7 +244,7 @@ function pause(openDialog = true) {
   state = 'paused'; $('resume').disabled = false;
   game.held.fill(false); inputs.forEach(input => input.clear());
   $('pause-error').hidden = true;
-  if (openDialog && !$('pause-dialog').open) $('pause-dialog').showModal();
+  show('pause-screen'); $('resume').focus({ preventScroll: true });
 }
 async function resume() {
   if (document.hidden || state !== 'paused') return;
@@ -225,7 +255,7 @@ async function resume() {
     if (state !== 'resuming' || id !== requestId) return;
     await audio.play(buffer, pausePosition, 2);
     if (state !== 'resuming' || id !== requestId) return;
-    $('pause-dialog').close(); state = 'playing';
+    state = 'playing'; show('game-screen');
     resumeGrace = pausePosition - settings.offset / 1000 + .3;
     $('pause').focus({ preventScroll: true });
   } catch {
@@ -318,6 +348,12 @@ function interruptPlayback() {
 webAudio.oninterrupt = mediaAudio.oninterrupt = interruptPlayback;
 
 function frame() {
+  if (previewRenderer && !$('song-backdrop').hidden) {
+    const size = `${$('song-canvas').clientWidth}:${$('song-canvas').clientHeight}`;
+    if (size !== previewSize) {
+      previewRenderer.render(previewGame, 0, '1', 0, 0, true); previewSize = size;
+    }
+  }
   if (state === 'playing' && audio.interrupted) interruptPlayback();
   if (game && ['starting', 'playing', 'paused', 'resuming'].includes(state)) {
     const position = state === 'playing' ? audio.position : state === 'starting' ? 0 : pausePosition;
@@ -338,7 +374,7 @@ function frame() {
       pulse?.advance(time);
     }
     renderPulse(pulse?.view(time) ?? null);
-    renderer.render(game, time, run.level, buffer.duration, countdown, settings.motion);
+    if (!$('game-screen').hidden) renderer.render(game, time, run.level, buffer.duration, countdown, settings.motion);
     text('time', `${formatTime(position)} / ${formatTime(buffer.duration)}`);
     text('live-score', formatNumber(game.score));
     text('live-combo', formatNumber(game.streak));
@@ -360,10 +396,16 @@ function frame() {
 $('song-load-retry').onclick = prepareSong;
 $('play').onclick = () => start(false);
 $('demo').onclick = () => start(true);
-$('home').onclick = showLibrary;
+function goBack() {
+  if (document.body.dataset.screen === 'library') return showMenu();
+  if (document.body.dataset.screen === 'progress-screen') progressView.close();
+  if (document.body.dataset.screen === 'import-screen') return progressView.cancelImport();
+  return pageStack.length ? backPage() : showLibrary();
+}
+$('home').onclick = goBack;
 $('pause').onclick = () => pause();
 $('resume').onclick = resume;
-$('restart').onclick = () => { if (document.hidden) return; $('pause-dialog').close(); selected = run.song; level = run.level; return start(demo); };
+$('restart').onclick = () => { if (document.hidden) return; selected = run.song; level = run.level; return start(demo); };
 $('quit').onclick = showLibrary;
 $('retry').onclick = () => { selected = run.song; level = run.level; return start(demo); };
 $('back-to-library').onclick = showLibrary;
@@ -379,15 +421,12 @@ $('settings-calibration').onclick = selectCalibration;
 $('load-cancel').onclick = showLibrary;
 $('load-retry').onclick = initialize;
 $('apply-calibration').onclick = () => { settings.offset = calibrationOffset; $('offset').value = calibrationOffset; saveSettings(); $('apply-calibration').hidden = true; $('calibration-result').textContent = `Применена поправка ${formatNumber(calibrationOffset)} мс.`; };
-$('settings-open').onclick = () => { pause(false); $('settings-dialog').showModal(); };
-function closeSettings() { $('settings-dialog').close(); if (state === 'paused') $('pause-dialog').showModal(); }
-$('settings-close').onclick = closeSettings;
-$('settings-dialog').oncancel = event => { event.preventDefault(); closeSettings(); };
-$('pause-dialog').oncancel = event => { event.preventDefault(); resume(); };
-$('about-open').onclick = () => { pause(false); $('about-dialog').showModal(); };
-function closeAbout() { $('about-dialog').close(); if (state === 'paused') $('pause-dialog').showModal(); }
-$('about-close').onclick = closeAbout;
-$('about-dialog').oncancel = event => { event.preventDefault(); closeAbout(); };
+$('menu-play').onclick = showLibrary;
+$('settings-open').onclick = $('menu-settings').onclick = event => openPage('settings-screen', 'screen-title', event?.currentTarget);
+$('settings-close').onclick = backPage;
+$('about-open').onclick = $('menu-about').onclick = event => openPage('about-screen', 'screen-title', event?.currentTarget);
+$('about-close').onclick = backPage;
+$('offline-settings').onclick = () => openPage('settings-screen', 'screen-title', $('offline-settings'));
 function syncSettings() {
   $('compatible-audio').checked = settings.compatibleAudio;
   $('volume').disabled = settings.compatibleAudio;
@@ -418,7 +457,9 @@ for (const button of document.querySelectorAll('[data-lane]')) {
 }
 const keys = { KeyD: 0, KeyF: 1, KeyJ: 2, ArrowLeft: 0, ArrowDown: 1, ArrowRight: 2 };
 window.addEventListener('keydown', event => {
-  if (event.repeat || document.querySelector('dialog[open]') || /INPUT|TEXTAREA|SELECT/.test(event.target.tagName)) return;
+  if (event.repeat || /INPUT|TEXTAREA|SELECT/.test(event.target.tagName)) return;
+  if (event.code === 'Escape' && pageStack.length) { event.preventDefault(); goBack(); return; }
+  if (event.code === 'Escape' && state === 'paused') { event.preventDefault(); resume(); return; }
   if (state !== 'playing') return;
   if (event.code in keys) { event.preventDefault(); down(keys[event.code], event.code); }
   if (event.code === 'Escape') { event.preventDefault(); pause(); }
@@ -432,6 +473,7 @@ window.addEventListener('pagehide', leavePage);
 window.addEventListener('blur', leavePage);
 
 progressView = new ProgressView({
+  onOpenImport: () => openPage('import-screen', 'import-cancel'), onCloseImport: backPage,
   getProgress: () => progress, getSettings: () => settings, getWarning: () => saveWarning,
   onSelect: (song, difficulty) => { level = difficulty; progressView.close(); return openSong(song); },
   onImport: text => {
@@ -440,8 +482,8 @@ progressView = new ProgressView({
     storageWritable = true; saveWarning = ''; syncSettings();
   },
 });
-$('progress-open').onclick = () => {
-  audio.stop(); state = 'progress'; show('progress-screen'); progressView.open(catalog, selected, level);
+$('progress-open').onclick = $('menu-progress').onclick = event => {
+  audio.stop(); state = 'progress'; openPage('progress-screen', 'screen-title', event?.currentTarget); progressView.open(catalog, selected, level);
 };
 
 async function initialize() {
@@ -454,7 +496,8 @@ async function initialize() {
     const tracks = catalog.filter(song => !song.tutorial);
     $('catalog-count').textContent = `${formatCount(tracks.length, { one: 'трек', few: 'трека', many: 'треков', other: 'трека' })} · ${formatCount(tracks.reduce((total, song) => total + Object.keys(song.levels).length, 0), { one: 'карта', few: 'карты', many: 'карт', other: 'карты' })}`;
     renderer = new Renderer($('canvas'), paths);
-    state = 'library'; show('library'); refresh(); if (saveWarning) $('status').textContent = saveWarning; requestAnimationFrame(frame);
+    previewRenderer = new Renderer($('song-canvas'), paths); previewGame = new Game([]);
+    state = 'menu'; show('menu'); refresh(); if (saveWarning) $('status').textContent = saveWarning; $('menu-play').focus({ preventScroll: true }); requestAnimationFrame(frame);
   } catch {
     if (id !== requestId) return;
     state = 'boot-error'; preparation(null, null, true);

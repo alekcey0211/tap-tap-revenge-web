@@ -11,10 +11,15 @@ export class FakeCaches {
     if (!this.stores.has(name)) this.stores.set(name, new Map());
     const files = this.stores.get(name);
     return {
-      match: async url => files.get(String(url))?.clone(),
+      match: async url => {
+        const entry = files.get(String(url));
+        return entry ? new Response(entry.bytes.slice(0), { status: entry.status, headers: entry.headers }) : undefined;
+      },
       put: async (url, response) => {
         if (this.quota) throw new DOMException('quota', 'QuotaExceededError');
-        files.set(String(url), response.clone());
+        // CacheStorage owns bytes, not a live Response stream from an old worker realm.
+        files.set(String(url), { bytes: await response.clone().arrayBuffer(), status: response.status,
+          headers: [...response.headers] });
       },
       delete: async url => files.delete(String(url)),
     };

@@ -60,7 +60,7 @@ async function offlineUI(t) {
 
 test('offline UI downloads selected track, formats size with Intl and removes only downloaded data', async t => {
   const ui = await offlineUI(t); const settings = ui.settings(), progress = ui.progress();
-  await ui.click('offline-open'); await Promise.resolve();
+  await ui.openSong(); await ui.click('offline-open'); await Promise.resolve();
   assert.equal(ui.node('offline-download').disabled, false);
   await ui.click('offline-download');
   assert.match(ui.node('offline-state').textContent, /1,5 МБ/);
@@ -73,7 +73,7 @@ test('offline UI downloads selected track, formats size with Intl and removes on
 test('partial, quota and pending-download UI do not announce offline readiness', async t => {
   const ui = await offlineUI(t); const id = ui.catalog.find(song => !song.tutorial).id;
   ui.states.set(id, { state: 'partial', bytes: 10 });
-  await ui.click('offline-open'); await Promise.resolve();
+  await ui.openSong(); await ui.click('offline-open'); await Promise.resolve();
   assert.match(ui.node('offline-state').textContent, /не завершено/);
   const gate = deferred(); ui.setGate(gate);
   const download = ui.click('offline-download');
@@ -86,9 +86,9 @@ test('partial, quota and pending-download UI do not announce offline readiness',
 
 test('update UI asks to close all windows and never restarts the current page', async t => {
   const ui = await offlineUI(t);
-  await ui.click('offline-open'); await ui.click('update-check');
+  await ui.click('menu-settings'); await ui.click('update-check');
   assert.match(ui.node('update-status').textContent, /закрой все/);
-  assert.equal(ui.document.body.dataset.screen, 'library');
+  assert.equal(ui.document.body.dataset.screen, 'settings-screen');
   assert.equal(ui.audio.starts.length, 0); assert.equal(ui.native.plays.length, 0);
 });
 
