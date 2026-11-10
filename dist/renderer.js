@@ -39,7 +39,7 @@ export class Renderer {
     surface.addColorStop(.7, COLORS[lane]);
     surface.addColorStop(1, SHADOWS[lane]);
     c.beginPath(); c.arc(0, 0, radius, 0, Math.PI * 2);
-    c.fillStyle = surface; c.shadowColor = COLORS[lane]; c.shadowBlur = reducedMotion ? 0 : 8;
+    c.fillStyle = surface; c.shadowColor = COLORS[lane]; c.shadowBlur = reducedMotion ? 0 : 16;
     c.fill(); c.shadowBlur = 0;
     c.strokeStyle = '#ffffff99'; c.lineWidth = 1; c.stroke();
     c.beginPath(); c.ellipse(-radius * .25, -radius * .36, radius * .32, radius * .15, -.5, 0, Math.PI * 2);
@@ -47,19 +47,26 @@ export class Renderer {
   }
   renderStage(time, revenge, reducedMotion) {
     const c = this.ctx;
-    // A perspective runway, moving with the song clock; it freezes on pause.
-    c.strokeStyle = revenge ? '#ffb96a38' : '#a57add18'; c.lineWidth = 1;
-    for (let i = 0; i < 9; i++) {
-      const phase = reducedMotion ? i / 9 : ((i / 9 + Math.max(0, time) * .12) % 1);
-      const depth = phase * phase, y = 53 + depth * 350;
-      c.beginPath(); c.moveTo(148 - depth * 140, y); c.lineTo(172 + depth * 140, y); c.stroke();
+    // A single dark runway with luminous rails, not a flat grid over the venue.
+    const floor = c.createLinearGradient(160, 53, 160, 448);
+    floor.addColorStop(0, '#080d2300'); floor.addColorStop(.2, '#080d2355'); floor.addColorStop(1, '#080b20dd');
+    c.beginPath(); c.moveTo(132, 53); c.lineTo(188, 53); c.lineTo(320, 448); c.lineTo(0, 448); c.closePath();
+    c.fillStyle = floor; c.fill();
+    for (const side of [0, 1]) {
+      c.beginPath(); c.moveTo(side ? 188 : 132, 53); c.lineTo(side ? 318 : 2, 448);
+      c.strokeStyle = side ? '#75ddff' : '#ca81ff'; c.lineWidth = 1.5;
+      c.shadowColor = c.strokeStyle; c.shadowBlur = reducedMotion ? 0 : 12; c.stroke();
+      c.shadowBlur = 0;
+      c.beginPath(); c.moveTo(side ? 192 : 128, 53); c.lineTo(side ? 320 : 0, 420);
+      c.strokeStyle = side ? '#4791d955' : '#a34eda55'; c.lineWidth = 4; c.stroke();
     }
-    c.strokeStyle = revenge ? '#ffb86b' : '#ad82ff77'; c.lineWidth = revenge ? 3 : 1;
-    c.beginPath(); c.moveTo(3, 447); c.lineTo(3, 65); c.lineTo(24, 48);
-    c.moveTo(317, 447); c.lineTo(317, 65); c.lineTo(296, 48); c.stroke();
-    if (revenge) {
-      c.fillStyle = '#ffb86b26'; c.fillRect(80, 4, 160, 44);
-      c.fillStyle = '#ffb86b'; c.fillRect(80, 4, 160, 2);
+    // Small moving edge lights convey speed without drawing stripes across the notes.
+    if (!reducedMotion) for (let i = 0; i < 6; i++) {
+      const depth = ((i / 6 + Math.max(0, time) * .1) % 1) ** 2;
+      const y = 53 + depth * 360, x = 132 * (1 - depth);
+      c.strokeStyle = revenge ? '#ffb87988' : '#ba9cfa55'; c.lineWidth = 1;
+      c.beginPath(); c.moveTo(x, y); c.lineTo(x - 4, y + 10);
+      c.moveTo(320 - x, y); c.lineTo(324 - x, y + 10); c.stroke();
     }
   }
   renderJudgments(effects, width, height, dpr, reducedMotion) {
@@ -74,9 +81,13 @@ export class Renderer {
       c.globalAlpha = hit.age < .5 || reducedMotion ? 1 : (.75 - hit.age) / .25;
       const pop = reducedMotion ? 1 : 1 + .12 * Math.max(0, 1 - hit.age / .12);
       c.save(); c.translate(x, y); c.scale(pop, pop);
-      c.fillStyle = hit.failed ? '#ff777e' : hit.text === 'PERFECT' ? '#c9ff56' : '#91e9ed';
+      c.fillStyle = '#10091c99';
       c.fillRect(-badgeWidth / 2, -badgeHeight / 2, badgeWidth, badgeHeight);
-      this.text(hit.text, 0, 4, Math.min(13, badgeHeight * .7), '#10151e');
+      const color = hit.failed ? '#ff9298' : hit.text === 'PERFECT' ? '#fff2ce' : '#a6f6ff';
+      c.shadowColor = hit.failed ? '#ff405d' : hit.text === 'PERFECT' ? '#ff8d36' : '#2ae6ff';
+      c.shadowBlur = reducedMotion ? 0 : 8;
+      this.text(hit.text, 0, 4, Math.min(13, badgeHeight * .7), color);
+      c.shadowBlur = 0;
       c.restore();
     }
     c.restore();
@@ -97,15 +108,15 @@ export class Renderer {
       const phase = reducedMotion ? 0 : time * 9;
       c.beginPath();
       for (let i = 0; i <= 18; i++) {
-        const reach = 5 + (i % 2 ? 8 : 0) + Math.sin(phase + i * 2.1 + side * 1.7) * 3;
-        const px = side ? 320 - reach : reach, py = 66 + i * 21;
+        const reach = 4 + (1 + Math.sin(i * 6.7 + side * 2.8)) * 5 + Math.sin(phase + i * 2.1 + side * 1.7) * 3;
+        const px = side ? 320 - reach : reach, py = 66 + i * 21 + (i > 0 && i < 18 ? Math.sin(phase * .7 + i * 3.2) * 5 : 0);
         if (!i) c.moveTo(px, py); else c.lineTo(px, py);
       }
       c.lineJoin = 'round';
       c.globalAlpha = .65 + impact * .3;
-      c.strokeStyle = '#ffa65a'; c.lineWidth = 4 + impact * 2;
+      c.strokeStyle = '#ffa65a'; c.lineWidth = 2.8 + impact * 1.5;
       c.shadowColor = '#ffa65a'; c.shadowBlur = reducedMotion ? 0 : 10 + impact * 8; c.stroke();
-      c.shadowBlur = 0; c.strokeStyle = '#fff0d7'; c.lineWidth = 1.2 + impact; c.stroke();
+      c.shadowBlur = 0; c.strokeStyle = '#fff0d7'; c.lineWidth = .9 + impact * .5; c.stroke();
       if (!reducedMotion) {
         c.strokeStyle = '#ffa65a'; c.lineWidth = 1.5;
         for (let i = 0; i < 5; i++) {
@@ -142,15 +153,15 @@ export class Renderer {
       for (let i = 0; i < sparks; i++) {
         const spread = .5 + .5 * Math.sin(i * 9.17 + hit.lane * 2.3);
         const angle = i * Math.PI * 2 / sparks + hit.lane * .4 + Math.sin(i * 2.39) * .18;
-        const distance = (8 + Math.sqrt(progress) * (38 + power * 8)) * (.55 + spread * .45);
+        const distance = (8 + Math.sqrt(progress) * (42 + power * 18)) * (.55 + spread * .45);
         const length = (perfect ? 8 : 5) * (1 - progress);
         c.beginPath();
-        c.moveTo(x + Math.cos(angle) * distance, 422 + Math.sin(angle) * distance * .65);
-        c.lineTo(x + Math.cos(angle) * (distance + length), 422 + Math.sin(angle) * (distance + length) * .65);
+        c.moveTo(x + Math.cos(angle) * distance, 422 - Math.abs(Math.sin(angle)) * distance * 1.45 + progress * progress * 24);
+        c.lineTo(x + Math.cos(angle) * (distance + length), 422 - Math.abs(Math.sin(angle)) * (distance + length) * 1.45 + progress * progress * 24);
         c.stroke();
         const particleRadius = (perfect ? 3.5 : 2.5) * (.55 + spread * .45) * (1 - progress);
         c.beginPath();
-        c.arc(x + Math.cos(angle) * distance, 422 + Math.sin(angle) * distance * .65,
+        c.arc(x + Math.cos(angle) * distance, 422 - Math.abs(Math.sin(angle)) * distance * 1.45 + progress * progress * 24,
           particleRadius, 0, Math.PI * 2);
         c.fillStyle = i % 3 === 0 ? '#f5ffe9' : COLORS[hit.lane]; c.fill();
       }
@@ -159,7 +170,7 @@ export class Renderer {
   }
   renderMultiplier(effects, reducedMotion) {
     const { transition, multiplier } = effects;
-    if (!transition && multiplier !== 8) return;
+    if (!transition) return;
     const c = this.ctx;
     const rising = transition && transition.to > transition.from;
     const swell = !reducedMotion && rising ? Math.sin(Math.min(1, transition.age / .3) * Math.PI) : 0;
@@ -169,7 +180,7 @@ export class Renderer {
       c.globalAlpha = reducedMotion ? 1 : Math.min(1, (1.1 - transition.age) / .25);
       this.text(`×${formatNumber(multiplier)}`, 160, 28, 27 + swell * 6, color);
       this.text(multiplier === 8 ? 'REVENGE' : rising ? 'МНОЖИТЕЛЬ ВЫРОС' : 'МНОЖИТЕЛЬ СНИЖЕН', 160, 44, 9, color);
-    } else this.text(`REVENGE ×${formatNumber(8)}`, 160, 30, 18, color);
+    }
     c.globalAlpha = 1;
   }
   render(game, time, difficulty, duration, countdown = 0, reducedMotion = false) {
@@ -192,7 +203,7 @@ export class Renderer {
       const [x] = stagePosition(this.paths, lane, 1);
       const glow = c.createLinearGradient(160, 53, x, 422);
       glow.addColorStop(0, COLORS[lane] + '00');
-      glow.addColorStop(1, COLORS[lane] + (revenge ? '55' : '20'));
+      glow.addColorStop(1, COLORS[lane] + (revenge ? '18' : '0c'));
       c.beginPath(); c.moveTo(160 + (lane - 1) * 14, 53);
       c.lineTo(x - 34, 448); c.lineTo(x + 34, 448); c.closePath();
       c.fillStyle = glow; c.fill();
@@ -201,13 +212,13 @@ export class Renderer {
         const [px, py] = stagePosition(this.paths, lane, i / 36);
         if (!i) c.moveTo(px, py); else c.lineTo(px, py);
       }
-      c.strokeStyle = revenge ? '#ffb86bbb' : COLORS[lane] + '80'; c.lineWidth = revenge ? 2 : 1.2; c.stroke();
-      c.beginPath(); c.ellipse(x, 422, 31, 24, 0, 0, Math.PI * 2);
-      c.fillStyle = COLORS[lane] + (revenge ? '45' : '22'); c.fill();
+      c.strokeStyle = COLORS[lane] + '99'; c.lineWidth = revenge ? 1.6 : 1; c.shadowColor = COLORS[lane]; c.shadowBlur = reducedMotion ? 0 : 6; c.stroke(); c.shadowBlur = 0;
+      c.beginPath(); c.ellipse(x, 422, 31, 13, 0, 0, Math.PI * 2);
+      c.fillStyle = COLORS[lane] + (revenge ? '18' : '0d'); c.fill();
       const judgment = effects.judgments[lane];
       const failed = judgment?.failed && judgment.age < .35;
       const active = !failed && (game.held[lane] || (judgment && judgment.age < .18));
-      c.strokeStyle = failed ? '#ff777e' : active ? '#f3f2ee' : COLORS[lane]; c.lineWidth = active ? 4 : 3;
+      c.strokeStyle = failed ? '#ff777e' : active ? '#f3f2ee' : COLORS[lane]; c.lineWidth = active ? 3 : 2;
       c.shadowColor = COLORS[lane]; c.shadowBlur = reducedMotion ? 0 : active ? 22 : 10;
       c.stroke(); c.shadowBlur = 0;
     }

@@ -11,8 +11,8 @@
   <link rel="apple-touch-icon" href="assets/identity/icon-180.png">
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="apple-mobile-web-app-title" content="Tap Tap Web">
-  <link rel="stylesheet" href="style.css?v=0.7.0">
-  <script type="module" src="app.js?v=0.7.0"></script>
+  <link rel="stylesheet" href="style.css?v=0.7.1">
+  <script type="module" src="app.js?v=0.7.1"></script>
 </head>
 <body>
   <main class="layout">
@@ -22,8 +22,8 @@
       <p class="subtle">Три дорожки. Музыка. Точность.</p>
       <div class="instructions"><h2>Как играть</h2><p>Нажимай, когда ноты достигают колец. Длинные ноты удерживай до конца хвоста.</p><div class="key-row"><kbd>D</kbd><kbd>F</kbd><kbd>J</kbd></div><p><kbd>Esc</kbd> — пауза</p><p class="subtle">После 50 попаданий подряд ×8 включается автоматически и действует до ошибки.</p></div>
     </aside>
-    <div class="game-shell">
-      <header class="appbar" id="appbar"><button id="home" class="icon-button" aria-label="К трекам" hidden>‹</button><h2 id="screen-title">Музыка</h2><button id="settings-open" class="icon-button" aria-label="Настройки">⚙</button></header>
+    <div class="game-shell"><div class="stage-lights" aria-hidden="true"><i></i><i></i><i></i></div>
+      <header class="appbar" id="appbar"><button id="home" class="icon-button" aria-label="К трекам" hidden>‹</button><span class="music-mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><h2 id="screen-title">Музыка</h2><button id="settings-open" class="icon-button" aria-label="Настройки">⚙</button></header>
       <section id="library" class="screen library" aria-label="Выбор трека">
         <p class="catalog-caption"><span id="catalog-count"></span> · <span id="app-version" title="Версия приложения"></span></p>
         <div id="tracks" role="group" aria-label="Выбрать трек"></div>
@@ -41,19 +41,18 @@
         </div>
       </section>
       <section id="game-screen" class="screen" hidden aria-label="Игра">
-        <div class="now-playing"><img id="now-art" alt=""><div><strong id="now-title"></strong><small id="now-artist"></small></div><button id="pause" class="icon-button" aria-label="Пауза">Ⅱ</button></div>
-        <div class="hud"><strong id="live-score">0</strong><div><small>Комбо</small><strong id="live-combo">0</strong></div></div>
-        <div class="progress-row"><progress id="song-progress" max="1" value="0" aria-label="Прогресс трека"></progress><span id="time">0:00 / 0:00</span></div>
-        <div class="mode-row"><span id="mode-label"></span><span id="audio-status" hidden></span><span id="multiplier" aria-label="Множитель очков" role="status">×1</span></div>
+        <div class="now-playing sr-only"><img id="now-art" alt=""><div><strong id="now-title"></strong><small id="now-artist"></small></div></div>
+        <div class="hud"><strong id="live-score">0</strong><div><small>Комбо</small><strong id="live-combo">0</strong></div><span id="multiplier" aria-label="Множитель очков" role="status">×1</span><button id="pause" class="icon-button" aria-label="Пауза">Ⅱ</button></div>
+        <div class="mode-row"><span id="mode-label"></span><span id="audio-status" hidden></span></div>
         <section id="pulse" class="pulse" aria-label="Pulse" hidden>
           <strong id="pulse-title" role="status"></strong><span id="pulse-detail"></span>
           <div id="pulse-progress-row"><progress id="pulse-progress" max="1" value="0" aria-label="Завершённые ноты фрагмента"></progress><span id="pulse-notes"></span></div>
         </section>
         <div class="playfield" id="playfield"><canvas id="canvas" width="640" height="960" aria-label="Три дорожки: левая D, средняя F, правая J"></canvas><div class="touch-lanes"><button data-lane="0" aria-label="Левая дорожка, D"></button><button data-lane="1" aria-label="Средняя дорожка, F"></button><button data-lane="2" aria-label="Правая дорожка, J"></button></div></div>
-        <div class="game-footer"><div id="revenge" class="secondary"><span id="revenge-label">АВТО ×8</span><progress id="revenge-progress" max="50" value="0" aria-hidden="true"></progress></div></div><div id="game-stats" class="sr-only"></div>
+        <div class="game-footer"><div class="progress-row"><progress id="song-progress" max="1" value="0" aria-label="Прогресс трека"></progress><span id="time">0:00 / 0:00</span></div><div id="revenge" class="secondary"><span id="revenge-label">АВТО ×8</span><progress id="revenge-progress" max="50" value="0" aria-hidden="true"></progress></div></div><div id="game-stats" class="sr-only"></div>
       </section>
       <section id="results" class="screen result-screen" hidden aria-labelledby="result-heading">
-        <img id="result-art" class="result-art" alt=""><h3 id="result-heading"></h3><p id="result-artist"></p>
+        <div class="result-stage"><img id="result-art" class="result-art" alt=""></div><h3 id="result-heading"></h3><p id="result-artist"></p>
         <div class="score-caption" id="score-caption"></div><div id="final-score" class="final-score"></div><p id="record-delta" class="subtle" hidden></p><div id="result-rating"></div>
         <div class="result-summary"><div><strong id="result-accuracy"></strong><span>Точность</span></div><div><strong id="result-combo"></strong><span>Макс. комбо</span></div></div><p id="result-misses"></p>
         <p id="result-pulse" class="pulse-summary" hidden></p>

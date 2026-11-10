@@ -270,106 +270,162 @@ body[data-reduced-motion="true"] #multiplier { box-shadow: none; }
 #revenge-label { font-size: 13px; white-space: nowrap; }
 #revenge-progress { flex: 0 0 25%; width: 25%; }
 
-/* One persistent venue connects the catalogue, song and performance. */
-.game-shell { position: relative; isolation: isolate; min-height: 760px; background: #090819 url("assets/scene/concert.jpg") center top / 100% auto no-repeat; border-color: #52417f; box-shadow: 0 24px 100px #0009, 0 0 60px #593bc322; }
-.game-shell::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: linear-gradient(#0a072324, #10082755 35%, #10091be8 75%); }
-.appbar { padding-bottom: 10px; }
-.appbar h2 { font-weight: 800; text-shadow: 0 0 24px #c8a9ff88; }
-.icon-button { background: #1b123466; border: 1px solid #c5b6ff33; }
+/* Concert composition: luminous artwork, stage depth and a compact performance HUD. */
+.game-shell { position: relative; isolation: isolate; min-height: 760px; background: #080718 url("assets/scene/concert.jpg") center top / 100% auto no-repeat; border-color: #60508c; box-shadow: 0 24px 100px #0009, 0 0 70px #593bc333; }
+.game-shell::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: linear-gradient(#06051777, #160a2b11 35%, #10091be6 75%); }
+.stage-lights { position: absolute; inset: 0 0 auto; height: 420px; z-index: -1; overflow: hidden; pointer-events: none; opacity: .55; }
+.stage-lights i { position: absolute; top: -70px; left: 12%; width: 32%; height: 450px; transform-origin: 50% 0; transform: rotate(-25deg); background: linear-gradient(#a6f4ff77, #67b2ff33 45%, transparent); clip-path: polygon(46% 0, 54% 0, 100% 100%, 0 100%); }
+.stage-lights i:nth-child(2) { left: 64%; transform: rotate(25deg); background: linear-gradient(#e8b6ff77, #8d47e52f, transparent); }
+.stage-lights i:nth-child(3) { left: 36%; width: 18%; transform: rotate(10deg); opacity: .6; }
+.appbar { padding-bottom: 6px; gap: 10px; }
+.appbar h2 { font-weight: 800; letter-spacing: -.8px; text-shadow: 0 0 24px #c8a9ff88; }
+.music-mark { display: flex; align-items: center; gap: 3px; height: 40px; padding: 0 4px; }
+.music-mark i { width: 3px; height: 12px; border-radius: 2px; background: #84f4ff; box-shadow: 0 0 7px #54ddff; }
+.music-mark i:nth-child(2), .music-mark i:nth-child(4) { height: 25px; }
+.music-mark i:nth-child(3) { height: 36px; background: #e6a4ff; box-shadow: 0 0 8px #dd83ff; }
+body:not([data-screen="library"]) .music-mark { display: none; }
+.icon-button { background: #160e2c66; border: 1px solid #c5b6ff66; border-radius: 50%; }
 .appbar .icon-button { flex-basis: 48px; width: 48px; height: 48px; font-size: 25px; }
-.catalog-caption { display: flex; justify-content: space-between; font-size: 11px; letter-spacing: .05em; margin: 0 0 14px; }
-#tracks { display: grid; gap: 14px; border: 0; margin: 0; }
-.track { position: relative; overflow: hidden; min-height: 116px; padding: 20px; border: 1px solid #9384d16b; border-radius: 18px; background: #16102a; box-shadow: 0 12px 24px #0005; }
-.track img { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 0; object-fit: cover; opacity: .75; }
-.track::after { content: ""; position: absolute; inset: 0; background: linear-gradient(0deg, #120b22f2, #160e2d33 95%); }
+.catalog-caption { display: flex; justify-content: space-between; font-size: 10px; letter-spacing: .05em; margin: 0 0 10px; opacity: .8; }
+.library { display: flex; flex-direction: column; height: 760px; min-height: 420px; }
+#tracks { display: flex; flex-direction: column; gap: 18px; border: 0; margin: 0 -8px; padding: 10px 8px 18px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #8a65bb66 transparent; }
+.track { position: relative; overflow: hidden; flex-shrink: 0; min-height: 112px; padding: 18px; border: 1px solid #b398edaa; border-radius: 18px; background: #16102a; box-shadow: inset 0 0 14px #ae74ff33, 0 10px 24px #0005; }
+.track img { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 0; object-fit: cover; opacity: .9; }
+.track::after { content: ""; position: absolute; inset: 0; background: linear-gradient(0deg, #120b22ef, #160e2d00 75%); pointer-events: none; }
 .track > span, .track em { position: relative; z-index: 1; align-self: end; }
-.track strong { font-size: 22px; font-weight: 800; letter-spacing: -.4px; text-shadow: 0 2px 12px #000; }
-.track small { color: #ebe0ff; font-size: 12px; }
+.track strong { font-size: 24px; font-weight: 800; font-style: italic; letter-spacing: -.6px; text-shadow: 0 2px 12px #000; }
+.track small { color: #eee2ff; font-size: 14px; margin-top: 3px; }
 .track em { color: #e0d4f8; font-family: inherit; }
-.track:first-child { aspect-ratio: 1.12; border: 1px solid #ffb36f; box-shadow: 0 0 22px #ed843c30, 0 12px 30px #0008; }
+.track:first-child { min-height: 0; height: 390px; border: 2px solid #ffdc9f; border-radius: 20px; box-shadow: 0 0 4px #fff4d6, 0 0 10px #ff7934, 0 0 24px #ff652455, inset 0 0 14px #ff6a2355; transform: perspective(950px) rotateY(3deg) rotateZ(-1deg); }
 .track:first-child img { opacity: 1; }
-.track:first-child strong { font-size: 34px; }
-.library-nav { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px; padding-top: 16px; }
-.library-nav .text-button { font-size: 12px; }
-body[data-screen="song-screen"] #screen-title { font-size: 17px; text-align: center; color: var(--muted); }
-.song-screen { text-align: center; padding-top: 8px; }
-.selected-art h3 { font-size: 32px; font-weight: 800; text-shadow: 0 0 20px #b68cff77; }
-.selected-art p { color: #dbd1ee; font-size: 13px; }
-.album-stage { position: relative; perspective: 900px; padding: 24px 0 32px; }
-.album-stage::after { content: ""; position: absolute; z-index: -1; bottom: 6px; left: 10%; width: 80%; height: 36px; border-radius: 50%; border: 1px solid #bc94ff99; background: radial-gradient(ellipse, #b06bff66, #6c34d522 62%, transparent 72%); box-shadow: 0 0 22px #8041de55; }
-.album-stage img { display: block; width: clamp(170px, 57vw, 238px); max-width: 76%; aspect-ratio: 1; object-fit: cover; margin: auto; border-radius: 12px; border: 1px solid #ffd1a6bd; box-shadow: 0 12px 28px #0009, 0 0 30px #ff98552b; transform: rotateY(-8deg) rotateZ(-2deg); }
-#hero-meta { font-size: 12px; }
-.song-controls { padding-top: 6px; }
-.difficulty-label { color: #eee2ff; text-align: left; margin-top: 18px; }
-#difficulties { border: 0; gap: 6px; }
-#difficulties button { background: linear-gradient(#392657, #201432); border: 1px solid #9577bd77; border-radius: 10px; font-weight: 600; }
-#difficulties button[aria-pressed="true"] { color: #fff7ec; border-color: #ffd3a8; background: linear-gradient(#cf743d, #9e452a); box-shadow: 0 0 14px #ff9d4d44, inset 0 1px 0 #ffe7be77; }
-.record { font-size: 12px; margin: 12px 0 6px; }
-.song-status { color: var(--muted); font-size: 11px; line-height: 1.45; min-height: 32px; margin-bottom: 10px; }
-.primary { color: #fff9ef; border: 1px solid #ffd5a2; background: linear-gradient(180deg, #eeaa65, #d47138 55%, #b34f27); border-radius: 14px; text-shadow: 0 1px 2px #742d25; box-shadow: inset 0 1px 0 #ffeccbaa, 0 5px 0 #642b38, 0 0 24px #f5893c33; }
-.secondary { background: linear-gradient(#35244d, #201430); border-color: #b292d477; border-radius: 14px; }
-#demo, #offline-open { display: block; width: 100%; min-height: 48px; font-size: 12px; }
-#demo { margin-top: 12px; }
-#offline-open { color: #c7aee7; }
-#game-screen { background: linear-gradient(#100a2644, #0a081b55); }
-#game-screen[data-energy="active"] { background: linear-gradient(#d9742922, #28102c66); }
-.now-playing { gap: 8px; }
-.now-playing img { width: 36px; height: 36px; border: 1px solid #a786c4; }
-.now-playing strong { font-size: 14px; }
-.now-playing small { font-size: 11px; }
-#pause { width: 48px; height: 48px; flex-basis: 48px; border-color: #a78ac477; }
-.hud { padding-top: 12px; padding-bottom: 10px; }
-#live-score { font-size: 34px; text-shadow: 0 0 20px #d6b8ff66; }
-#live-combo { font-size: 22px; }
-#game-screen[data-energy="active"] #live-score { color: #ffe1b8; text-shadow: 0 0 20px #fa9b5688; }
-.mode-row { padding-top: 6px; padding-bottom: 6px; font-size: 10px; }
-#game-screen .pulse { flex-basis: 62px; margin-bottom: 0; padding: 6px 10px; gap: 3px; border-color: #b38cdb55; background: linear-gradient(90deg, #3c2458cc, #21132dcc); }
-#game-screen .pulse[data-outcome="captured"], #game-screen .pulse[data-outcome="perfect"] { border-color: #ffb86c; background: #442b30bb; }
+.track:first-child strong { font-size: 33px; }
+.library-nav { flex-shrink: 0; display: flex; justify-content: space-around; gap: 4px; margin-top: auto; padding-top: 8px; border-top: 1px solid #b88aef88; background: linear-gradient(#26123d99, #100a20); box-shadow: 0 -8px 22px #0a071c; }
+.library-nav .text-button { font-size: 12px; color: #f1e4ff; }
+body[data-screen="song-screen"] #screen-title { visibility: hidden; }
+body[data-screen="song-screen"] .appbar .icon-button { background: none; border-color: transparent; }
+.song-screen { text-align: center; padding-top: 2px; }
+.selected-art h3 { font-size: 38px; font-weight: 800; font-style: italic; letter-spacing: -.9px; text-shadow: 0 0 20px #b68cff77; }
+.selected-art p { color: #eee5ff; font-size: 16px; }
+.album-stage { position: relative; isolation: isolate; perspective: 900px; padding: 28px 0 40px; }
+.album-stage::before { content: ""; position: absolute; bottom: 4px; left: 5%; width: 90%; height: 38px; border-radius: 50%; background: linear-gradient(#2a1d57, #100b25 45%, #8157ba 49%, #241135 70%); box-shadow: 0 9px 4px #0008, 0 4px 28px #9f4cff77; }
+.album-stage::after { content: ""; position: absolute; z-index: 1; bottom: 17px; left: 7%; width: 86%; height: 35px; border-radius: 50%; border: 2px solid #b9c1ff; background: radial-gradient(ellipse, #a85fff44, transparent 68%); box-shadow: inset 0 0 12px #37cfff, 0 0 8px #aa58ff, 0 6px 16px #ff61cb66; pointer-events: none; }
+.album-stage img { position: relative; z-index: 2; display: block; width: clamp(190px, 65vw, 258px); max-width: 82%; aspect-ratio: 1; object-fit: cover; margin: auto; border-radius: 9px; border: 2px solid #ffd5a3; box-shadow: 0 0 5px #fff3ba, 0 0 14px #ff843b, 0 12px 28px #0009, 0 0 32px #ff664b66; transform: rotateY(-12deg) rotateZ(-3deg); }
+#hero-meta { font-size: 14px; margin-top: 8px; }
+.song-controls { padding-top: 10px; }
+.difficulty-label { font-size: 10px; color: #e9dcff; text-align: left; margin: 10px 0 8px; }
+#difficulties { border: 0; gap: 7px; }
+#difficulties button { background: linear-gradient(#291c46cc, #0e0c24dd); border: 1px solid #b19acaaa; border-radius: 10px; font-weight: 600; box-shadow: inset 0 1px 5px #a17bdb33; }
+#difficulties button[aria-pressed="true"] { color: #fff7ec; border-color: #ffe2a9; background: linear-gradient(#51202a, #2a1022); box-shadow: 0 0 4px #ffcf84, 0 0 13px #ff6a29, inset 0 0 12px #ff782955; }
+.record { font-size: 11px; margin: 12px 0 4px; }
+.song-status { color: var(--muted); font-size: 11px; line-height: 1.4; min-height: 16px; margin-bottom: 14px; }
+.primary { color: #fffdf3; border: 2px solid #fff1b3; background: linear-gradient(180deg, #ffcf76, #ff963b 28%, #ff6626 72%, #f2913b); border-radius: 28px; text-shadow: 0 2px 3px #a23820; box-shadow: inset 0 2px 6px #fff7b9aa, 0 0 5px #ffc876, 0 0 18px #ff6f28aa, 0 7px 24px #f85b3333; }
+.secondary { background: linear-gradient(#48226277, #110b22cc); border-color: #d8adff; border-radius: 28px; box-shadow: inset 0 0 10px #b96fff44, 0 0 10px #9856cf55; }
+#play { min-height: 58px; font-size: 23px; }
+#demo, #offline-open { display: block; width: 100%; min-height: 48px; font-size: 13px; }
+#demo { margin-top: 6px; color: #e8d5ff; font-weight: 600; }
+#offline-open { color: #c7aee7; font-size: 11px; }
+/* The performance header uses one row; the venue now belongs to the runway, not the score. */
+body[data-screen="game-screen"] .stage-lights { display: none; }
+#game-screen { background: #090718 radial-gradient(ellipse at 50% 20%, #25104766, transparent 65%); padding-top: 8px; }
+#game-screen[data-energy="active"] { background: #090718 radial-gradient(ellipse at 50% 20%, #32104766, transparent 65%); }
+#game-screen .hud { flex-shrink: 0; align-items: center; gap: 10px; padding: 0 14px; min-height: 54px; }
+#live-score { flex: 1; min-width: 0; font-size: 23px; letter-spacing: -.4px; text-shadow: 0 0 16px #b991ff55; }
+.hud > div { display: flex; align-items: baseline; gap: 5px; white-space: nowrap; }
+.hud small { font-size: 10px; text-transform: none; letter-spacing: 0; color: #d8cce8; }
+#live-combo { display: inline; font-size: 21px; color: #ffba79; }
+#game-screen #multiplier { background: none; min-width: 54px; padding: 0; font-size: 30px; line-height: 1; font-style: italic; box-shadow: none; }
+#game-screen #multiplier[data-level="8"] { color: #fff0b9; font-size: 38px; text-shadow: 0 0 4px #fff, 0 0 10px #ff9c3e, 0 0 22px #ff6b1f; }
+#pause { width: 48px; height: 48px; flex-basis: 48px; border-color: #cbb1efbb; background: radial-gradient(ellipse at 30% 20%, #704e9c88, #25173a); font-size: 19px; }
+.mode-row { padding: 0 16px 4px; font-size: 9px; min-height: 16px; }
+#game-screen .pulse { flex: 0 0 48px; margin: 0 14px 0; padding: 5px 10px; gap: 1px; border: 1px solid #62408799; border-radius: 16px; background: linear-gradient(#241334, #150c26); box-shadow: inset 0 0 12px #7b39be22; }
+.pulse strong { font-size: 10px; }
+.pulse > span, #pulse-progress-row { color: #d5c5e8; font-size: 9px; }
+#pulse-progress-row { gap: 6px; }
+#pulse-progress { height: 3px; }
+#pulse-progress::-webkit-progress-value { background: linear-gradient(90deg, #49e6ef, #b26bff); box-shadow: 0 0 6px #b478ff; }
+#pulse-progress::-moz-progress-bar { background: linear-gradient(90deg, #49e6ef, #b26bff); }
+#game-screen .pulse[data-outcome="captured"], #game-screen .pulse[data-outcome="perfect"] { border-color: #ffb86c; background: #442331bb; }
 .pulse[data-outcome="captured"] strong, .pulse[data-outcome="perfect"] strong { color: #ffd2a4; }
 .pulse-summary { color: #ffd2a4; border-color: #a7766244; background: #38233b99; }
-.pulse > span, #pulse-progress-row { color: #d5c5e8; }
-#multiplier[data-level="8"] { color: #fff8e8; background: #b25b30; box-shadow: 0 0 18px #ff9e5e77; }
-#game-screen #revenge { min-height: 42px; padding: 8px 12px; background: #261634aa; border-color: #9576b455; }
-#game-screen[data-energy="active"] #revenge { color: #ffe4b8; border-color: #ffc28b; background: #6a342ecc; box-shadow: 0 0 20px #ff8f3a33; }
-.result-art { border: 1px solid #ffc390; box-shadow: 0 0 32px #bc65ff44, 0 10px 30px #0008; }
-.final-score { color: #ffbf76; text-shadow: 0 0 24px #ff8e4855; }
-.result-summary { background: #2b1a3c99; border: 1px solid #8b679055; border-radius: 14px; padding: 18px 4px; }
-.result-summary strong { font-size: 27px; }
-#result-rating { letter-spacing: .08em; text-shadow: 0 0 18px #ffad5377; }
-.result-screen { padding-top: 16px; }
-dialog { background: linear-gradient(150deg, #2e1c49, #100d20 65%); border-color: #b594d277; box-shadow: 0 20px 90px #000b, 0 0 30px #8554c733; }
+.playfield { isolation: isolate; }
+.playfield::before { content: ""; pointer-events: none; position: absolute; inset: 0; z-index: -1; background: url("assets/scene/concert.jpg") center -90px / 100% auto no-repeat; mask-image: linear-gradient(#000 0%, #000 30%, transparent 62%); }
+.game-footer { padding: 0 16px 4px; }
+.game-footer .progress-row { padding: 0 4px 8px; gap: 12px; }
+.game-footer #song-progress { height: 2px; }
+.game-footer #time { font-size: 9px; }
+#game-screen #revenge { justify-content: center; position: relative; min-height: 42px; padding: 8px 12px; border: 1px solid #b68cdd; border-radius: 18px 18px 6px 6px; background: linear-gradient(#35204bcc, #100a24); box-shadow: 0 0 12px #b171ed44; }
+#revenge-progress { position: absolute; bottom: 0; left: 15%; width: 70%; height: 2px; }
+#revenge-label { font-size: 13px; letter-spacing: .04em; }
+#game-screen[data-energy="active"] #revenge { color: #fff1c8; text-shadow: 0 0 14px #ffc076; border-color: #d6acff; box-shadow: 0 0 18px #aa67ff55; }
+#game-screen[data-energy="active"] #revenge-progress { opacity: .3; }
+/* Results are a stage celebration, not a boxed statistics card. */
+.result-screen { padding-top: 8px; }
+body[data-screen="results"] .appbar h2 { font-size: 18px; text-align: center; color: #e4d7f3; }
+.result-stage { perspective: 900px; padding: 16px 0 22px; }
+.result-art { width: 178px; height: 178px; border-radius: 9px; border: 2px solid #ffe1ab; margin: 0; transform: rotateY(-12deg) rotateZ(-4deg); box-shadow: 0 0 6px #ffe8b5, 0 0 16px #ff8a42, 0 0 42px #ba65ff77, 0 14px 30px #0008; }
+.result-screen h3 { font-size: 30px; font-style: italic; }
+#result-artist { font-size: 13px; margin-top: 5px; }
+.score-caption { margin-top: 16px; font-size: 10px; letter-spacing: .1em; }
+.score-caption[data-record="true"] { color: #ffdc9f; background: none; }
+.final-score { color: #fff2c1; font-style: italic; text-shadow: 0 0 5px #ffa346, 0 0 20px #ff7838aa; }
+.result-screen .final-score { font-size: clamp(42px, 12vw, 60px); font-weight: 700; }
+#result-rating { position: relative; display: inline-block; margin: 14px 0 20px; font-size: 24px; letter-spacing: .02em; color: #ffe1a4; text-shadow: 0 0 9px #ff8c33, 0 0 22px #ff7b2d99; }
+#results[data-full-combo="true"] #result-rating::before, #results[data-full-combo="true"] #result-rating::after { content: ""; position: absolute; top: -5px; width: 14px; height: 38px; border: solid #ffca70; border-width: 0 0 0 3px; border-radius: 50%; box-shadow: -3px 0 8px #ffa64a77; transform: rotate(-30deg); left: -24px; }
+#results[data-full-combo="true"] #result-rating::after { left: auto; right: -24px; transform: rotate(30deg) scaleX(-1); }
+.result-summary { background: none; border: 0; padding: 10px 4px; }
+.result-summary > div + div { border-color: #c4a0e477; }
+.result-summary strong { font-size: 28px; }
+.result-summary span { font-size: 12px; }
+#result-misses { margin-top: 10px; font-size: 11px; }
+.result-details { margin-bottom: 4px; }
+.result-details summary { font-size: 11px; }
+.result-screen .primary, .result-screen .secondary { min-height: 48px; }
+.result-screen .pulse-summary { padding: 8px; font-size: 11px; }
+dialog { background: linear-gradient(150deg, #2e1c49, #100d20 65%); border-color: #b594d2aa; box-shadow: 0 20px 90px #000b, 0 0 30px #8554c744; }
 .progress-tabs, .progress-screen select { border-color: #926bbd77; }
+img[src$="scene/concert.jpg"] { object-position: center top; }
 body:not([data-reduced-motion="true"]) button { transition: transform 120ms ease, filter 120ms ease; }
 body:not([data-reduced-motion="true"]) button:active:not(:disabled) { transform: scale(.97); }
 body:not([data-reduced-motion="true"]) #song-screen:not([hidden]) .album-stage img { animation: album-float 5s ease-in-out infinite; }
+body:not([data-reduced-motion="true"]) .stage-lights i { animation: light-sweep 12s ease-in-out infinite alternate; }
+body:not([data-reduced-motion="true"]) .stage-lights i:nth-child(2) { animation-delay: -6s; }
+body:not([data-reduced-motion="true"]) .stage-lights i:nth-child(3) { animation-delay: -3s; }
 body:not([data-reduced-motion="true"]) #library:not([hidden]) .track,
-body:not([data-reduced-motion="true"]) #results:not([hidden]) .result-art { animation: card-enter 350ms ease-out both; }
+body:not([data-reduced-motion="true"]) #results:not([hidden]) .result-stage { animation: card-enter 350ms ease-out both; }
 body:not([data-reduced-motion="true"]) dialog[open] { animation: card-enter 180ms ease-out both; }
 body:not([data-reduced-motion="true"]) #multiplier[data-level="8"] { animation: multiplier-enter 260ms ease-out; }
-#song-screen[data-departing="true"] { position: absolute; z-index: 3; top: 74px; left: 0; right: 0; pointer-events: none; animation: song-depart 340ms ease-in both; }
+#song-screen[data-departing="true"] { position: absolute; z-index: 3; top: 70px; left: 0; right: 0; pointer-events: none; animation: song-depart 340ms ease-in both; }
 #song-screen[data-departing="true"] .album-stage img { animation: none !important; }
+body:not([data-reduced-motion="true"]) #game-screen { animation: stage-reveal 340ms ease-out both; }
 @keyframes song-depart { to { opacity: 0; transform: translateY(-28px) scale(1.05); } }
-@keyframes album-float { 50% { transform: translateY(-7px) rotateY(5deg) rotateZ(1deg); } }
-@keyframes card-enter { from { opacity: 0; transform: translateY(12px) scale(.98); } to { opacity: 1; transform: none; } }
-@keyframes multiplier-enter { from { transform: scale(1.25); } to { transform: scale(1); } }
-body[data-reduced-motion="true"] *, body[data-reduced-motion="true"] *::after { animation: none !important; transition: none !important; }
-@media (prefers-reduced-motion: reduce) { *, *::after { animation: none !important; transition: none !important; } }
+@keyframes stage-reveal { from { opacity: .15; } to { opacity: 1; } }
+@keyframes album-float { 50% { transform: translateY(-6px) rotateY(3deg) rotateZ(-1deg); } }
+@keyframes light-sweep { to { rotate: 18deg; opacity: .55; } }
+@keyframes card-enter { from { opacity: 0; translate: 0 12px; } to { opacity: 1; translate: 0 0; } }
+@keyframes multiplier-enter { from { scale: 1.25; } to { scale: 1; } }
+body[data-reduced-motion="true"] *, body[data-reduced-motion="true"] *::before, body[data-reduced-motion="true"] *::after { animation: none !important; transition: none !important; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 @media (max-width: 760px) {
   .game-shell { min-height: 100svh; }
-  #song-screen[data-departing="true"] { top: calc(70px + env(safe-area-inset-top)); }
+  .library { height: calc(100dvh - 66px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
+  .track:first-child { height: clamp(280px, 46dvh, 420px); }
+  #song-screen[data-departing="true"] { top: calc(66px + env(safe-area-inset-top)); }
+}
+@media (max-width: 350px) {
+  #game-screen .hud { gap: 5px; padding: 0 10px; }
+  #live-score { font-size: 20px; }
+  .hud small { font-size: 9px; }
+  #live-combo { font-size: 18px; }
+  #game-screen #multiplier { min-width: 46px; }
+  .playfield::before { background-position-y: -72px; }
+  .library-nav .text-button { font-size: 11px; padding: 8px 4px; }
 }
 @media (max-height: 700px) {
-  .album-stage { padding: 14px 0 22px; }
-  .album-stage img { width: 170px; }
-  .selected-art h3 { font-size: 27px; }
+  .album-stage { padding: 16px 0 32px; }
+  .album-stage img { width: 190px; }
+  .selected-art h3 { font-size: 30px; }
   .song-controls { padding-top: 0; }
-  .song-status { min-height: 16px; }
-  #game-screen .pulse { flex-basis: 54px; }
-  .hud { padding-top: 6px; }
-  #live-score { font-size: 28px; }
+  .result-art { width: 138px; height: 138px; }
+  .result-stage { padding-top: 8px; padding-bottom: 16px; }
+  .hud { padding-top: 0; }
 }
-/* The venue cover has its detail at the top, not in the deliberately empty runway. */
-img[src$="scene/concert.jpg"] { object-position: center top; }
-
-body:not([data-reduced-motion="true"]) .playfield { animation: stage-reveal 340ms ease-out both; }
-@keyframes stage-reveal { from { opacity: .15; } to { opacity: 1; } }

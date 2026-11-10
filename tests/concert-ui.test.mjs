@@ -111,3 +111,16 @@ test('pause can cancel a pending native start; late failure cannot replace the n
   assert.equal(ui.native.instances.at(-1).paused, false);
   assert.match(ui.node('mode-label').textContent, /ДЕМО/);
 });
+
+for (const mode of ['perfect', 'miss', 'demo']) test(`result celebration uses real full combo only: ${mode}`, async t => {
+  const ui = await mount(t, { chart: [{ time: 1, lane: 0, duration: 0 }] });
+  await ui.openSong('Overdrive');
+  assert.equal(ui.node('hero-artist').textContent, 'Pulse Lab');
+  await ui.click(mode === 'demo' ? 'demo' : 'play');
+  if (mode === 'perfect') { ui.tick(1); ui.lanes[0].onclick({ detail: 0 }); }
+  ui.tick(151);
+  assert.equal(ui.document.body.dataset.screen, 'results');
+  assert.equal(ui.node('results').dataset.fullCombo, String(mode === 'perfect'));
+  assert.equal(ui.node('result-artist').textContent, 'Pulse Lab · Легко');
+  assert.equal(ui.progress().history.length, mode === 'demo' ? 0 : 1);
+});

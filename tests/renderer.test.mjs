@@ -160,3 +160,28 @@ test('a successful round head explodes into particles; stray taps and reduced mo
   renderer.effects.reset(); renderer.effects.recordHit(game.press(1, 1.2), 1.2, 1);
   renderer.render(game, 1.3, '4', 100); assert.equal(arcs.length, 0);
 });
+
+test('stable x8 leaves the concert horizon free after the transition announcement', () => {
+  const labels = [];
+  const ctx = new Proxy({}, { get: (_, name) => ['createLinearGradient', 'createRadialGradient'].includes(name)
+    ? () => ({ addColorStop() {} }) : name === 'fillText' ? value => labels.push(value) : () => {} });
+  const renderer = new Renderer({ clientWidth: 390, clientHeight: 630, getContext: () => ctx }, paths);
+  const game = new Game([], { automaticRevenge: true }); game.streak = 50;
+  renderer.render(game, 10, '4', 66); assert.ok(labels.includes('×8'));
+  labels.length = 0; renderer.render(game, 12, '4', 66);
+  assert.equal(labels.includes('REVENGE'), false);
+  assert.equal(labels.includes('×8'), false, 'persistent multiplier is displayed in the HUD, not twice');
+  assert.equal(game.streak, 50);
+});
+
+test('burst fragments rise from the target without replacing the next circular note', () => {
+  const particles = [];
+  const ctx = new Proxy({}, { get: (_, name) => ['createLinearGradient', 'createRadialGradient'].includes(name)
+    ? () => ({ addColorStop() {} }) : name === 'arc' ? (...args) => particles.push(args) : () => {} });
+  const renderer = new Renderer({ clientWidth: 390, clientHeight: 630, getContext: () => ctx }, paths);
+  const game = new Game([{ time: 1, lane: 0, duration: 0 }]);
+  renderer.effects.recordHit(game.press(0, 1), 1, 8);
+  renderer.render(game, 1.12, '4', 66);
+  assert.equal(particles.length, 16);
+  assert.ok(particles.filter(([, y]) => y < 422).length >= 12);
+});

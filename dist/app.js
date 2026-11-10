@@ -6,7 +6,7 @@ import { OfflineView } from './offline-view.js?v=0.4.0';
 import { Game } from './engine.js';
 import { SongAudio } from './audio.js?v=0.5.3';
 import { MediaSongAudio } from './media-audio.js?v=0.3.1';
-import { Renderer } from './renderer.js?v=0.7.0';
+import { Renderer } from './renderer.js?v=0.7.1';
 
 import { Temporal } from './temporal.js';
 import { formatNumber, formatPercent, formatSigned, formatTime, formatCount } from './format.js?v=0.3.0';
@@ -14,7 +14,7 @@ import { DEFAULT_SETTINGS, loadSave, saveSettings as writeSettings, recordAttemp
 import { ProgressView } from './progress.js?v=0.7.0';
 
 const $ = id => document.getElementById(id);
-const APP_VERSION = '0.7.0';
+const APP_VERSION = '0.7.1';
 if ($('app-version')) $('app-version').textContent = `v${APP_VERSION}`;
 $('pulse-target').textContent = formatPercent(90);
 const LEVELS = { 1: 'Легко', 2: 'Средне', 3: 'Сложно', 4: 'Экстрим' };
@@ -54,12 +54,13 @@ function showLibrary() {
   for (const dialog of document.querySelectorAll('dialog[open]')) dialog.close();
   show('library'); refresh(); if (saveWarning) $('status').textContent = saveWarning; $('tracks').children[0]?.focus({ preventScroll: true });
 }
+function artistName(song) { return song.artist.replace(' · программный синтез', ''); }
 function refresh() {
   if (!selected) return;
   offlineView.select(selected);
   $('hero-art').src = artwork(selected);
   $('hero-title').textContent = selected.title;
-  $('hero-artist').textContent = selected.artist;
+  $('hero-artist').textContent = artistName(selected);
   $('hero-meta').textContent = `${formatTime(selected.duration)} · ${selected.genre}`;
   $('tracks').replaceChildren();
   for (const song of [...catalog.filter(song => !song.tutorial)].sort((a, b) => Number(b.id === 'overdrive-v1') - Number(a.id === 'overdrive-v1') || Number(b.id === 'neon-circuit-v1') - Number(a.id === 'neon-circuit-v1'))) {
@@ -67,7 +68,7 @@ function refresh() {
     button.setAttribute('aria-pressed', String(song.id === selected.id));
     const img = document.createElement('img'); img.src = artwork(song); img.alt = '';
     const text = document.createElement('span'); const title = document.createElement('strong'); const artist = document.createElement('small');
-    title.textContent = song.title; artist.textContent = song.artist; text.append(title, artist);
+    title.textContent = song.title; artist.textContent = artistName(song); text.append(title, artist);
     const duration = document.createElement('em'); duration.textContent = formatTime(song.duration);
     button.append(img, text, duration);
     button.onclick = () => openSong(song);
@@ -184,7 +185,7 @@ async function start(isDemo = false) {
     audio.setVolume(settings.volume / 100);
     const playback = audio.play(buffer, 0, 0);
     show('game-screen'); if (fromSong) stageEntrance();
-    $('now-title').textContent = song.title; $('now-artist').textContent = song.artist; $('now-art').src = artwork(song);
+    $('now-title').textContent = song.title; $('now-artist').textContent = artistName(song); $('now-art').src = artwork(song);
     $('pause-track').textContent = `${song.title} · ${LEVELS[difficulty]}`;
     $('mode-label').textContent = demo ? 'ДЕМО · без рекорда' : song.tutorial ? 'КАЛИБРОВКА · без рекорда' : LEVELS[difficulty];
     $('pause').focus({ preventScroll: true });
@@ -273,12 +274,13 @@ function finish() {
     records = currentRecords(progress); saveSettings();
   }
   $('result-art').src = artwork(run.song); $('result-heading').textContent = run.song.title;
-  $('result-artist').textContent = `${run.song.artist} · ${LEVELS[run.level]}`;
+  $('result-artist').textContent = `${artistName(run.song)} · ${LEVELS[run.level]}`;
   $('score-caption').textContent = demo ? 'ДЕМО · БЕЗ РЕКОРДА' : run.song.tutorial ? 'КАЛИБРОВКА · БЕЗ РЕКОРДА' : isRecord ? 'НОВЫЙ РЕКОРД' : 'ТВОЙ РЕЗУЛЬТАТ';
   $('score-caption').dataset.record = String(isRecord);
   $('record-delta').hidden = !isRecord || !Number.isFinite(previousScore);
   $('record-delta').textContent = isRecord && Number.isFinite(previousScore) ? `${formatSigned(result.score - previousScore)} к рекорду` : '';
   $('final-score').textContent = formatNumber(result.score);
+  $('results').dataset.fullCombo = String(!demo && !run.song.tutorial && result.misses === 0 && result.brokenHolds === 0 && result.strays === 0);
   $('result-rating').textContent = demo ? 'ДЕМО ЗАВЕРШЕНО' : run.song.tutorial ? 'КАЛИБРОВКА' : result.misses === 0 && result.brokenHolds === 0 && result.strays === 0 ? 'FULL COMBO' : 'ТРЕК ПРОЙДЕН';
   $('result-accuracy').textContent = formatPercent(result.accuracy);
   $('result-combo').textContent = formatNumber(result.bestStreak);
