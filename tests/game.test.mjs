@@ -97,3 +97,26 @@ for (const failure of ['miss', 'stray', 'broken']) test(`automatic x8 resets on 
   for (let i = 60; i < 110; i++) { game.press(0, i); game.release(0, i + .01); }
   assert.equal(game.multiplier(110), 8);
 });
+
+test('automatic ×16 begins at 100 heads, persists and resets on a stray', () => {
+  const game = new Game(Array.from({ length: 102 }, (_, i) => note(i + 1)), { automaticRevenge: true });
+  for (let i = 1; i <= 99; i++) { game.press(0, i); game.release(0, i); }
+  assert.equal(game.multiplier(99), 8);
+  const before = game.score;
+  game.press(0, 100); game.release(0, 100);
+  assert.equal(game.score - before, 800, 'threshold head uses preceding multiplier');
+  assert.equal(game.multiplier(100), 16);
+  game.press(0, 101); game.release(0, 101);
+  assert.equal(game.score - before, 2400);
+  game.press(0, 102); game.release(0, 102);
+  game.update(500); assert.equal(game.multiplier(500), 16);
+  game.press(2, 501); assert.equal(game.multiplier(501), 1);
+});
+
+for (const failure of ['miss', 'hold']) test(`×16 resets after ${failure}`, () => {
+  const game = new Game([note(1, 0, failure === 'hold' ? 2 : 0)], { automaticRevenge: true });
+  game.streak = 100;
+  if (failure === 'hold') { game.press(0, 1); game.release(0, 1.1); }
+  else game.update(2);
+  assert.equal(game.multiplier(2), 1);
+});

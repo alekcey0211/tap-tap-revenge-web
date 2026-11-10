@@ -91,3 +91,15 @@ test('misses, strays and broken holds get distinct lane feedback, not successful
   assert.deepEqual(effects.frame(1, 2.4).judgments, [null, null, null], 'failure does not restart each frame');
   effects.reset(); assert.equal(effects.failures.size, 0);
 });
+
+test('×16 transition appears once, freezes with song time and can be earned again', () => {
+  const effects = new HitEffects();
+  effects.frame(8, 1);
+  assert.deepEqual(effects.frame(16, 2).transition, { from: 8, to: 16, time: 2, age: 0 });
+  const paused = effects.frame(16, 2.4);
+  assert.deepEqual(effects.frame(16, 2.4), paused);
+  assert.equal(effects.frame(16, 3.2).transition, null);
+  effects.frame(1, 4); effects.frame(8, 5);
+  assert.equal(effects.frame(16, 6).transition.time, 6);
+  effects.reset(); assert.equal(effects.frame(1, 0).transition, null);
+});

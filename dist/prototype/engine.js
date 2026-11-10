@@ -26,6 +26,7 @@ export class Game {
     this.errors = [];
   }
   multiplier(time) {
+    if (this.automaticRevenge && this.streak >= 100) return 16;
     if (this.automaticRevenge ? this.streak >= 50 : time < this.revengeUntil) return 8;
     return this.streak >= 40 ? 4 : this.streak >= 30 ? 3 : this.streak >= 20 ? 2 : 1;
   }

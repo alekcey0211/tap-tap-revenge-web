@@ -40,7 +40,9 @@ export async function prepareRenderer() {
   const feedback = document.createElement('div'); feedback.className = 'babylon-feedback'; feedback.setAttribute('aria-hidden', 'true');
   const countdown = document.createElement('strong'); countdown.className = 'babylon-countdown';
   const judgments = Array.from({ length: 3 }, () => { const span = document.createElement('span'); feedback.append(span); return span; });
-  feedback.append(countdown);
+  const milestone = document.createElement('strong'); milestone.className = 'babylon-milestone'; milestone.hidden = true;
+  milestone.textContent = `×${formatNumber(16)}`;
+  feedback.append(countdown, milestone);
   shared.engine.onContextLostObservable.add(() => {
     // Let the unchanged application pause its own audio/session; never take ownership here.
     window.dispatchEvent(new PageTransitionEvent('pagehide'));
@@ -76,8 +78,16 @@ export async function prepareRenderer() {
     const multiplier = data.game?.multiplier(data.time) || 1;
     for (const hit of data.owner.hits.splice(0)) world.hit(hit.lane, hit.time);
     const spectrum = data.track && !data.countdown ? sampleSpectrum(data.track.songId, data.track.position, bands) : null;
-    world.update(data.time, active && !data.countdown, multiplier === 8, data.reduced, data.zones, spectrum);
+    world.update(data.time, active && !data.countdown, multiplier >= 8, data.reduced, data.zones, spectrum);
     const effects = data.owner.effects.frame(multiplier, data.time);
+    const transition = effects.transition;
+    const showMilestone = active && !data.countdown && transition?.to === 16 && transition.from < 16;
+    milestone.hidden = !showMilestone;
+    if (showMilestone) {
+      // Song time freezes during pause. Only a new entry into ×16 starts the banner.
+      milestone.style.opacity = String(Math.pow(Math.min(1, (1.1 - transition.age) / .85), 1.5));
+      milestone.style.transform = `scale(${data.reduced ? 1 : .92 + .08 * Math.min(1, transition.age / .12)})`;
+    }
     const points = world.targets();
     judgments.forEach((node, lane) => {
       const item = effects.judgments[lane]; node.textContent = item?.text || '';

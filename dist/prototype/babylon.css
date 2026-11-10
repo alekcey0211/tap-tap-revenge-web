@@ -82,3 +82,8 @@ body[data-utility='true'] .appbar { position: relative; top: auto; background: t
   #game-screen .hud { padding-inline: 10px; gap: 6px; grid-template-columns: minmax(0, 1fr) auto auto 44px; }
   #game-screen #pause { width: 44px; }
 }
+
+/* A brief full-field milestone, without a backdrop or any input interception. */
+.babylon-milestone { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; color: #fff5d9; font: 900 min(34vw, 28vh, 220px)/1 Unbounded, sans-serif; letter-spacing: -.07em; text-shadow: 0 2px 4px #2d164a, 0 0 12px #ffb85b, 0 0 34px #ff823a99; }
+.babylon-milestone[hidden] { display: none; }
+#game-screen #multiplier[data-level='16'] { font-size: clamp(30px, 8vw, 38px); color: #fff0b9; text-shadow: 0 0 4px #fff, 0 0 10px #ff9c3e, 0 0 22px #ff6b1f; }

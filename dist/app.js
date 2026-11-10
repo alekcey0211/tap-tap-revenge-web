@@ -6,15 +6,15 @@ import { PULSE_CHARTS, PULSE_COUNTS } from './phrase-charts.js?v=0.9.0';
 import { choosePulseZones } from './pulse-zones.js?v=0.8.2';
 import { renderPulse, renderPulseBreakdown } from './pulse-view.js?v=0.8.2';
 import { OfflineView } from './offline-view.js?v=0.10.0';
-import { Game, TRAVEL } from './engine.js';
+import { Game, TRAVEL } from './engine.js?v=1.1.0';
 import { SongAudio } from './audio.js?v=0.5.3';
 import { MediaSongAudio } from './media-audio.js?v=0.3.1';
 import { Renderer } from './renderer.js?v=0.9.0';
 
 import { Temporal } from './temporal.js';
 import { formatNumber, formatPercent, formatSigned, formatTime } from './format.js?v=0.3.0';
-import { DEFAULT_SETTINGS, loadSave, saveSettings as writeSettings, recordAttempt, currentRecords, importProgress } from './storage.js?v=0.8.2';
-import { ProgressView } from './progress.js?v=0.10.3';
+import { DEFAULT_SETTINGS, loadSave, saveSettings as writeSettings, recordAttempt, currentRecords, importProgress } from './storage.js?v=1.1.0';
+import { ProgressView } from './progress.js?v=1.1.0';
 
 const $ = id => document.getElementById(id);
 const APP_VERSION = '0.10.4';
@@ -410,10 +410,10 @@ function frame() {
     const multiplier = game.multiplier(time);
     text('multiplier', `×${formatNumber(multiplier)}`);
     $('multiplier').dataset.level = String(multiplier);
-    $('game-screen').dataset.energy = multiplier === 8 ? 'active' : 'charging';
+    $('game-screen').dataset.energy = multiplier >= 8 ? 'active' : 'charging';
     $('song-progress').value = Math.min(1, Math.max(0, position / buffer.duration));
     $('revenge-progress').value = Math.min(50, game.streak);
-    text('revenge-label', multiplier === 8 ? `×${formatNumber(8)}` : `АВТО ×${formatNumber(8)} · ${formatNumber(Math.min(50, game.streak))} / ${formatNumber(50)}`);
+    text('revenge-label', multiplier >= 8 ? `×${formatNumber(multiplier)}` : `АВТО ×${formatNumber(8)} · ${formatNumber(Math.min(50, game.streak))} / ${formatNumber(50)}`);
     $('audio-status').hidden = audio !== mediaAudio;
     text('audio-status', audio.waiting ? 'Ожидаем звук…' : 'Совместимый звук');
     text('game-stats', `Очки: ${formatNumber(game.score)}; попадания: ${formatNumber(game.hits)}; пропуски: ${formatNumber(game.misses)}`);

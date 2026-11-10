@@ -5,7 +5,7 @@ import { PHRASE_VERSION } from './phrase-charts.js?v=0.9.0';
 import { pulseSummary } from './pulse-view.js?v=0.8.2';
 import { Temporal } from './temporal.js';
 import { formatNumber, formatPercent, formatSigned, formatCount, formatAttemptTime, formatDay } from './format.js?v=0.3.0';
-import { CHART_VERSION, RULES_VERSION, HISTORY_LIMIT, IMPORT_LIMIT, recordKey, exportProgress, parseProgress } from './storage.js?v=0.8.2';
+import { CHART_VERSION, RULES_VERSION, HISTORY_LIMIT, IMPORT_LIMIT, recordKey, exportProgress, parseProgress } from './storage.js?v=1.1.0';
 
 const $ = id => document.getElementById(id);
 const attemptForms = { one: 'попытка', few: 'попытки', many: 'попыток', other: 'попытки' };
