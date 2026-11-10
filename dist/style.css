@@ -324,7 +324,7 @@ body:not([data-screen="library"]) .music-mark { display: none; }
 .catalog-caption { display: flex; justify-content: space-between; font-size: 10px; letter-spacing: .05em; margin: 0 0 10px; opacity: .8; }
 .library { display: flex; flex-direction: column; height: 760px; min-height: 420px; }
 #tracks { display: flex; flex-direction: column; gap: 12px; border: 0; margin: 0 -8px; padding: 10px 8px 18px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #8a65bb66 transparent; }
-.library-nav { flex-shrink: 0; display: flex; justify-content: space-around; gap: 4px; margin-top: auto; padding-top: 8px; border-top: 1px solid #b88aef88; background: linear-gradient(#26123d99, #100a20); box-shadow: 0 -8px 22px #0a071c; }
+.library-nav { flex-shrink: 0; display: flex; justify-content: space-around; gap: 4px; margin: auto -20px 0; padding: 8px 20px 0; border-top: 1px solid #b88aef88; background: linear-gradient(#26123d99, #100a20); box-shadow: 0 -8px 22px #0a071c; }
 .library-nav .text-button { font-size: 12px; color: #f1e4ff; }
 body[data-screen="song-screen"] #screen-title { visibility: hidden; }
 body[data-screen="song-screen"] .appbar .icon-button { background: none; border-color: transparent; }
@@ -474,6 +474,7 @@ body[data-reduced-motion="true"] *, body[data-reduced-motion="true"] *::before, 
   .hud small { font-size: 9px; }
   #live-combo { font-size: 18px; }
   #game-screen #multiplier { min-width: 46px; }
+  .library-nav { margin-inline: -16px; padding-inline: 16px; }
   .library-nav .text-button { font-size: 11px; padding: 8px 4px; }
 }
 @media (max-height: 700px) {
