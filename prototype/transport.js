@@ -1,4 +1,4 @@
-// This experiment has no scoring, storage or automatic resume. Music is the authoritative clock.
+// No storage or automatic resume. Music is the authoritative clock.
 export class Transport {
   constructor(player, now = () => performance.now() / 1000) {
     this.player = player; this.now = now; this.state = 'ready'; this.offset = 0; this.generation = 0;

@@ -1,0 +1,26 @@
+{
+  "source": "User-provided Suno exports",
+  "tracks": [
+    {
+      "id": "restless-urban-groove-v1",
+      "title": "Restless Urban Groove",
+      "artist": "ezhik0211",
+      "sourceSha256": "4a05f94736bbc156f3f94acb052f24a4367f06f7ff45bf1f795a300c1bdb7ade",
+      "sourceComment": "made with suno; created=2026-11-10T12:26:39Z; id=b96d074c-ae90-45d8-99a5-ed80595ad231"
+    },
+    {
+      "id": "warehouse-echoes-v1",
+      "title": "Warehouse Echoes",
+      "artist": "ezhik0211",
+      "sourceSha256": "dde089c1efee7c19e3e03c1b6e636588941a5ce00dffd8c7a796eed010e8118b",
+      "sourceComment": "made with suno; created=2026-11-10T12:26:14Z; id=5f5524be-30ff-4ce1-b6a4-7914f0dd5f7b"
+    },
+    {
+      "id": "bouncy-mischievous-groove-v1",
+      "title": "Bouncy Mischievous Groove",
+      "artist": "ezhik0211",
+      "sourceSha256": "9a1c41a469b5e5b8ce9ba27d9b2df44d9853d9f9be0ff6b7cc84941bb3501418",
+      "sourceComment": "made with suno; created=2026-11-10T12:25:58Z; id=cb82acf6-39cb-4fd3-837a-24100da58a88"
+    }
+  ]
+}

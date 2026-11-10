@@ -1,0 +1,25 @@
+{
+  "id": "./",
+  "name": "Tap Tap · Stage Lab",
+  "short_name": "Tap Tap Lab",
+  "lang": "ru",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#090819",
+  "theme_color": "#090819",
+  "icons": [
+    {
+      "src": "assets/identity/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/identity/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

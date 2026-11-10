@@ -1,12 +1,12 @@
-import { Scene, FreeCamera, Vector3, Color3, Color4, MeshBuilder, StandardMaterial, HemisphericLight, PointLight, GlowLayer, Viewport } from '@babylonjs/core';
-import { TrackRhythm } from '../track-rhythm.js?v=0.8.1';
+import { Scene, FreeCamera, Vector3, Color3, Color4, MeshBuilder, StandardMaterial, HemisphericLight, PointLight, GlowLayer, Viewport, Matrix } from '@babylonjs/core';
+import { TrackRhythm } from '../dist/track-rhythm.js';
 
 const palette = ['#ff668a', '#ffd073', '#68edff'].map(Color3.FromHexString);
 const v = (x, y, z) => new Vector3(x, y, z);
 const mix = (a, b, t) => a + (b - a) * t;
 const random = seed => { let n = seed | 0; return () => { n = Math.imul(n ^ n >>> 16, 0x45d9f3b); n = Math.imul(n ^ n >>> 16, 0x45d9f3b); return ((n ^ n >>> 16) >>> 0) / 4294967296; }; };
 
-export function createScene(engine, canvas) {
+export function createScene(engine, canvas, { fullViewport = false } = {}) {
   const scene = new Scene(engine);
   scene.clearColor = new Color4(.018, .014, .046, 1);
   scene.fogMode = Scene.FOGMODE_EXP2; scene.fogDensity = .023; scene.fogColor = new Color3(.018, .014, .046);
@@ -107,6 +107,9 @@ export function createScene(engine, canvas) {
     });
     return { lane, halo, flash, particles, born: -Infinity };
   });
+  const tailPools = laneMats.map((mat, lane) => Array.from({ length: 20 }, () => {
+    const mesh = box('hold-tail-' + lane, .16, .08, 1, v(0, .35, 0), mat); mesh.setEnabled(false); return mesh;
+  }));
   const nextBurst = [0, 0, 0]; let totalHits = 0, lastHit = -Infinity;
   function hit(lane, time) {
     const burst = bursts[lane + (nextBurst[lane]++ % 3) * 3]; burst.born = time;
@@ -135,16 +138,16 @@ export function createScene(engine, canvas) {
       MeshBuilder.CreateTube('lightning', { path: bolt.points, instance: bolt.mesh }, scene);
     }
   }
-  let notes = [], cursor = 0, lastTime = -Infinity, lastStrike = -Infinity, lastBeat = -1;
+  const zoneMat = material('pulse-zone', '#baff69', 1.2, .4);
+  const zonePools = Array.from({ length: 3 }, () => ({
+    sides: [-1, 1].map(side => box('pulse-side', .65, .04, 1, v(side * 3.9, .12, 0), zoneMat)),
+    edges: [0, 1].map(() => box('pulse-boundary', 6.4, .025, .04, v(0, .1, 0), zoneMat)),
+  }));
+  let notes = [], travel = 2.15, lastTime = -Infinity, lastStrike = -Infinity, lastBeat = -1;
   const rhythm = new TrackRhythm();
-  function setChart(chart) { notes = chart; cursor = 0; lastTime = -Infinity; lastBeat = -1; lastStrike = -Infinity; totalHits = 0; for (const b of bursts) b.born = -Infinity; }
-  function update(time, playing, energy, reduced) {
-    if (time < lastTime) { cursor = 0; totalHits = 0; lastStrike = -Infinity; for (const b of bursts) b.born = -Infinity; }
-    if (playing) {
-      while (cursor < notes.length && notes[cursor].time <= time) {
-        const note = notes[cursor++]; if (time - note.time < .15) hit(note.lane, note.time);
-      }
-    }
+  function setChart(chart, duration = 2.15) { notes = chart; travel = duration; lastTime = -Infinity; lastBeat = -1; lastStrike = -Infinity; totalHits = 0; lastHit = -Infinity; for (const b of bursts) b.born = -Infinity; }
+  function update(time, playing, energy, reduced, pulseZones = []) {
+    if (time < lastTime) { totalHits = 0; lastStrike = -Infinity; for (const b of bursts) b.born = -Infinity; }
     lastTime = time;
     const beat = rhythm.frame(notes, time), pulse = reduced ? .2 : beat.pulse;
     if (energy && playing && !reduced && beat.index !== lastBeat && beat.age < .16 && time - lastStrike >= .3) { strike(beat.index); lastStrike = time; }
@@ -168,12 +171,33 @@ export function createScene(engine, canvas) {
       b.mesh.rotation.x = reduced ? -.2 : -.25 + Math.cos(time * .4 + i) * .15;
       b.mat.alpha = energy ? .065 + pulse * .018 : .025;
     });
-    const counts = [0, 0, 0]; notePools.flat().forEach(mesh => mesh.setEnabled(false));
-    for (let i = cursor; i < notes.length && notes[i].time < time + 3.2; i++) {
-      const note = notes[i], remaining = note.time - time;
-      if (remaining < 0 || counts[note.lane] >= 20) continue;
-      const mesh = notePools[note.lane][counts[note.lane]++]; mesh.setEnabled(true);
-      mesh.position.set((note.lane - 1) * 1.65, .54, remaining / 3.2 * 20);
+    zonePools.forEach((pool, index) => {
+      const zone = pulseZones[index];
+      const start = zone ? Math.max(0, Math.min(20, (zone.start - time) / travel * 20)) : 0;
+      const end = zone ? Math.max(0, Math.min(20, (zone.end - time) / travel * 20)) : 0;
+      for (const mesh of pool.sides) { mesh.setEnabled(end > start); mesh.position.z = (start + end) / 2; mesh.scaling.z = Math.max(.001, end - start); }
+      pool.edges.forEach((mesh, edge) => {
+        const stamp = zone && (edge ? zone.end : zone.start);
+        mesh.setEnabled(Boolean(zone && stamp >= time && stamp <= time + travel));
+        mesh.position.z = edge ? end : start;
+      });
+    });
+    const counts = [0, 0, 0];
+    for (const pool of [...notePools, ...tailPools]) for (const mesh of pool) mesh.setEnabled(false);
+    for (const note of notes) {
+      if (note.time > time + travel) break;
+      if (!['pending', 'holding'].includes(note.state) || counts[note.lane] >= 20) continue;
+      const remaining = note.time - time, slot = counts[note.lane]++;
+      const z = note.state === 'holding' ? 0 : remaining / travel * 20;
+      const mesh = notePools[note.lane][slot]; mesh.setEnabled(true);
+      mesh.position.set((note.lane - 1) * 1.65, .54, z);
+      if (note.duration > 0) {
+        const end = Math.min(20, (remaining + note.duration) / travel * 20), start = Math.max(0, z);
+        if (end > start) {
+          const tail = tailPools[note.lane][slot]; tail.setEnabled(true);
+          tail.position.set(mesh.position.x, .35, (start + end) / 2); tail.scaling.z = end - start;
+        }
+      }
     }
     for (const burst of bursts) {
       const age = time - burst.born, visible = age >= 0 && age < .55;
@@ -195,12 +219,18 @@ export function createScene(engine, canvas) {
   function resize() {
     engine.resize();
     // Keep all three target rings in frame on portrait screens, without camera controls.
-    const height = canvas.clientHeight;
-    const available = Math.min(height, Math.max(240, canvas.ownerDocument.querySelector('.dock').getBoundingClientRect().top + 12));
+    const height = Math.max(1, canvas.clientHeight);
+    const available = fullViewport ? height : Math.min(height, Math.max(240, canvas.ownerDocument.querySelector('.dock').getBoundingClientRect().top + 12));
     camera.viewport = new Viewport(0, 1 - available / height, 1, available / height);
     const aspect = canvas.clientWidth / available;
-    camera.fov = aspect < .7 ? 1.08 : .88;
+    camera.fov = canvas.clientWidth <= 600 ? Math.max(.8, 2 * Math.atan(.28 / aspect)) : .88;
   }
   resize();
-  return { scene, update, setChart, resize };
+  function targets() {
+    const height = canvas.clientHeight * camera.viewport.height;
+    const transform = camera.getViewMatrix().multiply(camera.getProjectionMatrix());
+    const viewport = new Viewport(0, 0, canvas.clientWidth, height);
+    return pads.map(pad => Vector3.Project(pad.position, Matrix.Identity(), transform, viewport));
+  }
+  return { scene, update, setChart, resize, hit, targets };
 }

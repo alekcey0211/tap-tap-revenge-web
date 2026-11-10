@@ -3,38 +3,123 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#070617">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; media-src 'self' blob:; object-src 'none'; base-uri 'none'">
-  <title>Pulse / Stage Lab · Babylon.js</title>
-  <link rel="stylesheet" href="stage.css?v=1">
-  <script type="module" src="stage.js?v=1"></script>
+  <meta name="theme-color" content="#090819">
+  <meta name="description" content="Три дорожки, любимая музыка и точность каждого попадания.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; media-src 'self' blob:; object-src 'none'; base-uri 'none'">
+  <title>Tap Tap · Babylon Stage Lab</title>
+  <link rel="icon" href="assets/identity/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/identity/icon-180.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="apple-mobile-web-app-title" content="Tap Tap Lab">
+  <link rel="preload" href="assets/fonts/onest-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/onest-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/unbounded-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/unbounded-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="style.css?v=0.10.3">
+  <link rel="stylesheet" href="babylon.css?v=0.3.0">
+  <script type="module" src="game-bootstrap.js?v=0.3.0"></script>
 </head>
 <body>
-  <canvas id="stage" aria-label="Объёмная концертная сцена. Автодемонстрация эффектов." role="img"></canvas>
-  <header>
-    <a class="back" href="../#/" aria-label="Вернуться в рабочую игру">‹</a>
-    <div><span class="eyebrow">TAP TAP / EXPERIMENT</span><h1>STAGE<span> LAB</span></h1></div>
-    <div class="engine"><strong id="backend">Подготовка…</strong><small id="fps">LAB 0.1</small></div>
-  </header>
-  <main>
-    <div class="energy" id="energy" data-active="true"><span id="energy-caption">ЭНЕРГИЯ СЦЕНЫ</span><strong id="energy-value">×8</strong><span id="judgment">ПОЧУВСТВУЙ РИТМ</span></div>
-    <div class="dock">
-      <div class="track-line"><img id="cover" alt=""><div><strong id="track-name">Готовим сцену</strong><span id="track-meta">Автодемо · без рекордов</span></div><output id="clock">0:00</output></div>
-      <div class="timeline"><div id="timeline-fill"></div></div>
-      <div class="controls">
-        <button id="play" class="primary" disabled>▶ С музыкой</button>
-        <button id="energy-toggle" aria-pressed="true">×8 включён</button>
-      </div>
-      <div class="secondary"><button id="silent" disabled>Смотреть без звука</button><button id="restart" disabled>Сначала</button><button id="options-toggle" aria-expanded="false" aria-controls="options">Параметры</button></div>
-      <div id="options" hidden>
-        <label>Трек<select id="song" disabled></select></label>
-        <label>Графика<select id="renderer"><option value="auto">WebGPU → WebGL</option><option value="webgl">Только WebGL</option></select></label>
-        <label class="motion"><input id="reduced" type="checkbox">Меньше эффектов</label>
-        <p>Это отдельный прототип. Сохранения не используются. Для просмотра нужен интернет. <a href="licenses.html">Babylon.js 9.32.1</a></p>
-      </div>
-      <p id="status" role="status">Создаём сцену и загружаем трек…</p>
-      <button id="reload" hidden>Повторить загрузку</button>
+  <div id="babylon-buffer" aria-hidden="true"></div>
+  <div id="babylon-loading" role="status">Готовим объёмную сцену…</div>
+  <div id="babylon-error" hidden role="alert"><h2>Сцена недоступна</h2><p id="babylon-error-message">Попробуй WebGL или перезагрузи прототип.</p><button id="babylon-webgl">Использовать WebGL</button><button id="babylon-reload">Перезагрузить</button><a href="../#/">Рабочая игра</a></div>
+  <main class="layout">
+    <aside class="intro">
+      <p class="eyebrow">TAP TAP REVENGE / WEB</p>
+      <h1>Поймай<br>свой ритм<span class="accent">.</span></h1>
+      <p class="subtle">Три дорожки. Музыка. Точность.</p>
+      <div class="instructions"><h2>Как играть</h2><p>Нажимай, когда ноты достигают колец. Длинные ноты удерживай до конца хвоста.</p><div class="key-row"><kbd>D</kbd><kbd>F</kbd><kbd>J</kbd></div><p><kbd>Esc</kbd> — пауза</p><p class="subtle">После 50 попаданий подряд ×8 включается автоматически.</p></div>
+    </aside>
+    <div class="game-shell"><div class="stage-lights" aria-hidden="true"><i></i><i></i><i></i><canvas id="venue-canvas"></canvas></div>
+      <header class="appbar" id="appbar"><button id="home" class="icon-button" aria-label="К трекам" hidden>‹</button><span class="music-mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><h2 id="screen-title" tabindex="-1">Музыка</h2><button id="settings-open" class="icon-button" aria-label="Настройки">⚙</button></header>
+      <div id="song-backdrop" class="song-backdrop" aria-hidden="true" hidden><canvas id="song-canvas"></canvas></div>
+      <section id="menu" class="screen main-menu" hidden aria-labelledby="menu-heading">
+        <p class="eyebrow">МУЗЫКА · РИТМ · ТОЧНОСТЬ</p>
+        <h2 id="menu-heading">TAP TAP<span>REVENGE</span></h2>
+        <p class="menu-subtitle">Поймай свой ритм · STAGE LAB</p><p class="babylon-badge"><span id="babylon-backend">Babylon.js</span> · <span id="babylon-fps"></span></p>
+        <nav class="menu-actions" aria-label="Главное меню">
+          <button id="menu-play" class="primary" disabled>▶ Играть</button>
+          <button id="menu-progress" class="secondary" disabled>Мой прогресс</button>
+          <button id="menu-settings" class="secondary">Настройки</button>
+          <button id="menu-about" class="text-button">Об игре</button>
+        </nav>
+        <div class="babylon-links"><a href="lab.html">Лаборатория эффектов</a><a href="../#/">Рабочая версия</a></div><p class="menu-version">WEB · <span id="app-version" title="Версия приложения"></span></p>
+      </section>
+      <section id="library" class="screen library" aria-label="Выбор трека">
+        <div id="tracks" role="group" aria-label="Выбрать трек"></div>
+      </section>
+      <section id="song-screen" class="screen song-screen" hidden aria-labelledby="hero-title">
+        <div class="selected-art"><h3 id="hero-title"></h3><p id="hero-artist"></p><div class="album-stage"><img id="hero-art" alt=""></div><p id="hero-meta"></p></div>
+        <div class="song-controls">
+          <div id="song-difficulty"><div class="difficulty-label"><span>Сложность</span></div><div id="difficulties" class="difficulty-cards" role="group" aria-label="Сложность"></div></div>
+          <div id="record" class="record" aria-label="Личный рекорд"><span class="record-label"><span aria-hidden="true">☆</span> Личный рекорд</span><strong id="song-best-score"></strong><span id="song-best-accuracy"></span><p id="song-best-empty">Рекорд ещё не установлен</p></div>
+          <p id="song-status" class="song-status" role="status"></p><button id="song-load-retry" class="text-button" hidden>Повторить загрузку</button>
+          <button id="play" class="primary" disabled><span aria-hidden="true">▶</span><span id="play-label">Играть</span></button>
+          <button id="offline-open" class="text-button">↓ Сохранить для игры офлайн</button>
+        </div>
+      </section>
+      <section id="game-screen" class="screen" hidden aria-label="Игра">
+        <div class="now-playing sr-only"><img id="now-art" alt=""><div><strong id="now-title"></strong><small id="now-artist"></small></div></div>
+        <div class="hud"><strong id="live-score">0</strong><div><small>Комбо</small><strong id="live-combo">0</strong></div><span id="multiplier" aria-label="Множитель очков" role="status">×1</span><button id="pause" class="icon-button" aria-label="Пауза">Ⅱ</button></div>
+        <div class="mode-row"><span id="mode-label"></span><span id="audio-status" hidden></span></div>
+        <section id="pulse" class="pulse" aria-label="Pulse" hidden>
+          <strong id="pulse-title" role="status"></strong><span id="pulse-detail"></span>
+          <div id="pulse-progress-row"><progress id="pulse-progress" max="1" value="0" aria-label="Завершённые ноты фрагмента"></progress><span id="pulse-notes"></span></div>
+        </section>
+        <div class="playfield" id="playfield"><canvas id="canvas" width="640" height="960" aria-label="Три дорожки: левая D, средняя F, правая J"></canvas><div class="touch-lanes"><button data-lane="0" aria-label="Левая дорожка, D"></button><button data-lane="1" aria-label="Средняя дорожка, F"></button><button data-lane="2" aria-label="Правая дорожка, J"></button></div></div>
+        <div class="game-footer"><div class="progress-row"><progress id="song-progress" max="1" value="0" aria-label="Прогресс трека"></progress><span id="time">0:00 / 0:00</span></div><div id="revenge" class="secondary"><span id="revenge-label">АВТО ×8</span><progress id="revenge-progress" max="50" value="0" aria-hidden="true"></progress></div></div><div id="game-stats" class="sr-only"></div>
+      </section>
+      <section id="results" class="screen result-screen" hidden aria-labelledby="result-heading">
+        <div class="result-stage"><img id="result-art" class="result-art" alt=""></div><h3 id="result-heading"></h3><p id="result-artist"></p>
+        <div class="score-caption" id="score-caption"></div><div id="final-score" class="final-score"></div><p id="record-delta" class="subtle" hidden></p><div id="result-rating"></div>
+        <div class="result-summary"><div><strong id="result-accuracy"></strong><span>Точность</span></div><div><strong id="result-combo"></strong><span>Макс. комбо</span></div></div><p id="result-misses"></p>
+        <section id="result-pulse" class="pulse-summary pulse-result" aria-label="Результат Pulse" hidden><div><span class="pulse-result-label">PULSE</span><span id="result-pulse-caption">Фрагменты взяты</span></div><strong id="result-pulse-count"></strong><span id="result-pulse-perfect"></span></section>
+        <details id="pulse-explanation" class="result-details" hidden><summary><span class="detail-icon" aria-hidden="true">◈</span>Как засчитан Pulse</summary><p id="pulse-rule"></p><ul id="pulse-breakdown"></ul></details>
+        <details id="result-details" class="result-details"><summary><span class="detail-icon" aria-hidden="true">≋</span>Подробнее</summary><dl id="result-stats"></dl></details>
+        <p id="calibration-result" hidden></p><button id="apply-calibration" class="primary" hidden>Применить поправку</button><button id="retry" class="primary">Ещё раз</button><button id="back-to-library" class="secondary">Выбрать трек</button>
+      </section>
+      <section id="progress-screen" class="screen progress-screen" hidden aria-label="Личный прогресс">
+        <div class="progress-tabs" role="group" aria-label="Раздел прогресса"><button id="records-tab" aria-pressed="true" aria-controls="records-panel">Рекорды</button><button id="history-tab" aria-pressed="false" aria-controls="history-panel">История</button></div>
+        <p id="save-warning" class="save-warning" role="status" hidden></p>
+        <div id="records-panel">
+          <div class="progress-song"><img id="progress-art" alt=""><div><label class="sr-only" for="progress-song">Трек</label><select id="progress-song"></select><p id="progress-artist" class="subtle"></p></div></div>
+          <div id="progress-levels" class="difficulty-cards" role="group" aria-label="Сложность"></div>
+          <div id="personal-best"><p class="progress-caption">Личный рекорд</p><strong id="best-score" class="final-score"></strong><p id="best-delta" class="accent" hidden></p><div class="result-summary"><div><strong id="best-accuracy"></strong><span>Точность</span></div><div><strong id="best-combo"></strong><span>Макс. комбо</span></div></div></div>
+          <div id="record-empty" class="progress-empty" hidden><h3>Рекорд впереди</h3><p class="subtle">Пройди эту карту, чтобы сохранить первый результат.</p></div>
+          <section id="best-pulse" class="pulse-summary" hidden><h3>Лучший Pulse</h3><p id="best-pulse-value"></p><small>За одну попытку · отдельно от рекорда очков</small></section>
+          <section class="accuracy-section" aria-labelledby="accuracy-heading"><h3 id="accuracy-heading">Точность по попыткам</h3><p id="accuracy-caption" class="subtle"></p><div id="accuracy-plot"></div><p id="accuracy-empty" class="subtle"></p></section>
+          <button id="progress-play" class="text-button">К выбранному треку</button>
+          <section class="transfer-section" aria-labelledby="transfer-heading"><h3 id="transfer-heading">Твой прогресс — с тобой</h3><p class="subtle">Хранится только в этом браузере.</p><button id="progress-export" class="primary">Сохранить в файл</button><button id="progress-import" class="secondary">Восстановить из файла</button><input id="progress-file" type="file" accept=".json,application/json" hidden><p class="subtle">Настройки и прогресс. Без музыки и аккаунта.</p></section>
+        </div>
+        <div id="history-panel" hidden><div class="history-filters"><div><label class="sr-only" for="history-song">Фильтр по треку</label><select id="history-song"></select></div><div><label class="sr-only" for="history-level">Фильтр по сложности</label><select id="history-level"></select></div></div><p id="history-caption" class="subtle"></p><div id="history-list"></div><div id="history-empty" class="progress-empty" hidden><h3>Пока нет попыток</h3><p id="history-empty-help" class="subtle"></p><button id="history-reset" class="secondary" hidden>Сбросить фильтры</button></div><p class="subtle history-help">Калибровка сюда не попадает.</p></div>
+        <p id="progress-message" class="status" role="status"></p>
+      </section>
+      <section id="preparation" class="screen preparation" hidden aria-label="Подготовка трека">
+        <div id="preparation-track"><img id="preparation-art" alt=""><h3 id="preparation-title"></h3><p id="preparation-artist"></p></div>
+        <div class="preparation-message" role="status"><div id="loading-indicator" class="spinner" aria-hidden="true"></div><div id="error-icon" aria-hidden="true" hidden>!</div><h3 id="preparation-heading">Загружаем трек…</h3><p id="preparation-description">Игра начнётся после загрузки.</p></div>
+        <div class="preparation-actions"><button id="load-begin" class="primary" hidden>Начать со звуком</button><button id="load-retry" class="primary" hidden>Повторить загрузку</button><button id="load-cancel" class="secondary">К трекам</button></div>
+      </section>
+      <section id="offline-screen" class="screen utility-screen" hidden inert aria-labelledby="offline-heading">
+        <h2 id="offline-heading" class="sr-only">Скачать трек</h2>
+        <section class="settings-section"><h3 id="offline-track"></h3><p id="offline-state" role="status">Для скачивания дождись подготовки офлайна.</p><button id="offline-download" class="primary" disabled>Скачать для офлайна</button><button id="offline-remove" class="secondary" hidden>Удалить скачанный трек</button><p>Музыка, обложка и все сложности выбранного трека. Удаление скачивания не удаляет рекорды. Другой трек можно выбрать в библиотеке.</p></section>
+        <p>Установка на домашний экран и обновления приложения находятся в настройках.</p><button id="offline-settings" class="secondary">Открыть настройки</button>
+        <button id="offline-close" class="primary">Готово</button>
+      </section>
+      <section id="pause-screen" class="screen utility-screen" hidden inert aria-labelledby="pause-heading"><span class="pause-symbol" aria-hidden="true">Ⅱ</span><h2 id="pause-heading">Пауза</h2><p>Ритм подождёт.</p><p id="pause-track"></p><p id="pause-error" role="status" hidden></p><button id="resume" class="primary">Продолжить</button><button id="restart" class="secondary">Начать заново</button><button id="quit" class="text-button">К трекам</button></section>
+      <section id="import-screen" class="screen utility-screen" hidden inert aria-labelledby="import-heading"><h2 id="import-heading">Восстановить прогресс?</h2><p id="import-summary"></p><p>Файл заменит текущие рекорды, историю и настройки, включая режим звука. Сначала сохрани текущий прогресс, если хочешь оставить копию.</p><p id="import-error" class="save-warning" role="status" hidden></p><button id="import-confirm" class="primary">Заменить прогресс</button><button id="import-cancel" class="secondary">Отмена</button></section>
+      <section id="settings-screen" class="screen utility-screen" hidden inert aria-labelledby="settings-heading"><p class="babylon-badge">STAGE LAB · отдельные настройки, рекорды и офлайн-треки</p><label>Графика<select id="babylon-renderer-choice"><option value="auto">WebGPU → WebGL</option><option value="webgl">Только WebGL</option></select></label>
+        <h2 id="settings-heading" class="sr-only">Настройки</h2>
+        <section class="settings-section"><h3>Версия и обновления</h3><p class="installed-version">Текущая версия <strong id="settings-version"></strong></p><p id="update-status" role="status">Готовим игру для офлайна…</p><button id="update-check" class="secondary" disabled>Проверить обновления</button></section>
+        <section class="settings-section"><h3>На домашнем экране</h3><p>На iPhone открой игру в Safari: «Поделиться» → «На экран Домой». Если доступен переключатель «Открывать как веб-приложение», включи его.</p><p>После установки открой игру с новой иконки с интернетом и скачай нужные треки именно там. Настройки и прогресс между браузером и приложением могут не переноситься: используй файл из «Моего прогресса».</p><p>Браузер может освободить место и удалить скачанное. Перед поездкой проверь запуск без сети; прогресс сохраняй в файл.</p></section>
+        <div class="settings-section"><h3>Звук</h3><label class="check" for="compatible-audio"><span>Совместимый звук</span><input id="compatible-audio" type="checkbox" role="switch" aria-describedby="compatible-help"></label><p id="compatible-help" class="subtle">Включи, если музыка не слышна. Используется обычный аудиоплеер, громкость — кнопками телефона. Старт и продолжение без отсчёта. Режим применяется со следующего запуска трека.</p><label for="volume">Громкость <output id="volume-value"></output></label><input id="volume" type="range" min="0" max="100" value="75"></div>
+        <div class="settings-section"><h3>Синхронизация</h3><div class="offset-row"><label for="offset">Сдвиг нот</label><input id="offset" type="number" min="-500" max="500" step="5" value="0" aria-describedby="offset-help"><span>мс</span></div><p id="offset-help" class="subtle">Положительное значение — ноты позже. Для Bluetooth-наушников настрой синхронизацию.</p><button id="settings-calibration" class="settings-link" disabled>Калибровка <span aria-hidden="true">›</span></button></div>
+        <div class="settings-section"><label class="check" for="motion"><span>Меньше движения</span><input id="motion" type="checkbox" role="switch"></label><p class="subtle">Уменьшает движение фона и эффектов.</p></div>
+        <p class="subtle">Настройки и рекорды — только в этом браузере.</p><button id="settings-close" class="primary">Готово</button>
+      </section>
+      <section id="about-screen" class="screen utility-screen" hidden inert aria-labelledby="about-heading"><h2 id="about-heading" class="sr-only">Об игре</h2><p>Неофициальный веб-перенос Tap Tap Revenge 4 на основе APK 4.5.</p><p>В каталоге три инструментальных трека ezhik0211, сгенерированных в Suno. Обложки взяты из файлов песен, игровые карты подготовлены отдельно. Интерфейс и веб-движок написаны заново. Окна попадания, очки, бонусы удержания и длительность Revenge приближённые.</p><p>Tapulous и исполнители сохраняют права на оригинальные материалы.</p><h3>Как играть</h3><p>Нажимай на дорожки у колец. Длинные ноты удерживай. На клавиатуре — D / F / J. Стрелки встряхивания здесь нажимаются как обычные ноты. После 50 попаданий подряд ×8 включается автоматически.</p><h3>Pulse</h3><p>Бери фрагменты с точностью от <span id="pulse-target"></span>, без пропусков, лишних нажатий и срывов удержаний. Все попадания PERFECT — идеальный Pulse. Награды не меняют очки и Revenge; ошибка не отнимает уже взятые фрагменты.</p><p>Для калибровки нажимай на среднюю дорожку или F в такт метроному, не ориентируясь на ноты.</p><button id="about-close" class="primary">Понятно</button></section>
+      <p id="status" role="status" class="status"></p>
     </div>
   </main>
+
 </body>
 </html>

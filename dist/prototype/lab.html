@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#070617">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; media-src 'self' blob:; object-src 'none'; base-uri 'none'">
+  <title>Pulse / Stage Lab · Babylon.js</title>
+  <link rel="stylesheet" href="stage.css?v=2">
+  <script type="module" src="stage.js?v=2"></script>
+</head>
+<body>
+  <canvas id="stage" aria-label="Объёмная концертная сцена. Ритм-игра с тремя дорожками." role="img"></canvas>
+  <header>
+    <a class="back" href="./#/" aria-label="Вернуться в прототип игры">‹</a>
+    <div><span class="eyebrow">TAP TAP / EXPERIMENT</span><h1>STAGE<span> LAB</span></h1></div>
+    <div class="engine"><strong id="backend">Подготовка…</strong><small id="fps">LAB 0.3</small></div>
+  </header>
+  <main>
+    <div class="energy" id="energy" data-active="true"><span id="energy-caption">ЭФФЕКТЫ СЦЕНЫ</span><strong id="energy-value">×8</strong><span id="judgment">ПОЧУВСТВУЙ РИТМ</span></div>
+    <div class="scoreboard" aria-label="Текущий результат"><div><span>ОЧКИ</span><strong id="score">0</strong></div><div><span>КОМБО</span><strong id="combo">0</strong></div><div><span>ТОЧНОСТЬ</span><strong id="accuracy">100 %</strong></div></div>
+    <div id="hit-zones" hidden aria-label="Игровые дорожки">
+      <button data-lane="0" aria-label="Левая дорожка, D или стрелка влево"><span>D</span></button>
+      <button data-lane="1" aria-label="Средняя дорожка, F или стрелка вниз"><span>F</span></button>
+      <button data-lane="2" aria-label="Правая дорожка, J или стрелка вправо"><span>J</span></button>
+    </div>
+    <div class="dock">
+      <div class="track-line"><img id="cover" alt=""><div><strong id="track-name">Готовим сцену</strong><span id="track-meta">Игра · без сохранения</span></div><output id="clock">0:00</output></div>
+      <div class="timeline"><div id="timeline-fill"></div></div>
+      <div class="controls">
+        <button id="play" class="primary" disabled>▶ Играть</button>
+        <button id="energy-toggle" aria-pressed="true">×8 включён</button>
+      </div>
+      <div class="secondary"><button id="silent" disabled>Без звука</button><button id="restart" disabled>Сначала</button><button id="options-toggle" aria-expanded="false" aria-controls="options">Параметры</button></div>
+      <div id="options" hidden>
+        <label>Режим<select id="mode" disabled><option value="manual">Играть самому</option><option value="demo">Автодемо</option></select></label>
+        <label>Сложность<select id="difficulty" disabled><option value="1">Легко</option><option value="2" selected>Средне</option><option value="3">Сложно</option><option value="4">Экстрим</option></select></label>
+        <label>Трек<select id="song" disabled></select></label>
+        <label>Графика<select id="renderer"><option value="auto">WebGPU → WebGL</option><option value="webgl">Только WebGL</option></select></label>
+        <label class="motion"><input id="reduced" type="checkbox">Меньше эффектов</label>
+        <p>Нажимай кольца в такт, ноты со шлейфом удерживай. На клавиатуре: D / F / J. Кнопка ×8 меняет только эффекты; очки следуют комбо. Результат не сохраняется. Для просмотра нужен интернет. <a href="licenses.html">Babylon.js 9.32.1</a></p>
+      </div>
+      <p id="result" hidden role="status"></p>
+      <p id="status" role="status">Создаём сцену и загружаем трек…</p>
+      <button id="reload" hidden>Повторить загрузку</button>
+    </div>
+  </main>
+</body>
+</html>

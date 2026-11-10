@@ -26,10 +26,10 @@ export class FakeCaches {
   }
 }
 
-export async function mountWorker({ scope = 'https://example.test/tap-tap-revenge-web/', caches = new FakeCaches(), assets = null } = {}) {
+export async function mountWorker({ scope = 'https://example.test/tap-tap-revenge-web/', caches = new FakeCaches(), assets = null, root = new URL('../../dist/', import.meta.url) } = {}) {
   const events = {}, requests = [];
-  const config = await readFile(new URL('../../dist/offline-assets.js', import.meta.url), 'utf8');
-  const code = await readFile(new URL('../../dist/sw.js', import.meta.url), 'utf8');
+  const config = await readFile(new URL('offline-assets.js', root), 'utf8');
+  const code = await readFile(new URL('sw.js', root), 'utf8');
   let offline = false, failPath = null, mismatch = null;
   const self = { registration: { scope }, addEventListener: (name, handler) => { events[name] = handler; } };
   const context = vm.createContext({ self, caches, URL, Response, Uint8Array, crypto: webcrypto, AbortController, setTimeout, clearTimeout,
@@ -38,7 +38,7 @@ export async function mountWorker({ scope = 'https://example.test/tap-tap-reveng
       requests.push(url);
       if (offline || url.endsWith(failPath || '/never')) throw new Error('network');
       const path = url.slice(scope.length);
-      const bytes = await readFile(new URL('../../dist/' + path, import.meta.url));
+      const bytes = await readFile(new URL(path, root));
       return new Response(url.endsWith(mismatch || '/never') ? 'mixed release' : bytes);
     },
   });

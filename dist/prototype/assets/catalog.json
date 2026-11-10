@@ -1,0 +1,107 @@
+[
+  {
+    "id": "restless-urban-groove-v1",
+    "title": "Restless Urban Groove",
+    "artist": "ezhik0211 · Suno",
+    "duration": 89.44,
+    "tutorial": false,
+    "genre": "Drum & Bass",
+    "levels": {
+      "1": {
+        "notes": 123,
+        "holds": 8,
+        "shakes": 0
+      },
+      "2": {
+        "notes": 247,
+        "holds": 8,
+        "shakes": 0
+      },
+      "3": {
+        "notes": 352,
+        "holds": 8,
+        "shakes": 0
+      },
+      "4": {
+        "notes": 414,
+        "holds": 8,
+        "shakes": 0
+      }
+    }
+  },
+  {
+    "id": "warehouse-echoes-v1",
+    "title": "Warehouse Echoes",
+    "artist": "ezhik0211 · Suno",
+    "duration": 89.92,
+    "tutorial": false,
+    "genre": "Dubstep",
+    "levels": {
+      "1": {
+        "notes": 90,
+        "holds": 6,
+        "shakes": 0
+      },
+      "2": {
+        "notes": 179,
+        "holds": 6,
+        "shakes": 0
+      },
+      "3": {
+        "notes": 193,
+        "holds": 6,
+        "shakes": 0
+      },
+      "4": {
+        "notes": 223,
+        "holds": 6,
+        "shakes": 0
+      }
+    }
+  },
+  {
+    "id": "bouncy-mischievous-groove-v1",
+    "title": "Bouncy Mischievous Groove",
+    "artist": "ezhik0211 · Suno",
+    "duration": 89.52,
+    "tutorial": false,
+    "genre": "Electro House",
+    "levels": {
+      "1": {
+        "notes": 89,
+        "holds": 6,
+        "shakes": 0
+      },
+      "2": {
+        "notes": 178,
+        "holds": 6,
+        "shakes": 0
+      },
+      "3": {
+        "notes": 282,
+        "holds": 6,
+        "shakes": 0
+      },
+      "4": {
+        "notes": 326,
+        "holds": 6,
+        "shakes": 0
+      }
+    }
+  },
+  {
+    "id": "13E040AF-2F72-4315-B798-680F3761C756",
+    "title": "Audio Calibration",
+    "artist": "Tapulous",
+    "duration": 34.66739229024943,
+    "tutorial": true,
+    "genre": "Calibration",
+    "levels": {
+      "1": {
+        "notes": 20,
+        "holds": 0,
+        "shakes": 0
+      }
+    }
+  }
+]
