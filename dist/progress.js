@@ -1,6 +1,6 @@
-import { artwork } from './artwork.js';
-import { PULSE_RULES } from './phrase-progress.js?v=0.8.2';
-import { PHRASE_VERSION } from './phrase-charts.js?v=0.8.2';
+import { artwork } from './artwork.js?v=0.9.0';
+import { PULSE_RULES } from './phrase-progress.js?v=0.9.0';
+import { PHRASE_VERSION } from './phrase-charts.js?v=0.9.0';
 import { pulseSummary } from './pulse-view.js?v=0.8.2';
 import { Temporal } from './temporal.js';
 import { formatNumber, formatPercent, formatSigned, formatCount, formatAttemptTime, formatDay } from './format.js?v=0.3.0';

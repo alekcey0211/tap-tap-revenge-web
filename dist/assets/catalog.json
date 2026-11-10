@@ -1,91 +1,91 @@
 [
   {
-    "id": "0734D2E4-7693-418B-82F8-C6D88A02A782",
-    "title": "Waiting for the End",
-    "artist": "Linkin Park",
-    "duration": 97.75600907029478,
+    "id": "restless-urban-groove-v1",
+    "title": "Restless Urban Groove",
+    "artist": "ezhik0211 · Suno",
+    "duration": 89.44,
     "tutorial": false,
-    "genre": "Alternative",
+    "genre": "Drum & Bass",
     "levels": {
       "1": {
-        "notes": 116,
-        "holds": 14,
+        "notes": 123,
+        "holds": 8,
         "shakes": 0
       },
       "2": {
-        "notes": 217,
-        "holds": 14,
+        "notes": 247,
+        "holds": 8,
         "shakes": 0
       },
       "3": {
-        "notes": 354,
-        "holds": 16,
-        "shakes": 2
+        "notes": 352,
+        "holds": 8,
+        "shakes": 0
       },
       "4": {
-        "notes": 479,
-        "holds": 17,
+        "notes": 414,
+        "holds": 8,
         "shakes": 0
       }
     }
   },
   {
-    "id": "D0FE6721-1476-45C2-A8BA-0686488282BF",
-    "title": "House Music",
-    "artist": "Benny Benassi",
-    "duration": 129.5209070294785,
+    "id": "warehouse-echoes-v1",
+    "title": "Warehouse Echoes",
+    "artist": "ezhik0211 · Suno",
+    "duration": 89.92,
     "tutorial": false,
-    "genre": "Dance",
+    "genre": "Dubstep",
     "levels": {
       "1": {
-        "notes": 276,
-        "holds": 0,
+        "notes": 90,
+        "holds": 6,
         "shakes": 0
       },
       "2": {
-        "notes": 408,
-        "holds": 1,
-        "shakes": 8
+        "notes": 179,
+        "holds": 6,
+        "shakes": 0
       },
       "3": {
-        "notes": 636,
-        "holds": 2,
-        "shakes": 8
+        "notes": 193,
+        "holds": 6,
+        "shakes": 0
       },
       "4": {
-        "notes": 864,
-        "holds": 16,
-        "shakes": 9
+        "notes": 223,
+        "holds": 6,
+        "shakes": 0
       }
     }
   },
   {
-    "id": "F522698F-40CC-4E05-9164-00CFFF8576B7",
-    "title": "Sing",
-    "artist": "My Chemical Romance",
-    "duration": 110.2715646258503,
+    "id": "bouncy-mischievous-groove-v1",
+    "title": "Bouncy Mischievous Groove",
+    "artist": "ezhik0211 · Suno",
+    "duration": 89.52,
     "tutorial": false,
-    "genre": "Alternative",
+    "genre": "Electro House",
     "levels": {
       "1": {
-        "notes": 148,
-        "holds": 15,
+        "notes": 89,
+        "holds": 6,
         "shakes": 0
       },
       "2": {
-        "notes": 296,
-        "holds": 15,
-        "shakes": 10
+        "notes": 178,
+        "holds": 6,
+        "shakes": 0
       },
       "3": {
-        "notes": 433,
-        "holds": 16,
-        "shakes": 6
+        "notes": 282,
+        "holds": 6,
+        "shakes": 0
       },
       "4": {
-        "notes": 576,
-        "holds": 17,
-        "shakes": 6
+        "notes": 326,
+        "holds": 6,
+        "shakes": 0
       }
     }
   },
@@ -100,66 +100,6 @@
       "1": {
         "notes": 20,
         "holds": 0,
-        "shakes": 0
-      }
-    }
-  },
-  {
-    "id": "neon-circuit-v1",
-    "title": "Neon Circuit",
-    "artist": "Pulse Lab · программный синтез",
-    "duration": 62,
-    "tutorial": false,
-    "genre": "Electro · оригинальный трек",
-    "levels": {
-      "1": {
-        "notes": 58,
-        "holds": 4,
-        "shakes": 0
-      },
-      "2": {
-        "notes": 116,
-        "holds": 4,
-        "shakes": 0
-      },
-      "3": {
-        "notes": 216,
-        "holds": 4,
-        "shakes": 0
-      },
-      "4": {
-        "notes": 222,
-        "holds": 4,
-        "shakes": 0
-      }
-    }
-  },
-  {
-    "id": "overdrive-v1",
-    "title": "Overdrive",
-    "artist": "Pulse Lab · программный синтез",
-    "duration": 66,
-    "tutorial": false,
-    "genre": "Rave · оригинальный трек",
-    "levels": {
-      "1": {
-        "notes": 74,
-        "holds": 4,
-        "shakes": 0
-      },
-      "2": {
-        "notes": 148,
-        "holds": 4,
-        "shakes": 0
-      },
-      "3": {
-        "notes": 280,
-        "holds": 4,
-        "shakes": 0
-      },
-      "4": {
-        "notes": 288,
-        "holds": 4,
         "shakes": 0
       }
     }

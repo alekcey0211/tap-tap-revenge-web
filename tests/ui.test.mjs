@@ -16,13 +16,13 @@ test('library selects all existing tracks and four difficulties; persisted setti
   const ui = await mount(t, { settings: { volume: 35, offset: 25, motion: true } });
   assert.equal(ui.document.body.dataset.screen, 'menu');
   await ui.click('menu-play');
-  assert.equal(ui.node('tracks').children.length, 5);
+  assert.equal(ui.node('tracks').children.length, 3);
   assert.equal(ui.node('difficulties').children.length, 4);
   assert.equal(ui.node('volume').value, 35);
   assert.equal(ui.node('offset').value, 25);
   assert.equal(ui.document.body.dataset.reducedMotion, 'true');
-  await ui.selectedTrack('House Music').onclick();
-  assert.equal(ui.node('hero-title').textContent, 'House Music');
+  await ui.selectedTrack('Warehouse Echoes').onclick();
+  assert.equal(ui.node('hero-title').textContent, 'Warehouse Echoes');
   await ui.node('difficulties').children[3].onclick();
   assert.equal(ui.node('difficulties').children[3].attrs['aria-pressed'], 'true');
   assert.equal(ui.document.activeElement, ui.node('difficulties').children[3]);

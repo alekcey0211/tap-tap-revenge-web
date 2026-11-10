@@ -112,7 +112,7 @@ test('reinstalling identical assets offline does not erase the working cache', a
   assert.equal(same.requests.length, 0);
 });
 
-for (const id of ['neon-circuit-v1', 'overdrive-v1']) test(`${id} downloads as a complete independent bundle and works offline`, async () => {
+for (const id of ['restless-urban-groove-v1', 'warehouse-echoes-v1', 'bouncy-mischievous-groove-v1']) test(`${id} downloads as a complete independent bundle and works offline`, async () => {
   const sw = await mountWorker();
   assert.equal((await sw.message('download', id)).result.state, 'ready');
   assert.equal(sw.assets.tracks[id].files.length, 6);
@@ -122,4 +122,23 @@ for (const id of ['neon-circuit-v1', 'overdrive-v1']) test(`${id} downloads as a
     assert.equal(response.status, 200);
     assert.equal((await response.arrayBuffer()).byteLength, file.bytes);
   }
+});
+
+test('catalog replacement removes obsolete music caches only on activation, not during an old session', async () => {
+  const caches = new FakeCaches();
+  const oldName = 'tap-tap:/tap-tap-revenge-web/:track:neon-circuit-v1:old';
+  const old = await caches.open(oldName);
+  const oldUrl = 'https://example.test/tap-tap-revenge-web/assets/tracks/neon-circuit-v1/audio.m4a';
+  await old.put(oldUrl, new Response('old music'));
+  await caches.open('another-app');
+  const next = await mountWorker({ caches }); await next.lifecycle('install');
+  assert.ok((await caches.keys()).includes(oldName), 'old session retains its files');
+  assert.equal(await (await old.match(oldUrl)).text(), 'old music');
+  await next.message('download', 'restless-urban-groove-v1');
+  await next.lifecycle('activate');
+  assert.ok(!(await caches.keys()).includes(oldName));
+  assert.ok((await caches.keys()).includes('another-app'));
+  assert.equal((await next.message('state', 'restless-urban-groove-v1')).result.state, 'ready');
+  assert.equal(await next.message('download', 'neon-circuit-v1'), undefined);
+  assert.ok(!next.assets.shell.some(file => /neon-circuit|overdrive/.test(file.path)));
 });

@@ -137,10 +137,9 @@ test('visible Pulse zones follow musical boundaries, including crossing holds an
   assert.deepEqual(s.pulse.zones(41, 2), []);
 });
 
-test('random layout requests three zones in short tracks and four or five in longer tracks', () => {
+test('each new short track requests three separated Pulse zones', () => {
   assert.equal(PHRASE_VERSION, 'random-zones-v1'); assert.equal(PULSE_RULES, 'strict-v1');
-  const counts = { 'overdrive-v1': 3, 'neon-circuit-v1': 3,
-    '0734D2E4-7693-418B-82F8-C6D88A02A782': 4, 'D0FE6721-1476-45C2-A8BA-0686488282BF': 5,
-    'F522698F-40CC-4E05-9164-00CFFF8576B7': 5 };
-  assert.deepEqual(PULSE_COUNTS, counts);
+  assert.deepEqual(PULSE_COUNTS, {
+    'restless-urban-groove-v1': 3, 'warehouse-echoes-v1': 3, 'bouncy-mischievous-groove-v1': 3,
+  });
 });

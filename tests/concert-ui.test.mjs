@@ -8,8 +8,8 @@ for (const compatibleAudio of [false, true]) {
     const ui = await mount(t, { settings: { compatibleAudio } });
     assert.equal(ui.node('song-screen').hidden, true);
     assert.equal(ui.node('play').disabled, true);
-    assert.equal(ui.node('tracks').children[0].children[1].children[0].textContent, 'Overdrive');
-    await ui.openSong('Overdrive');
+    assert.equal(ui.node('tracks').children[0].children[1].children[0].textContent, 'Restless Urban Groove');
+    await ui.openSong('Restless Urban Groove');
     assert.equal(ui.node('library').hidden, true);
     assert.equal(ui.node('song-screen').hidden, false);
     assert.equal(ui.node('play').disabled, false);
@@ -28,7 +28,7 @@ for (const compatibleAudio of [false, true]) {
     ui.node('song-screen').onanimationend({ target: ui.node('song-screen') });
     assert.equal(ui.node('song-screen').hidden, true);
     assert.equal(ui.node('song-screen').inert, true);
-    await ui.click('pause'); await ui.click('quit'); await ui.openSong('Neon Circuit');
+    await ui.click('pause'); await ui.click('quit'); await ui.openSong('Warehouse Echoes');
     ui.node('song-screen').onanimationend({ target: ui.node('song-screen') });
     assert.equal(ui.node('song-screen').hidden, false, 'a stale end event cannot hide a new song');
   });
@@ -79,13 +79,13 @@ test('changing audio mode on the song screen prepares a silent native track befo
 test('a failed stale song preparation never replaces a different ready selection', async t => {
   const ui = await mount(t);
   const gate = deferred(); ui.audio.loadGate = gate;
-  const old = ui.openSong('Overdrive'); await new Promise(setImmediate);
-  ui.audio.loadGate = null; await ui.openSong('Neon Circuit');
+  const old = ui.openSong('Restless Urban Groove'); await new Promise(setImmediate);
+  ui.audio.loadGate = null; await ui.openSong('Warehouse Echoes');
   gate.reject(new Error('old load')); await old;
   assert.equal(ui.node('play').disabled, false);
-  assert.equal(ui.node('hero-title').textContent, 'Neon Circuit');
+  assert.equal(ui.node('hero-title').textContent, 'Warehouse Echoes');
   assert.equal(ui.node('song-load-retry').hidden, true);
-  await ui.click('play'); assert.equal(ui.node('now-title').textContent, 'Neon Circuit');
+  await ui.click('play'); assert.equal(ui.node('now-title').textContent, 'Warehouse Echoes');
 });
 
 test('the catalogue does not contain song controls and keeps progress accessible', async () => {
@@ -114,13 +114,13 @@ test('pause can cancel a pending native start; late failure cannot replace the n
 
 for (const mode of ['perfect', 'miss', 'demo']) test(`result celebration uses real full combo only: ${mode}`, async t => {
   const ui = await mount(t, { chart: [{ time: 1, lane: 0, duration: 0 }] });
-  await ui.openSong('Overdrive');
-  assert.equal(ui.node('hero-artist').textContent, 'Pulse Lab');
+  await ui.openSong('Restless Urban Groove');
+  assert.equal(ui.node('hero-artist').textContent, 'ezhik0211 · Suno');
   await ui.click(mode === 'demo' ? 'demo' : 'play');
   if (mode === 'perfect') { ui.tick(1); ui.lanes[0].onclick({ detail: 0 }); }
   ui.tick(151);
   assert.equal(ui.document.body.dataset.screen, 'results');
   assert.equal(ui.node('results').dataset.fullCombo, String(mode === 'perfect'));
-  assert.equal(ui.node('result-artist').textContent, 'Pulse Lab · Легко');
+  assert.equal(ui.node('result-artist').textContent, 'ezhik0211 · Suno · Легко');
   assert.equal(ui.progress().history.length, mode === 'demo' ? 0 : 1);
 });

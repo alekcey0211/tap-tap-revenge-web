@@ -487,7 +487,6 @@ body[data-reduced-motion="true"] *, body[data-reduced-motion="true"] *::before, 
   .hud small { font-size: 9px; }
   #live-combo { font-size: 18px; }
   #game-screen #multiplier { min-width: 46px; }
-  .playfield::before { background-position-y: -72px; }
   .library-nav .text-button { font-size: 11px; padding: 8px 4px; }
 }
 @media (max-height: 700px) {
@@ -561,3 +560,6 @@ body[data-reduced-motion="true"] *, body[data-reduced-motion="true"] *::before, 
   #live-score { font-size: 16px; }
   #live-combo { font-size: 15px; }
 }
+
+/* Illumination follows the existing scene artwork; the camera stays still. */
+#venue-canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }

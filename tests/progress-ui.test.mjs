@@ -130,7 +130,9 @@ test('session-only mode warns and can still display newly completed attempts', a
 
 test('manual bests remain visible through the rules selector without mixing new attempts', async t => {
   const old = { score: 9000, accuracy: 98, bestStreak: 70 };
-  const ui = await mount(t, { records: { [song.id + ':1']: old } });
+  const progress = recordAttempt({ records: [], history: [] }, { songId: song.id, level: '1', rulesVersion: 'web-v1',
+    id: crypto.randomUUID(), playedAt: '2026-11-09T19:00Z', result: old });
+  const ui = await mount(t, { saved: JSON.parse(exportProgress(DEFAULT_SETTINGS, progress)) });
   assert.match(ui.node('record').textContent, /Прежний рекорд/);
   await ui.click('menu-progress');
   assert.equal(ui.node('record-empty').hidden, false);
@@ -161,4 +163,31 @@ test('merged Pulse zones reset old awards but retain current Pulse and score his
   await ui.click('history-tab');
   const rows = ui.node('history-list').children.filter(node => node.tagName === 'ARTICLE');
   assert.equal(rows.filter(row => row.children.at(-1).children.some(node => node.textContent.includes('Pulse:'))).length, 1);
+});
+
+test('removed gallery songs retain saved scores, Pulse and history without broken covers', async t => {
+  const ids = ['0734D2E4-7693-418B-82F8-C6D88A02A782', 'neon-circuit-v1', 'overdrive-v1'];
+  let progress = { records: [], history: [] };
+  for (const songId of ids) progress = recordAttempt(progress, {
+    songId, level: '1', id: crypto.randomUUID(), playedAt: '2026-11-09T19:00Z',
+    result: { score: 12000, accuracy: 95, bestStreak: 80 },
+    pulse: { pulseRules: 'strict-v1', phraseVersion: 'random-zones-v1', captured: 2, perfect: 1, total: 3 },
+  });
+  const saved = JSON.parse(exportProgress({ ...DEFAULT_SETTINGS, compatibleAudio: true, offset: 35 }, progress));
+  const ui = await mount(t, { saved });
+  assert.deepEqual(ui.progress(), saved.progress);
+  await ui.click('menu-progress'); await ui.click('history-tab');
+  const rows = ui.node('history-list').children.filter(node => node.tagName === 'ARTICLE');
+  assert.equal(rows.length, 3);
+  for (const row of rows) {
+    assert.equal(row.children[0].src, 'assets/ui/logo.png');
+    assert.equal(row.children[1].children[0].textContent, 'Трек из другого каталога');
+  }
+  await ui.click('home'); await ui.start(); ui.native.instances.at(-1).currentTime = 151; ui.tick(151);
+  assert.equal(ui.progress().history.length, 4);
+  for (const id of ids) {
+    assert.deepEqual(ui.progress().records.find(record => record.songId === id), saved.progress.records.find(record => record.songId === id));
+    assert.deepEqual(ui.progress().pulseRecords.find(record => record.songId === id), saved.progress.pulseRecords.find(record => record.songId === id));
+  }
+  assert.equal(ui.settings().compatibleAudio, true); assert.equal(ui.settings().offset, 35);
 });

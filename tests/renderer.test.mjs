@@ -66,7 +66,7 @@ test('every lane uses the same circular head with volume, at mobile and desktop 
       const context = new Proxy({}, { get: (_, name) => {
         if (name === 'createLinearGradient') return () => ({ addColorStop() {} });
         if (name === 'createRadialGradient') return () => ({ addColorStop: (...args) => stops.push(args) });
-        if (name === 'arc') return (...args) => arcs.push(args);
+        if (name === 'arc') return (...args) => arcs.push({ args, scale: scales.at(-1), position: translations.at(-1) });
         if (name === 'scale') return (...args) => scales.push(args);
         if (name === 'translate') return (...args) => translations.push(args);
         return () => {};
@@ -76,11 +76,11 @@ test('every lane uses the same circular head with volume, at mobile and desktop 
       const before = JSON.stringify(game);
       renderer.render(game, .8, '1', 100, 0, reducedMotion);
       assert.equal(arcs.length, 3);
-      for (const arc of arcs) assert.deepEqual(arc, arcs[0], 'all heads are circles of the same radius');
-      for (const [x, y] of scales) assert.ok(Math.abs(width / 320 * x - height / 480 * y) < 1e-9, 'uniform physical scale');
-      assert.equal(stops.length, 12, 'each sphere has highlight, color and shade');
+      for (const arc of arcs) assert.deepEqual(arc.args, arcs[0].args, 'all heads are circles of the same radius');
+      for (const { scale: [x, y] } of arcs) assert.ok(Math.abs(width / 320 * x - height / 480 * y) < 1e-9, 'uniform physical scale');
+      assert.equal(stops.filter(([, color]) => ['#ffe3dc', '#f6ffda', '#ddfdff', '#ff6868', '#c9ff56', '#49e6ef', '#852d40', '#486d20', '#175c83'].includes(color)).length, 12, 'each sphere has highlight, color and shade');
       const progress = 1 - (1 - .8) / 2.7;
-      for (let lane = 0; lane < 3; lane++) assert.deepEqual(translations[lane], stagePosition(paths, lane, progress), 'centers and timing stay unchanged');
+      for (let lane = 0; lane < 3; lane++) assert.deepEqual(arcs[lane].position, stagePosition(paths, lane, progress), 'centers and timing stay unchanged');
       assert.equal(JSON.stringify(game), before);
     }
   }
@@ -98,9 +98,9 @@ test('lane badges retain readable physical size and stay below targets on short 
     const renderer = new Renderer({ clientWidth: width, clientHeight: height, getContext: () => context }, paths);
     for (let lane = 0; lane < 3; lane++) renderer.effects.recordHit({ lane, judgment: 'PERFECT' }, 1, 1);
     renderer.render(new Game([]), 1.2, '4', 100);
-    assert.equal(translations.length, 3);
+    assert.equal(translations.slice(-3).length, 3);
     assert.ok(fonts.every(font => parseFloat(font.split(' ')[1]) >= 11.5));
-    for (const [, y] of translations) {
+    for (const [, y] of translations.slice(-3)) {
       const badge = rectangles.at(-1), halfHeight = badge[3] / 2;
       assert.ok(y - halfHeight > 446 * height / 480);
       assert.ok(y + halfHeight <= height);
@@ -197,7 +197,7 @@ test('x8 animates concert beams and ornaments without moving the hit targets; re
   });
   const renderer = new Renderer({ clientWidth: 390, clientHeight: 630, getContext: () => context }, paths);
   const game = new Game([{ time: 1, lane: 0, duration: 0 }], { automaticRevenge: true });
-  renderer.render(game, 2, '4', 66); assert.equal(beams.length + rings.length, 0);
+  renderer.render(game, 2, '4', 66); assert.equal(beams.length, 4); assert.equal(rings.length, 0);
   game.streak = 50;
   const draw = (time, reduced = false) => { beams.length = 0; rings.length = 0; renderer.render(game, time, '4', 66, 0, reduced); return { beams: structuredClone(beams), rings: structuredClone(rings) }; };
   const first = draw(2);
@@ -233,9 +233,11 @@ test('x8 adds translucent halos without changing note circles, and lights six ar
       haze: fills.filter(x => x.paint?.stops?.at(-1) === '#956aff00').length,
       halos: fills.filter(x => x.paint?.stops?.[1] === '#c9ff5677'), circles: structuredClone(circles) };
   };
-  const normal = draw(2); assert.equal(normal.panels.length + normal.halos.length, 0);
+  const normal = draw(2); assert.equal(normal.panels.length, 6); assert.equal(normal.halos.length, 0);
+  assert.notDeepEqual(draw(2.1).lamps, normal.lamps, 'venue is alive before x8');
   game.streak = 80;
   const active = draw(2); assert.equal(active.panels.length, 6); assert.equal(active.halos.length, 1);
+  assert.ok(active.panels.every((panel, i) => panel.alpha > normal.panels[i].alpha), 'x8 amplifies the existing stage');
   assert.equal(active.lamps.length, 33); assert.equal(active.haze, 3);
   assert.deepEqual(draw(2).lamps, active.lamps, 'venue lights freeze with the song clock');
   assert.notDeepEqual(draw(2.1).lamps, active.lamps, 'illumination travels along the arches');
@@ -250,7 +252,7 @@ test('x8 adds translucent halos without changing note circles, and lights six ar
   canvas.clientWidth = 320; canvas.clientHeight = 270; draw(2);
   assert.ok(scales.some(([x, y]) => x === 320 / 1024 && y === 320 / 270 * 480 / 1024));
   assert.ok(shifts.some(([x, y]) => x === 0 && y === -90 * 1024 / 320));
-  game.streak = 0; const ended = draw(2); assert.equal(ended.panels.length + ended.halos.length, 0);
+  game.streak = 0; const ended = draw(2); assert.deepEqual(ended.panels, normal.panels); assert.equal(ended.halos.length, 0);
 });
 
 test('Pulse zones approach the hit line without labels and remain behind round heads', () => {
@@ -322,4 +324,21 @@ test('miss feedback no longer recolors the hit circle; successful feedback remai
   renderer.render(game, 1.2, '4', 66); assert.deepEqual(rings, neutral);
   renderer.effects.recordHit({ lane: 0, judgment: 'PERFECT' }, 1.3, 1); rings.length = 0;
   renderer.render(game, 1.35, '4', 66); assert.equal(rings[0], '#f3f2ee');
+});
+
+test('menu scenery animates lighting over fixed artwork and becomes static with reduced motion', () => {
+  const fills = [], shifts = []; let alpha = 1;
+  const context = new Proxy({}, {
+    get: (_, name) => ['createLinearGradient', 'createRadialGradient'].includes(name) ? () => ({ addColorStop() {} })
+      : name === 'fill' || name === 'fillRect' ? () => fills.push(alpha)
+        : name === 'translate' ? (...args) => shifts.push(args) : () => {},
+    set: (_, name, value) => { if (name === 'globalAlpha') alpha = value; return true; },
+  });
+  const canvas = { clientWidth: 390, clientHeight: 420, getContext: () => context };
+  const renderer = new Renderer(canvas, paths);
+  const draw = (time, reduced = false) => { fills.length = shifts.length = 0; renderer.renderBackdrop(time, reduced); return [...fills]; };
+  const first = draw(1); assert.notDeepEqual(draw(2), first);
+  assert.deepEqual(shifts[0], [0, -0], 'menu artwork starts at the top, not the gameplay crop');
+  const still = draw(1, true); assert.deepEqual(draw(5, true), still); assert.equal(still.length, 6);
+  canvas.clientWidth = 0; assert.deepEqual(draw(6), []);
 });

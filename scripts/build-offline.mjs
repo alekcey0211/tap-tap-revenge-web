@@ -18,12 +18,12 @@ async function walk(path = '') {
   return result.sort();
 }
 const shell = await Promise.all((await walk()).filter(path => !['sw.js', 'offline-assets.js'].includes(path)
-  && (!path.startsWith('assets/tracks/') || path.endsWith('/artwork.png'))).map(entry));
+  && (!path.startsWith('assets/tracks/') || path.endsWith('/artwork.jpg'))).map(entry));
 const tracks = {};
 for (const song of catalog) {
   const base = `assets/tracks/${song.id}/`;
   const paths = ['audio.m4a', ...Object.keys(song.levels).map(level => level + '.json')];
-  if (!song.tutorial) paths.push('artwork.png');
+  if (!song.tutorial) paths.push('artwork.jpg');
   const files = await Promise.all(paths.map(path => entry(base + path)));
   tracks[song.id] = { files, revision: hash(JSON.stringify(files)).slice(0, 16) };
 }

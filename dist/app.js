@@ -1,27 +1,28 @@
-import { artwork } from './artwork.js';
-import { PhraseProgress } from './phrase-progress.js?v=0.8.2';
-import { PULSE_CHARTS, PULSE_COUNTS } from './phrase-charts.js?v=0.8.2';
+import { artwork } from './artwork.js?v=0.9.0';
+import { PhraseProgress } from './phrase-progress.js?v=0.9.0';
+import { PULSE_CHARTS, PULSE_COUNTS } from './phrase-charts.js?v=0.9.0';
 import { choosePulseZones } from './pulse-zones.js?v=0.8.2';
 import { renderPulse, renderPulseBreakdown } from './pulse-view.js?v=0.8.2';
 import { OfflineView } from './offline-view.js?v=0.8.0';
 import { Game, TRAVEL } from './engine.js';
 import { SongAudio } from './audio.js?v=0.5.3';
 import { MediaSongAudio } from './media-audio.js?v=0.3.1';
-import { Renderer } from './renderer.js?v=0.8.3';
+import { Renderer } from './renderer.js?v=0.9.0';
 
 import { Temporal } from './temporal.js';
 import { formatNumber, formatPercent, formatSigned, formatTime, formatCount } from './format.js?v=0.3.0';
 import { DEFAULT_SETTINGS, loadSave, saveSettings as writeSettings, recordAttempt, currentRecords, importProgress } from './storage.js?v=0.8.2';
-import { ProgressView } from './progress.js?v=0.8.2';
+import { ProgressView } from './progress.js?v=0.9.0';
 
 const $ = id => document.getElementById(id);
-const APP_VERSION = '0.8.4';
+const APP_VERSION = '0.9.0';
 if ($('app-version')) $('app-version').textContent = `v${APP_VERSION}`;
 $('settings-version').textContent = `v${APP_VERSION}`;
 $('pulse-target').textContent = formatPercent(90);
 const LEVELS = { 1: 'Легко', 2: 'Средне', 3: 'Сложно', 4: 'Экстрим' };
 const webAudio = new SongAudio(), mediaAudio = new MediaSongAudio();
 let audio = webAudio, readyTrack = null, preparedAudio = null, previewSize = '';
+let venueRenderer, venueTime = 0, venueFrame = -Infinity, venueStamp = performance.now(), venueSize = '';
 let catalog, selected, level = '1', renderer, previewRenderer, previewGame, game, buffer, pulse;
 let state = 'boot', demo = false, run = null, requestId = 0, pausePosition = 0;
 let resumeGrace = -Infinity, demoActions = [], demoIndex = 0, calibrationOffset = null;
@@ -92,7 +93,7 @@ function refresh() {
   $('hero-artist').textContent = artistName(selected);
   $('hero-meta').textContent = `${formatTime(selected.duration)} · ${selected.genre}`;
   $('tracks').replaceChildren();
-  for (const song of [...catalog.filter(song => !song.tutorial)].sort((a, b) => Number(b.id === 'overdrive-v1') - Number(a.id === 'overdrive-v1') || Number(b.id === 'neon-circuit-v1') - Number(a.id === 'neon-circuit-v1'))) {
+  for (const song of catalog.filter(song => !song.tutorial)) {
     const button = document.createElement('button'); button.className = 'track';
     button.setAttribute('aria-pressed', String(song.id === selected.id));
     const img = document.createElement('img'); img.src = artwork(song); img.alt = '';
@@ -361,6 +362,16 @@ function interruptPlayback() {
 webAudio.oninterrupt = mediaAudio.oninterrupt = interruptPlayback;
 
 function frame() {
+  const reducedMotion = settings.motion || matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const now = performance.now(), delta = Math.min(.1, Math.max(0, (now - venueStamp) / 1000));
+  venueStamp = now;
+  if (!document.hidden && venueRenderer && ['menu', 'library', 'song-screen', 'results'].includes(document.body.dataset.screen)) {
+    const canvas = $('venue-canvas'), size = `${canvas.clientWidth}:${canvas.clientHeight}:${reducedMotion}`;
+    if (!reducedMotion) venueTime += delta;
+    if (size !== venueSize || !reducedMotion && now - venueFrame >= 50) {
+      venueRenderer.renderBackdrop(venueTime, reducedMotion); venueFrame = now; venueSize = size;
+    }
+  }
   if (previewRenderer && !$('song-backdrop').hidden) {
     const size = `${$('song-canvas').clientWidth}:${$('song-canvas').clientHeight}`;
     if (size !== previewSize) {
@@ -387,7 +398,7 @@ function frame() {
       pulse?.advance(time);
     }
     renderPulse(pulse?.view(time) ?? null);
-    if (!$('game-screen').hidden) renderer.render(game, time, run.level, buffer.duration, countdown, settings.motion, pulse?.zones(time, TRAVEL[run.level]));
+    if (!$('game-screen').hidden) renderer.render(game, time, run.level, buffer.duration, countdown, reducedMotion, pulse?.zones(time, TRAVEL[run.level]));
     text('time', `${formatTime(position)} / ${formatTime(buffer.duration)}`);
     text('live-score', formatNumber(game.score));
     text('live-combo', formatNumber(game.streak));
@@ -509,6 +520,7 @@ async function initialize() {
     const tracks = catalog.filter(song => !song.tutorial);
     $('catalog-count').textContent = `${formatCount(tracks.length, { one: 'трек', few: 'трека', many: 'треков', other: 'трека' })} · ${formatCount(tracks.reduce((total, song) => total + Object.keys(song.levels).length, 0), { one: 'карта', few: 'карты', many: 'карт', other: 'карты' })}`;
     renderer = new Renderer($('canvas'), paths);
+    venueRenderer = new Renderer($('venue-canvas'), paths);
     previewRenderer = new Renderer($('song-canvas'), paths); previewGame = new Game([]);
     state = 'menu'; show('menu'); refresh(); if (saveWarning) $('status').textContent = saveWarning; $('menu-play').focus({ preventScroll: true }); requestAnimationFrame(frame);
   } catch {

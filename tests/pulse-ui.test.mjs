@@ -2,9 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mount, deferred } from './helpers/ui-harness.mjs';
 import { renderPulse, pulseReasons } from '../dist/pulse-view.js';
+import { PULSE_CHARTS, PULSE_COUNTS } from '../dist/phrase-charts.js';
+import { choosePulseZones } from '../dist/pulse-zones.js';
 import { formatPercent } from '../dist/format.js';
 const pointer = { pointerId: 1, preventDefault() {} };
 const chart = [{ time: 1, lane: 0, duration: 0 }, { time: 26, lane: 1, duration: 0 }];
+const firstId = 'restless-urban-groove-v1';
+const settle = choosePulseZones(chart, PULSE_CHARTS[firstId], PULSE_COUNTS[firstId], () => 0)[0].end + .1;
 for (const compatibleAudio of [false, true]) {
   test(`Pulse in ${compatibleAudio ? 'compatible' : 'Web Audio'} mode: pause, score, history and retry`, async t => {
     t.mock.method(Math, 'random', () => 0);
@@ -21,11 +25,11 @@ for (const compatibleAudio of [false, true]) {
       ui.tick(compatibleAudio ? position : position + (afterResume ? 2 : 0));
     }
     advance(1); ui.lanes[0].onpointerdown(pointer); ui.lanes[0].onpointerup(pointer);
-    advance(6.1); assert.equal(ui.node('pulse').dataset.outcome, 'perfect');
+    advance(settle); assert.equal(ui.node('pulse').dataset.outcome, 'perfect');
     await ui.click('pause'); const title = ui.node('pulse-title').textContent;
     ui.tick(999); assert.equal(ui.node('pulse-title').textContent, title); assert.equal(ui.progress().history.length, 0);
     // Resume context starts from the current mocked clock. Restore it to pause time.
-    ui.audio.currentTime = 6.1; await ui.click('resume');
+    ui.audio.currentTime = settle; await ui.click('resume');
     advance(26, true); ui.lanes[1].onpointerdown(pointer); ui.lanes[1].onpointerup(pointer);
     advance(151, true);
     const attempt = ui.progress().history[0];
@@ -74,10 +78,10 @@ test('buffering does not advance Pulse or accept inputs; restart discards the un
   await ui.start();
   const media = ui.native.instances.at(-1); media.currentTime = 1; ui.tick(1);
   ui.lanes[0].onpointerdown(pointer); ui.lanes[0].onpointerup(pointer);
-  media.readyState = 2; media.currentTime = 6.1; ui.tick(6.1);
+  media.readyState = 2; media.currentTime = settle; ui.tick(settle);
   assert.equal(ui.node('pulse').dataset.outcome, 'active');
   ui.lanes[2].onpointerdown(pointer); ui.lanes[2].onpointerup(pointer);
-  media.readyState = 4; ui.tick(6.1);
+  media.readyState = 4; ui.tick(settle);
   assert.equal(ui.node('pulse').dataset.outcome, 'perfect');
   await ui.click('pause'); await ui.click('restart');
   assert.equal(ui.node('pulse').dataset.outcome, 'active'); assert.equal(ui.progress().history.length, 0);

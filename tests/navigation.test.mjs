@@ -38,7 +38,7 @@ test('settings and help replace the page, then restore focus and scroll to their
 });
 
 test('nested download → settings → back keeps the selected song, scroll and focus', async t => {
-  const ui = await mount(t); await ui.openSong('Overdrive');
+  const ui = await mount(t); await ui.openSong('Restless Urban Groove');
   window.scrollTo({ top: 160 });
   await ui.click('offline-open'); onlyScreen(ui, 'offline-screen');
   window.scrollTo({ top: 60 });
@@ -49,7 +49,7 @@ test('nested download → settings → back keeps the selected song, scroll and 
   await ui.click('offline-close'); onlyScreen(ui, 'song-screen');
   assert.equal(window.scrollY, 160);
   assert.equal(ui.document.activeElement, ui.node('offline-open'));
-  assert.equal(ui.node('hero-title').textContent, 'Overdrive');
+  assert.equal(ui.node('hero-title').textContent, 'Restless Urban Groove');
   assert.equal(ui.node('play').disabled, false);
 });
 
@@ -70,7 +70,7 @@ for (const compatibleAudio of [false, true]) test(`pause → settings → back s
 
 test('background song loading and audio-mode changes cannot reveal the page behind settings', async t => {
   const ui = await mount(t); ui.audio.loadGate = deferred();
-  const loading = ui.openSong('Overdrive'); await new Promise(setImmediate);
+  const loading = ui.openSong('Restless Urban Groove'); await new Promise(setImmediate);
   await ui.click('settings-open'); onlyScreen(ui, 'settings-screen');
   ui.audio.loadGate.resolve(); await loading; onlyScreen(ui, 'settings-screen');
   await ui.node('compatible-audio').onchange({ target: { checked: true } }); onlyScreen(ui, 'settings-screen');
@@ -102,7 +102,7 @@ test('no dialogs remain; updates and iPhone installation live in settings, not t
 });
 
 test('silent runway preview has no gameplay or audio and the departing menu is inert', async t => {
-  const ui = await mount(t); await ui.openSong('Overdrive');
+  const ui = await mount(t); await ui.openSong('Restless Urban Groove');
   assert.equal(ui.node('song-backdrop').hidden, false);
   ui.tick(0); ui.tick(5);
   assert.equal(ui.audio.starts.length + ui.native.plays.length, 0);

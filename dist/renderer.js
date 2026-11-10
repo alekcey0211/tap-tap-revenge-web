@@ -124,17 +124,27 @@ export class Renderer {
     if (effects.multiplier !== 8) return;
     const c = this.ctx;
     const impact = reducedMotion ? 0 : Math.max(0, ...effects.hits.map(hit => 1 - hit.age / .6));
-    this.renderConcertLights(time, rhythm.pulse, reducedMotion);
     this.lightning.render(c, rhythm, impact, reducedMotion);
   }
 
-  renderVenue(time, pulse, reducedMotion) {
+  renderBackdrop(time, reducedMotion) {
+    const c = this.ctx, dpr = Math.min(globalThis.devicePixelRatio || 1, 2);
+    const width = Math.round(this.canvas.clientWidth * dpr), height = Math.round(this.canvas.clientHeight * dpr);
+    if (!width || !height) return;
+    if (this.canvas.width !== width || this.canvas.height !== height) {
+      this.canvas.width = width; this.canvas.height = height;
+    }
+    c.setTransform(width / 320, 0, 0, height / 480, 0, 0);
+    c.clearRect(0, 0, 320, 480);
+    this.renderVenue(time, 0, reducedMotion, .85, 0);
+  }
+  renderVenue(time, pulse, reducedMotion, strength = 1, top = 90) {
     const c = this.ctx;
     c.save();
     // Match concert.jpg's 1024px artwork and CSS background: 100% width, -90px top.
     // This mapping stays aligned on both tall and short phone playfields.
     c.scale(320 / 1024, this.canvas.clientWidth / this.canvas.clientHeight * 480 / 1024);
-    c.translate(0, -90 * 1024 / this.canvas.clientWidth);
+    c.translate(0, -top * 1024 / this.canvas.clientWidth);
     c.globalCompositeOperation = 'screen';
     const panels = [
       [[51, 192], [82, 207], [79, 350], [47, 350]],
@@ -150,7 +160,7 @@ export class Renderer {
       points.forEach(([x, y], n) => { const px = side ? 1024 - x : x; if (n) c.lineTo(px, y); else c.moveTo(px, y); });
       c.closePath(); c.fillStyle = light;
       const sweep = .5 + .5 * Math.sin(time * 2.2 - i * 1.1 - side * 1.8);
-      c.globalAlpha = reducedMotion ? .3 : .16 + pulse * .3 + sweep * .2;
+      c.globalAlpha = strength * (reducedMotion ? .3 : .16 + pulse * .3 + sweep * .2);
       c.shadowColor = color; c.shadowBlur = reducedMotion ? 0 : 12;
       c.fill(); c.strokeStyle = color; c.lineWidth = 1.5; c.stroke();
     }
@@ -166,7 +176,7 @@ export class Renderer {
           const glow = c.createRadialGradient(x, y, 0, x, y, 20);
           glow.addColorStop(0, '#effbff'); glow.addColorStop(.16, arch % 2 ? '#73edff' : '#d48aff');
           glow.addColorStop(1, '#936aff00');
-          c.globalAlpha = .12 + wave * (.55 + pulse * .25); c.fillStyle = glow;
+          c.globalAlpha = strength * (.12 + wave * (.55 + pulse * .25)); c.fillStyle = glow;
           c.fillRect(x - 20, y - 20, 40, 40);
         }
       }
@@ -177,27 +187,27 @@ export class Renderer {
         c.save(); c.translate(x, y); c.scale(1, .25);
         const haze = c.createRadialGradient(0, 0, 0, 0, 0, 160);
         haze.addColorStop(0, i % 2 ? '#55caff' : '#d77aff'); haze.addColorStop(1, '#956aff00');
-        c.globalAlpha = .1 + pulse * .09; c.fillStyle = haze; c.fillRect(-160, -160, 320, 320);
+        c.globalAlpha = strength * (.1 + pulse * .09); c.fillStyle = haze; c.fillRect(-160, -160, 320, 320);
         c.restore();
       }
     }
     c.restore();
   }
-  renderConcertLights(time, pulse, reducedMotion) {
+  renderConcertLights(time, pulse, reducedMotion, strength = 1) {
     if (reducedMotion) return;
     const c = this.ctx;
     c.save(); c.beginPath(); c.rect(0, 45, 320, 395); c.clip();
     c.globalCompositeOperation = 'screen';
     const halo = c.createRadialGradient(160, 68, 5, 160, 68, 150);
     halo.addColorStop(0, '#ba7cff'); halo.addColorStop(.3, '#723cff77'); halo.addColorStop(1, '#723cff00');
-    c.globalAlpha = .14 + pulse * .14; c.fillStyle = halo; c.fillRect(10, 45, 300, 180);
+    c.globalAlpha = strength * (.14 + pulse * .14); c.fillStyle = halo; c.fillRect(10, 45, 300, 180);
     for (let i = 0; i < 4; i++) {
       const source = i % 2 ? 280 : 40;
       const destination = 160 + Math.sin(time * .65 + i * 1.7) * 130;
       const beam = c.createLinearGradient(source, 52, destination, 440);
       beam.addColorStop(0, i % 2 ? '#ca83ff' : '#74baff');
       beam.addColorStop(.6, i % 2 ? '#9b5aff88' : '#528eff88'); beam.addColorStop(1, '#496aff00');
-      c.globalAlpha = .07 + pulse * .07; c.fillStyle = beam;
+      c.globalAlpha = strength * (.07 + pulse * .07); c.fillStyle = beam;
       c.beginPath(); c.moveTo(source - 2, 52); c.lineTo(source + 2, 52);
       c.lineTo(destination + 38, 440); c.lineTo(destination - 38, 440); c.closePath(); c.fill();
     }
@@ -305,8 +315,13 @@ export class Renderer {
     const effects = this.effects.frame(game.multiplier(time), time);
     const revenge = effects.multiplier === 8;
     c.fillStyle = revenge ? '#4d202433' : '#0b071c55'; c.fillRect(0, 0, 320, 480);
-    const rhythm = revenge ? this.rhythm.frame(game.notes, time) : { index: -1, age: Infinity, pulse: 0 };
-    if (revenge) this.renderVenue(time, rhythm.pulse, reducedMotion);
+    const rhythm = this.rhythm.frame(game.notes, time);
+    const impact = Math.max(0, ...effects.hits.map(hit => 1 - hit.age / .6));
+    const venuePulse = reducedMotion ? 0 : Math.max(rhythm.pulse * (revenge ? 1 : .35), impact);
+    if (duration > 0) {
+      this.renderVenue(time, venuePulse, reducedMotion, revenge ? 1 : .5);
+      this.renderConcertLights(time, venuePulse, reducedMotion, revenge ? 1 : .45);
+    }
     this.renderStage(time, revenge, reducedMotion, rhythm.pulse);
     this.renderPulseZones(pulseZones, time, difficulty);
     this.renderEnergy(effects, reducedMotion, time, rhythm);

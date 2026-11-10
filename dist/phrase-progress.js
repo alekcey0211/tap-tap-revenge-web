@@ -1,5 +1,5 @@
 import { HIT_WINDOW, WINDOWS } from './engine.js';
-import { PHRASE_VERSION } from './phrase-charts.js?v=0.8.2';
+import { PHRASE_VERSION } from './phrase-charts.js?v=0.9.0';
 export const PULSE_RULES = 'strict-v1';
 const weights = Object.fromEntries(WINDOWS.map(([, label, points]) => [label, points]));
 const epsilon = 1e-6;
