@@ -15,7 +15,7 @@ import { DEFAULT_SETTINGS, loadSave, saveSettings as writeSettings, recordAttemp
 import { ProgressView } from './progress.js?v=0.9.0';
 
 const $ = id => document.getElementById(id);
-const APP_VERSION = '0.9.0';
+const APP_VERSION = '0.9.1';
 if ($('app-version')) $('app-version').textContent = `v${APP_VERSION}`;
 $('settings-version').textContent = `v${APP_VERSION}`;
 $('pulse-target').textContent = formatPercent(90);
@@ -99,8 +99,9 @@ function refresh() {
     const img = document.createElement('img'); img.src = artwork(song); img.alt = '';
     const text = document.createElement('span'); const title = document.createElement('strong'); const artist = document.createElement('small');
     title.textContent = song.title; artist.textContent = artistName(song); text.append(title, artist);
-    const duration = document.createElement('em'); duration.textContent = formatTime(song.duration);
-    button.append(img, text, duration);
+    const duration = document.createElement('em'); duration.textContent = `${formatTime(song.duration)} · ${song.genre}`;
+    text.append(duration);
+    button.append(img, text);
     button.onclick = () => openSong(song);
     $('tracks').append(button);
   }
