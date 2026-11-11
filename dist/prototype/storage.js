@@ -3,7 +3,7 @@ import { Temporal } from './temporal.js';
 export const SAVE_KEY = 'ttr-babylon-save-v2';
 export const HISTORY_LIMIT = 100;
 export const IMPORT_LIMIT = 512 * 1024;
-export const CHART_VERSION = 'neon-three-v2';
+export const CHART_VERSION = 'neon-three-v3';
 export const RULES_VERSION = 'auto-revenge-v3';
 export const DEFAULT_SETTINGS = { compatibleAudio: true, volume: 75, offset: 0, motion: false };
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

@@ -162,19 +162,7 @@
     "shake": false
   },
   {
-    "time": 11.818107,
-    "lane": 0,
-    "duration": 0,
-    "shake": false
-  },
-  {
     "time": 11.992698,
-    "lane": 0,
-    "duration": 0,
-    "shake": false
-  },
-  {
-    "time": 12.147358,
     "lane": 0,
     "duration": 0,
     "shake": false
@@ -182,12 +170,6 @@
   {
     "time": 12.32195,
     "lane": 1,
-    "duration": 0,
-    "shake": false
-  },
-  {
-    "time": 12.486587,
-    "lane": 2,
     "duration": 0,
     "shake": false
   },
@@ -210,12 +192,6 @@
     "shake": false
   },
   {
-    "time": 13.504274,
-    "lane": 0,
-    "duration": 0,
-    "shake": false
-  },
-  {
     "time": 13.668889,
     "lane": 1,
     "duration": 0,
@@ -224,12 +200,6 @@
   {
     "time": 14.008118,
     "lane": 0,
-    "duration": 0,
-    "shake": false
-  },
-  {
-    "time": 14.182732,
-    "lane": 1,
     "duration": 0,
     "shake": false
   },
@@ -246,20 +216,8 @@
     "shake": false
   },
   {
-    "time": 14.851213,
-    "lane": 2,
-    "duration": 0,
-    "shake": false
-  },
-  {
     "time": 15.025805,
     "lane": 1,
-    "duration": 0,
-    "shake": false
-  },
-  {
-    "time": 15.190442,
-    "lane": 0,
     "duration": 0,
     "shake": false
   },
@@ -294,12 +252,6 @@
     "shake": false
   },
   {
-    "time": 16.886587,
-    "lane": 2,
-    "duration": 0,
-    "shake": false
-  },
-  {
     "time": 17.071156,
     "lane": 2,
     "duration": 0,
@@ -312,19 +264,7 @@
     "shake": false
   },
   {
-    "time": 17.555068,
-    "lane": 0,
-    "duration": 0,
-    "shake": false
-  },
-  {
     "time": 17.72966,
-    "lane": 2,
-    "duration": 0,
-    "shake": false
-  },
-  {
-    "time": 17.894297,
     "lane": 2,
     "duration": 0,
     "shake": false
@@ -348,12 +288,6 @@
     "shake": false
   },
   {
-    "time": 18.921961,
-    "lane": 1,
-    "duration": 0,
-    "shake": false
-  },
-  {
     "time": 19.086576,
     "lane": 1,
     "duration": 0,
@@ -368,12 +302,6 @@
   {
     "time": 19.765034,
     "lane": 0,
-    "duration": 0,
-    "shake": false
-  },
-  {
-    "time": 19.929671,
-    "lane": 2,
     "duration": 0,
     "shake": false
   },
@@ -444,12 +372,6 @@
     "shake": false
   },
   {
-    "time": 23.651213,
-    "lane": 2,
-    "duration": 0,
-    "shake": false
-  },
-  {
     "time": 23.825805,
     "lane": 1,
     "duration": 0,
@@ -468,20 +390,8 @@
     "shake": false
   },
   {
-    "time": 24.658923,
-    "lane": 0,
-    "duration": 0,
-    "shake": false
-  },
-  {
     "time": 24.833515,
     "lane": 0,
-    "duration": 0,
-    "shake": false
-  },
-  {
-    "time": 25.008129,
-    "lane": 1,
     "duration": 0,
     "shake": false
   },
@@ -500,12 +410,6 @@
   {
     "time": 25.851202,
     "lane": 0,
-    "duration": 0,
-    "shake": false
-  },
-  {
-    "time": 26.015839,
-    "lane": 1,
     "duration": 0,
     "shake": false
   },
@@ -552,19 +456,7 @@
     "shake": false
   },
   {
-    "time": 28.380465,
-    "lane": 2,
-    "duration": 0,
-    "shake": false
-  },
-  {
     "time": 28.555057,
-    "lane": 1,
-    "duration": 0,
-    "shake": false
-  },
-  {
-    "time": 28.719694,
     "lane": 1,
     "duration": 0,
     "shake": false
@@ -660,19 +552,7 @@
     "shake": false
   },
   {
-    "time": 33.798152,
-    "lane": 2,
-    "duration": 0,
-    "shake": false
-  },
-  {
     "time": 33.962766,
-    "lane": 2,
-    "duration": 0,
-    "shake": false
-  },
-  {
-    "time": 34.127404,
     "lane": 2,
     "duration": 0,
     "shake": false
@@ -703,12 +583,6 @@
   },
   {
     "time": 35.658912,
-    "lane": 2,
-    "duration": 0,
-    "shake": false
-  },
-  {
-    "time": 35.823549,
     "lane": 2,
     "duration": 0,
     "shake": false
@@ -780,12 +654,6 @@
     "shake": false
   },
   {
-    "time": 39.545091,
-    "lane": 2,
-    "duration": 0,
-    "shake": false
-  },
-  {
     "time": 39.709705,
     "lane": 2,
     "duration": 0,
@@ -804,12 +672,6 @@
     "shake": false
   },
   {
-    "time": 40.562778,
-    "lane": 0,
-    "duration": 0,
-    "shake": false
-  },
-  {
     "time": 40.727392,
     "lane": 2,
     "duration": 0,
@@ -817,12 +679,6 @@
   },
   {
     "time": 41.066621,
-    "lane": 0,
-    "duration": 0,
-    "shake": false
-  },
-  {
-    "time": 41.241236,
     "lane": 0,
     "duration": 0,
     "shake": false
@@ -878,12 +734,6 @@
   {
     "time": 44.119683,
     "lane": 1,
-    "duration": 0,
-    "shake": false
-  },
-  {
-    "time": 44.28432,
-    "lane": 0,
     "duration": 0,
     "shake": false
   },
@@ -1140,12 +990,6 @@
     "shake": false
   },
   {
-    "time": 58.482052,
-    "lane": 0,
-    "duration": 0,
-    "shake": false
-  },
-  {
     "time": 58.656644,
     "lane": 2,
     "duration": 0.678458,
@@ -1190,12 +1034,6 @@
   {
     "time": 61.02127,
     "lane": 1,
-    "duration": 0,
-    "shake": false
-  },
-  {
-    "time": 61.185907,
-    "lane": 2,
     "duration": 0,
     "shake": false
   },
@@ -1320,12 +1158,6 @@
     "shake": false
   },
   {
-    "time": 67.950533,
-    "lane": 0,
-    "duration": 0,
-    "shake": false
-  },
-  {
     "time": 68.125125,
     "lane": 2,
     "duration": 0,
@@ -1404,12 +1236,6 @@
     "shake": false
   },
   {
-    "time": 72.350533,
-    "lane": 2,
-    "duration": 0,
-    "shake": false
-  },
-  {
     "time": 72.525125,
     "lane": 1,
     "duration": 0,
@@ -1430,12 +1256,6 @@
   {
     "time": 73.532834,
     "lane": 1,
-    "duration": 0,
-    "shake": false
-  },
-  {
-    "time": 73.697472,
-    "lane": 2,
     "duration": 0,
     "shake": false
   },
@@ -1500,20 +1320,8 @@
     "shake": false
   },
   {
-    "time": 77.089762,
-    "lane": 1,
-    "duration": 0,
-    "shake": false
-  },
-  {
     "time": 77.254376,
     "lane": 1,
-    "duration": 0,
-    "shake": false
-  },
-  {
-    "time": 77.419014,
-    "lane": 2,
     "duration": 0,
     "shake": false
   },
@@ -1548,12 +1356,6 @@
     "shake": false
   },
   {
-    "time": 79.115159,
-    "lane": 1,
-    "duration": 0,
-    "shake": false
-  },
-  {
     "time": 79.289751,
     "lane": 2,
     "duration": 0,
@@ -1567,12 +1369,6 @@
   },
   {
     "time": 79.958231,
-    "lane": 1,
-    "duration": 0,
-    "shake": false
-  },
-  {
-    "time": 80.122868,
     "lane": 1,
     "duration": 0,
     "shake": false
@@ -1616,12 +1412,6 @@
   {
     "time": 82.322857,
     "lane": 0,
-    "duration": 0,
-    "shake": false
-  },
-  {
-    "time": 82.497472,
-    "lane": 2,
     "duration": 0,
     "shake": false
   },

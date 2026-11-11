@@ -403,7 +403,7 @@ function frame() {
       pulse?.advance(time);
     }
     renderPulse(pulse?.view(time) ?? null);
-    if (!$('game-screen').hidden) renderer.render(game, time, run.level, buffer.duration, countdown, reducedMotion, pulse?.zones(time, TRAVEL[run.level]), { songId: run.song.id, position });
+    if (!$('game-screen').hidden) renderer.render(game, time, run.level, buffer.duration, countdown, reducedMotion, pulse?.zones(time, TRAVEL[run.level]), { songId: run.song.id, position }, pulse?.view(time));
     text('time', `${formatTime(position)} / ${formatTime(buffer.duration)}`);
     text('live-score', formatNumber(game.score));
     text('live-combo', formatNumber(game.streak));

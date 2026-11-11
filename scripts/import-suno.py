@@ -5,7 +5,6 @@ Usage: python3 scripts/import-suno.py /path/to/mp3-directory
 Requires ffmpeg/ffprobe. Analysis timings are frozen in music/suno-v1.json;
 no audio-analysis library is needed to reproduce charts or run the game.
 """
-from bisect import bisect_right
 import hashlib
 import json
 from pathlib import Path
@@ -43,18 +42,6 @@ def make_chart(song, level):
             onset = min(onsets, key=lambda o: abs(o['time'] - target))
             if abs(onset['time'] - target) < .065 and onset['strength'] >= threshold:
                 events[round(onset['time'], 6)] = (i, False)
-    # Add a modest number of strong measured attacks, rather than a denser metronome.
-    extra = round(len(events) * .14)
-    spacing = {1: .15, 2: .11, 3: .09, 4: .075}[level]
-    for onset in sorted(onsets, key=lambda o: (-o['strength'], o['time'])):
-        time = round(onset['time'], 6)
-        if not extra:
-            break
-        if time < 2.8 or time >= beats[-3] or any(abs(time - stamp) < spacing for stamp in events):
-            continue
-        beat = max(0, bisect_right(beats, time) - 1)
-        events[time] = (beat, False)
-        extra -= 1
     # Each four-bar phrase gets one hold at its strongest eligible beat. Different
     # recordings therefore place holds differently, not at a shared beat number.
     hold_beats = set()
@@ -85,11 +72,8 @@ def make_chart(song, level):
         lane = wanted if wanted in free else min(free, key=lambda value: busy[value])
         notes.append({'time': time, 'lane': lane, 'duration': duration, 'shake': False})
         busy[lane] = active_until[lane] = time + duration
-        # Hard accents are on detected stronger beats. Held fingers count toward
-        # the two-thumb limit too, not just simultaneous note heads.
-        strength = max((o['strength'] for o in onsets if abs(o['time'] - time) < .07), default=0)
-        accent_phase = 2 if song['genre'] == 'Dubstep' else 0
-        if level == 4 and main and beat % 4 == accent_phase and strength >= threshold and held == 0:
+        # Original sparse hard accents; held fingers still count toward the limit.
+        if level == 4 and main and beat % 8 == 0 and held == 0:
             other = next((value for value in [2 - lane, (lane + 1) % 3]
                           if value != lane and time - busy[value] >= .12), None)
             if other is not None:

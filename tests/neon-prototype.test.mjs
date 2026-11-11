@@ -48,7 +48,7 @@ test('new prototype resets attempts once but preserves audio and calibration set
   assert.deepEqual(current.settings, settings);
   assert.deepEqual(current.progress, { records: [], history: [] });
   assert.equal(values.get('ttr-babylon-save-v1'), old); assert.equal(values.get('ttr-web-save-v1'), 'untouched');
-  assert.equal(save.CHART_VERSION, 'neon-three-v2');
+  assert.equal(save.CHART_VERSION, 'neon-three-v3');
   save.saveProgress(storage, progress, settings);
   assert.equal(save.loadSave(storage).progress.history.length, 1);
 });

@@ -14,7 +14,7 @@ const v = (x, y, z) => new Vector3(x, y, z);
 const mix = (a, b, t) => a + (b - a) * t;
 const random = seed => { let n = seed | 0; return () => { n = Math.imul(n ^ n >>> 16, 0x45d9f3b); n = Math.imul(n ^ n >>> 16, 0x45d9f3b); return ((n ^ n >>> 16) >>> 0) / 4294967296; }; };
 
-export function createScene(engine, canvas, { fullViewport = false } = {}) {
+export function createScene(engine, canvas, { fullViewport = false, powerSaving = false } = {}) {
   const scene = new Scene(engine);
   scene.clearColor = new Color4(.038, .012, .082, 1);
   scene.fogMode = Scene.FOGMODE_EXP2; scene.fogDensity = .017; scene.fogColor = new Color3(.038, .012, .082);
@@ -25,7 +25,8 @@ export function createScene(engine, canvas, { fullViewport = false } = {}) {
   const pinkLight = new PointLight('magenta-light', v(-5, 5, 6), scene); pinkLight.diffuse = Color3.FromHexString('#c27aff'); pinkLight.intensity = 1.3;
   const blueLight = new PointLight('cyan-light', v(5, 6, 11), scene); blueLight.diffuse = Color3.FromHexString('#80e5ff'); blueLight.intensity = 1.5;
   const frontLight = new PointLight('front-light', v(0, 5, -3), scene); frontLight.intensity = 1.1;
-  const glow = new GlowLayer('selective-glow', scene, { mainTextureRatio: .35, blurKernelSize: 32 }); glow.intensity = .55;
+  const glow = new GlowLayer('selective-glow', scene, { mainTextureRatio: powerSaving ? .2 : .35, blurKernelSize: powerSaving ? 16 : 32 });
+  glow.intensity = .55;
   function material(name, color, emission = 0, alpha = 1) {
     const m = new StandardMaterial(name, scene);
     const c = typeof color === 'string' ? Color3.FromHexString(color) : color;
@@ -376,6 +377,17 @@ export function createScene(engine, canvas, { fullViewport = false } = {}) {
       camera.setTarget(v(0, camera.position.y - 21 * Math.tan(pitch), 9));
     } else camera.setTarget(v(0, 1.6, 9));
   }
+  if (powerSaving) {
+    // Only a small neon subset enters the extra glow pass on phones. Geometry,
+    // notes, crowd and the 90 LED cells are not rendered a second time.
+    const glowingNames = new Set(['arch-neon', 'target-light', 'target-inner', 'target-energy-arc',
+      'lightning', 'impact-flash', 'hold-contact']);
+    for (const mesh of scene.meshes) if (glowingNames.has(mesh.name)) glow.addIncludedOnlyMesh(mesh);
+  }
+  const staticNames = new Set(['stage-floor', 'track-base', 'runway-rail', 'outer-rail', 'edge-marker',
+    'lane-divider', 'target-bezel', 'target-inner', 'platform-wing', 'platform-rim', 'arch-structure',
+    'arch-neon', 'led-housing', 'led', 'spectrum-disc', 'spectrum-bed', 'floor-light', 'wing-neon', 'spotlight', 'light-lens']);
+  for (const mesh of scene.meshes) if (staticNames.has(mesh.name)) mesh.freezeWorldMatrix();
   resize();
   function targets() {
     const height = canvas.clientHeight * camera.viewport.height;

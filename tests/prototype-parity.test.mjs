@@ -14,7 +14,7 @@ const manifest = JSON.parse((await read('offline-assets.js')).split(' = ')[1].re
 const scope = 'https://example.test/tap-tap-revenge-web/prototype/';
 
 test('full prototype uses the exact working application with only renderer integration and version changed', async () => {
-  const expected = (await read('app.js', stable)).replace("'./renderer.js?v=0.9.0'", "'./babylon-renderer.js?v=0.6.1'").replace("const APP_VERSION = '0.10.4';", "const APP_VERSION = '0.6.1-babylon';").replace('pulse?.zones(time, TRAVEL[run.level]));', 'pulse?.zones(time, TRAVEL[run.level]), { songId: run.song.id, position });');
+  const expected = (await read('app.js', stable)).replace("'./renderer.js?v=0.9.0'", "'./babylon-renderer.js?v=0.6.1'").replace("const APP_VERSION = '0.10.4';", "const APP_VERSION = '0.6.1-babylon';").replace('pulse?.zones(time, TRAVEL[run.level]));', 'pulse?.zones(time, TRAVEL[run.level]), { songId: run.song.id, position }, pulse?.view(time));');
   assert.equal(await read('app.js'), expected);
   for (const name of ['audio.js', 'media-audio.js', 'routing.js', 'progress.js', 'format.js', 'temporal.js', 'phrase-progress.js', 'pulse-view.js', 'pulse-zones.js', 'phrase-charts.js', 'offline-view.js', 'offline.js', 'sw.js']) {
     assert.equal(await read(name), await read(name, stable), name);
@@ -51,7 +51,7 @@ test('prototype compact UI keeps controls accessible and moves metadata before t
 test('prototype storage isolates progress, resets chart revision, and retains compatible audio default', async () => {
   const withoutLegacy = source => source.replace(/function legacy\(storage, defaults\) \{[\s\S]*?(?=function resetLegacyPulse)/, '');
   const expectedStorage = (await read('storage.js', stable)).replaceAll('ttr-web-', 'ttr-babylon-').replace('compatibleAudio: false', 'compatibleAudio: true')
-    .replace('ttr-babylon-save-v1', 'ttr-babylon-save-v2').replace("CHART_VERSION = 'original-v1'", "CHART_VERSION = 'neon-three-v2'");
+    .replace('ttr-babylon-save-v1', 'ttr-babylon-save-v2').replace("CHART_VERSION = 'original-v1'", "CHART_VERSION = 'neon-three-v3'");
   assert.equal(withoutLegacy(await read('storage.js')), withoutLegacy(expectedStorage));
   const original = new Map([
     [stableSave.SAVE_KEY, stableSave.exportProgress(stableSave.DEFAULT_SETTINGS, { records: [], history: [] })],

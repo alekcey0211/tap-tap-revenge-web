@@ -91,8 +91,7 @@ test('all new charts keep holds on outer lanes and never require a third finger'
       assert.ok(contacts.length <= 2, `${song.title}: ${level} / ${time} needs ${contacts.length} fingers`);
     }
     if (level > 1) {
-      const increase = notes.length / previousCounts[index][level - 2];
-      assert.ok(increase > 1.10 && increase < 1.22, `${song.title}: density ${increase}`);
+      assert.equal(notes.length, previousCounts[index][level - 2], `${song.title}: original density`);
     }
   }
 });

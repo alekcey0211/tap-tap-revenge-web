@@ -219,3 +219,22 @@ test('scene geometry stays within the mobile budget without removing stage eleme
   assert.equal(named(world, 'arch-neon').length, 5);
   assert.equal(named(world, 'target-light').length, 3);
 });
+
+test('mobile glow renders only neon accents and preserves notes and moving stage effects', t => {
+  const engine = new NullEngine({ renderWidth: 390, renderHeight: 844 });
+  t.after(() => engine.dispose());
+  const world = createScene(engine, { clientWidth: 390, clientHeight: 844 }, { fullViewport: true, powerSaving: true });
+  const glow = world.scene.effectLayers[0];
+  assert.ok(glow.hasMesh(world.scene.getMeshByName('arch-neon')));
+  assert.equal(glow.hasMesh(world.scene.getMeshByName('note-0-0')), false);
+  assert.equal(glow.hasMesh(world.scene.getMeshByName('led')), false);
+  world.setChart([{ time: 10, lane: 0, duration: 1, state: 'pending' }]);
+  world.update(9, true, true, false);
+  assert.ok(world.scene.getMeshByName('note-0-0').isEnabled());
+  const panels = named(world, 'led');
+  assert.ok(panels.every(mesh => mesh.isWorldMatrixFrozen));
+  const first = panels.map(mesh => mesh.material.emissiveColor.asArray());
+  world.update(9.2, true, true, false);
+  assert.notDeepEqual(panels.map(mesh => mesh.material.emissiveColor.asArray()), first);
+  assert.equal(world.scene.getMeshByName('note-0-0').isWorldMatrixFrozen, false);
+});

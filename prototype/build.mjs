@@ -54,11 +54,11 @@ await writeFile(new URL('style.css', out), style);
 let app = await readFile(new URL('app.js', root), 'utf8');
 app = replaceOnce(app, "'./renderer.js?v=0.9.0'", "'./babylon-renderer.js?v=0.6.1'");
 app = replaceOnce(app, "const APP_VERSION = '0.10.4';", "const APP_VERSION = '0.6.1-babylon';");
-app = replaceOnce(app, 'pulse?.zones(time, TRAVEL[run.level]));', 'pulse?.zones(time, TRAVEL[run.level]), { songId: run.song.id, position });');
+app = replaceOnce(app, 'pulse?.zones(time, TRAVEL[run.level]));', 'pulse?.zones(time, TRAVEL[run.level]), { songId: run.song.id, position }, pulse?.view(time));');
 await writeFile(new URL('app.js', out), app);
 let storage = (await readFile(new URL('storage.js', root), 'utf8')).replaceAll('ttr-web-', 'ttr-babylon-').replace('compatibleAudio: false', 'compatibleAudio: true');
 storage = replaceOnce(storage, "'ttr-babylon-save-v1'", "'ttr-babylon-save-v2'");
-storage = replaceOnce(storage, "CHART_VERSION = 'original-v1'", "CHART_VERSION = 'neon-three-v2'");
+storage = replaceOnce(storage, "CHART_VERSION = 'original-v1'", "CHART_VERSION = 'neon-three-v3'");
 const legacyStart = storage.indexOf('function legacy(storage, defaults) {');
 const legacyEnd = storage.indexOf('function resetLegacyPulse', legacyStart);
 if (legacyStart < 0 || legacyEnd < 0) throw new Error('Storage migration changed');
@@ -113,7 +113,7 @@ for (const [source, target] of [['app.js', 'stage.js'], ['game-renderer.js', 'ba
     bundle: true, minify: true, format: 'esm', target: ['safari16', 'es2022'], legalComments: 'inline' });
   await writeFile(new URL(target, out), normalize(result.outputFiles[0].text));
 }
-const files = ['app.js', 'scene.js', 'hold-feedback.js', 'venue-layout.js', 'timing.js', 'backend.js', 'transport.js', 'session.js', 'spectrum.js', 'spectra.json', 'spectrum-analysis.mjs', 'analyze-music.mjs', 'input-regions.js', 'game-renderer.js', 'render-budget.js', 'game-bootstrap.js', 'game.css', 'lab.html', 'lab.css', 'build.mjs', 'package.json', 'package-lock.json'];
+const files = ['app.js', 'scene.js', 'hold-feedback.js', 'venue-layout.js', 'timing.js', 'backend.js', 'transport.js', 'session.js', 'spectrum.js', 'spectra.json', 'spectrum-analysis.mjs', 'analyze-music.mjs', 'input-regions.js', 'game-renderer.js', 'render-budget.js', 'pulse-feedback.js', 'game-bootstrap.js', 'game.css', 'lab.html', 'lab.css', 'build.mjs', 'package.json', 'package-lock.json'];
 const sources = Object.fromEntries(await Promise.all(files.map(async file => [file, hash(await readFile(new URL(file, import.meta.url)))])));
 const bytes = await readFile(new URL('stage.js', out));
 const renderer = await readFile(new URL('babylon-renderer.js', out));

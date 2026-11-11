@@ -5,7 +5,8 @@ import { laneWidths } from './input-regions.js';
 import { sampleSpectrum } from './spectrum.js';
 import { HitEffects } from '../dist/hit-effects.js';
 import { TRAVEL } from './timing.js';
-import { RenderBudget, pixelRatio } from './render-budget.js';
+import { renderFPS, pixelRatio } from './render-budget.js';
+import { PulseFeedback } from './pulse-feedback.js';
 import { formatNumber } from '../dist/format.js';
 
 let shared;
@@ -17,6 +18,7 @@ const timeout = (promise, ms) => {
 };
 
 export async function prepareRenderer() {
+  const coarse = matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
   async function create(gpu) {
     const canvas = document.createElement('canvas'); canvas.className = 'babylon-surface'; canvas.setAttribute('aria-hidden', 'true');
     $('babylon-buffer').replaceChildren(canvas);
@@ -29,8 +31,8 @@ export async function prepareRenderer() {
         try { await timeout(initializing, 15000); }
         catch (error) { void initializing.then(() => engine.dispose(), () => {}); throw error; }
       }
-      engine.setHardwareScalingLevel(1 / pixelRatio(devicePixelRatio, matchMedia('(pointer: coarse)').matches));
-      const world = createScene(engine, canvas, { fullViewport: true });
+      engine.setHardwareScalingLevel(1 / pixelRatio(devicePixelRatio, coarse));
+      const world = createScene(engine, canvas, { fullViewport: true, powerSaving: coarse });
       await timeout(world.scene.whenReadyAsync(), 20000);
       return { engine, world, canvas, name: gpu ? 'WebGPU' : `WebGL ${formatNumber(engine.webGLVersion)}` };
     } catch (error) { engine?.dispose(); canvas.remove(); throw error; }
@@ -38,13 +40,26 @@ export async function prepareRenderer() {
   shared = await chooseBackend({ preference, supported: () => timeout(WebGPUEngine.IsSupportedAsync, 5000), webgpu: () => create(true), webgl: () => create(false) });
   $('babylon-backend').textContent = shared.name;
   let previousNotes, previousSize = '', statsAt = performance.now(), rendered = 0, points;
-  const budget = new RenderBudget();
+  // Cap before Babylon's begin/endFrame: returning inside a render callback still
+  // submits empty WebGPU frames at the display refresh rate.
+  const motion = matchMedia('(prefers-reduced-motion: reduce)');
+  const syncBudget = () => {
+    const screen = document.body.dataset.screen;
+    shared.engine.maxFPS = document.hidden ? 0 : renderFPS({ active: screen === 'game-screen',
+      paused: screen === 'pause-screen', reduced: document.body.dataset.reducedMotion === 'true' || motion.matches, coarse });
+  };
+  new MutationObserver(syncBudget).observe(document.body, { attributes: true, attributeFilter: ['data-screen', 'data-reduced-motion'] });
+  document.addEventListener('visibilitychange', syncBudget); motion.addEventListener('change', syncBudget);
+  syncBudget();
   const feedback = document.createElement('div'); feedback.className = 'babylon-feedback'; feedback.setAttribute('aria-hidden', 'true');
   const countdown = document.createElement('strong'); countdown.className = 'babylon-countdown';
   const judgments = Array.from({ length: 3 }, () => { const span = document.createElement('span'); feedback.append(span); return span; });
   const milestone = document.createElement('strong'); milestone.className = 'babylon-milestone'; milestone.hidden = true;
   milestone.textContent = `×${formatNumber(16)}`;
-  feedback.append(countdown, milestone);
+  const pulseNotice = document.createElement('div'); pulseNotice.className = 'babylon-pulse-perfect'; pulseNotice.hidden = true;
+  const pulseTitle = document.createElement('strong'); pulseTitle.textContent = 'PULSE · ИДЕАЛЬНО';
+  const pulseDetail = document.createElement('small'); pulseNotice.append(pulseTitle, pulseDetail);
+  feedback.append(countdown, milestone, pulseNotice);
   shared.engine.onContextLostObservable.add(() => {
     // Let the unchanged application pause its own audio/session; never take ownership here.
     window.dispatchEvent(new PageTransitionEvent('pagehide'));
@@ -57,10 +72,9 @@ export async function prepareRenderer() {
     const now = performance.now(), delta = Math.min(.1, Math.max(0, (now - stamp) / 1000)); stamp = now;
     if (document.hidden) return;
     const screen = document.body.dataset.screen;
-    const reduced = document.body.dataset.reducedMotion === 'true' || matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const reduced = document.body.dataset.reducedMotion === 'true' || motion.matches;
     if (!reduced) ambientTime += delta;
     const active = screen === 'game-screen', paused = screen === 'pause-screen';
-    if (!budget.take(now, { active, paused, reduced, screen })) return;
     const data = active ? shared.pending : { owner: ambient, canvas: $('babylon-background-canvas'),
       time: paused ? shared.pending?.time || 0 : ambientTime, reduced, difficulty: '1', zones: [], track: paused ? shared.pending?.track : null };
     if (!data || !data.canvas.clientWidth || !data.canvas.clientHeight || !data.canvas.getClientRects().length) return;
@@ -83,6 +97,15 @@ export async function prepareRenderer() {
     for (const hit of data.owner.hits.splice(0)) world.hit(hit.lane, hit.time, hit.noteTime);
     const spectrum = data.track && !data.countdown ? sampleSpectrum(data.track.songId, data.track.position, bands) : null;
     world.update(data.time, active && !data.countdown, multiplier >= 8, data.reduced, data.zones, spectrum);
+    const celebration = active && !data.countdown ? data.owner.pulseFeedback.frame(data.pulseView, data.time) : null;
+    pulseNotice.hidden = !celebration;
+    feedback.style.setProperty('--pulse-reward-opacity', String(celebration?.opacity || 0));
+    if (celebration) {
+      pulseDetail.textContent = `Фрагмент ${formatNumber(celebration.index)} / ${formatNumber(celebration.total)}`;
+      pulseNotice.style.opacity = String(celebration.opacity);
+      pulseNotice.style.transform = reduced ? 'none' : `translateY(${(1 - Math.min(1, celebration.age / .18)) * 10}px)`;
+      pulseNotice.style.setProperty('--pulse-spread', `${Math.min(1, celebration.age / .7) * 18}px`);
+    }
     const effects = data.owner.effects.frame(multiplier, data.time);
     const transition = effects.transition;
     const showMilestone = active && !data.countdown && transition?.to === 16 && transition.from < 16;
@@ -110,18 +133,18 @@ const emptyNotes = [];
 export class Renderer {
   constructor(canvas) {
     if (!shared) throw new Error('Renderer is not initialized');
-    this.canvas = canvas; this.hits = []; this.effects = new HitEffects();
+    this.canvas = canvas; this.hits = []; this.effects = new HitEffects(); this.pulseFeedback = new PulseFeedback();
     const record = this.effects.recordHit.bind(this.effects), reset = this.effects.reset.bind(this.effects);
     this.effects.recordHit = (note, time, multiplier) => {
       record(note, time, multiplier);
       if (note?.judgment) { this.hits.push({ lane: note.lane, time, noteTime: note.time }); if (this.hits.length > 24) this.hits.shift(); }
     };
-    this.effects.reset = () => { reset(); this.hits = []; };
+    this.effects.reset = () => { reset(); this.hits = []; this.pulseFeedback.reset(); };
   }
   renderBackdrop() { /* The single engine now paints the shared background on every screen. */ }
 
-  render(game, time, difficulty, duration, countdown = 0, reduced = false, zones = [], track = null) {
+  render(game, time, difficulty, duration, countdown = 0, reduced = false, zones = [], track = null, pulseView = null) {
     if (this.canvas.id !== 'canvas') return;
-    shared.pending = { owner: this, canvas: this.canvas, game, time, difficulty, countdown, reduced, zones, track };
+    shared.pending = { owner: this, canvas: this.canvas, game, time, difficulty, countdown, reduced, zones, track, pulseView };
   }
 }
