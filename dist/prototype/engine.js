@@ -1,6 +1,6 @@
 // Timing windows and point values are a web approximation, not a native engine port.
 export const HIT_WINDOW = 0.18;
-export const TRAVEL = { 1: 2.15, 2: 1.8, 3: 1.4 };
+export const TRAVEL = { 1: 1.95, 2: 1.62, 3: 1.26 };
 export const WINDOWS = [[0.045, 'PERFECT', 100], [0.09, 'GREAT', 80], [0.14, 'GOOD', 50], [HIT_WINDOW, 'OK', 20]];
 
 export class Game {

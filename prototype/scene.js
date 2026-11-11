@@ -1,4 +1,5 @@
 import { Scene, FreeCamera, Vector3, Color3, Color4, MeshBuilder, StandardMaterial, HemisphericLight, PointLight, GlowLayer, Viewport, Matrix, TransformNode } from '@babylonjs/core';
+import { TRAVEL } from './timing.js';
 import { holdingLanes } from './hold-feedback.js';
 import { spectrumColumn, spectrumLevel } from './venue-layout.js';
 import { TrackRhythm } from '../dist/track-rhythm.js';
@@ -46,7 +47,7 @@ export function createScene(engine, canvas, { fullViewport = false } = {}) {
     const mesh = MeshBuilder.CreateBox(name, { width, height, depth }, scene); mesh.position = pos; mesh.material = mat; return mesh;
   }
   function ring(name, diameter, thickness, pos, mat, vertical = false) {
-    const mesh = MeshBuilder.CreateTorus(name, { diameter, thickness, tessellation: 64 }, scene);
+    const mesh = MeshBuilder.CreateTorus(name, { diameter, thickness, tessellation: diameter > 6 ? 48 : diameter < .5 ? 16 : 24 }, scene);
     mesh.position = pos; mesh.material = mat; if (vertical) mesh.rotation.x = Math.PI / 2; return mesh;
   }
   box('stage-floor', 38, .3, 80, v(0, -.55, 30), dark);
@@ -177,7 +178,7 @@ export function createScene(engine, canvas, { fullViewport = false } = {}) {
       const angle = j * Math.PI * 2 / 14;
       return { mesh, velocity: v(Math.cos(angle) * (1.3 + j % 3 * .4), .7 + j % 4 * .7, Math.sin(angle) * 1.5) };
     });
-    return { lane, halo, flash, particles, born: -Infinity };
+    return { lane, halo, flash, particles, origin: v(0, .54, 0), born: -Infinity };
   });
   const tailPools = laneMats.map((mat, lane) => Array.from({ length: 40 }, () => {
     const mesh = box('hold-tail-' + lane, .16, .08, 1, v(0, .35, 0), mat); mesh.setEnabled(false); return mesh;
@@ -192,9 +193,10 @@ export function createScene(engine, canvas, { fullViewport = false } = {}) {
     return { halo, sparks };
   });
   const nextBurst = [0, 0, 0]; let totalHits = 0, lastHit = -Infinity;
-  function hit(lane, time) {
+  function hit(lane, time, noteTime = time) {
     const burst = bursts[lane + (nextBurst[lane]++ % 3) * 3]; burst.born = time;
-    burst.halo.position.x = burst.flash.position.x = (lane - 1) * LANE_WIDTH; burst.flash.position.y = .5;
+    burst.origin.set((lane - 1) * LANE_WIDTH, .54, (noteTime - time) / travel * TRAVEL_DISTANCE);
+    burst.flash.position.copyFrom(burst.origin); burst.halo.position.copyFrom(burst.origin);
     totalHits++; lastHit = time;
   }
   // Fixed-length tubes: central overhead origins, side landings, foreground compositing.
@@ -228,9 +230,9 @@ export function createScene(engine, canvas, { fullViewport = false } = {}) {
     sides: [-1, 1].map(side => box('pulse-side', .65, .04, 1, v(side * 3.9, .12, 0), zoneMat)),
     edges: [0, 1].map(() => box('pulse-boundary', 6.4, .025, .04, v(0, .1, 0), zoneMat)),
   }));
-  let notes = [], travel = 2.15, lastTime = -Infinity, lastStrike = -Infinity, lastBeat = -1;
+  let notes = [], travel = TRAVEL[1], lastTime = -Infinity, lastStrike = -Infinity, lastBeat = -1;
   const rhythm = new TrackRhythm();
-  function setChart(chart, duration = 2.15) { notes = chart; travel = duration; lastTime = -Infinity; lastBeat = -1; lastStrike = -Infinity; totalHits = 0; lastHit = -Infinity; for (const b of bursts) b.born = -Infinity; }
+  function setChart(chart, duration = TRAVEL[1]) { notes = chart; travel = duration; lastTime = -Infinity; lastBeat = -1; lastStrike = -Infinity; totalHits = 0; lastHit = -Infinity; for (const b of bursts) b.born = -Infinity; }
   function update(time, playing, energy, reduced, pulseZones = [], spectrum = null) {
     if (time < lastTime) { totalHits = 0; lastStrike = -Infinity; for (const b of bursts) b.born = -Infinity; }
     lastTime = time;
@@ -304,24 +306,26 @@ export function createScene(engine, canvas, { fullViewport = false } = {}) {
       });
     });
     const counts = [0, 0, 0];
-    for (const pool of [...notePools, ...tailPools]) for (const mesh of pool) mesh.setEnabled(false);
+    // Reuse active pool slots without toggling every mesh off and on each frame.
     for (const note of notes) {
       if (note.time > time + travel * NOTE_FAR / TRAVEL_DISTANCE) break;
       if (!['pending', 'holding'].includes(note.state) || counts[note.lane] >= notePools[note.lane].length) continue;
       const remaining = note.time - time, slot = counts[note.lane]++;
       const z = note.state === 'holding' ? 0 : remaining / travel * TRAVEL_DISTANCE;
-      const mesh = notePools[note.lane][slot]; mesh.setEnabled(true);
+      const mesh = notePools[note.lane][slot]; mesh.setEnabled(note.state === 'pending');
+      const tail = tailPools[note.lane][slot];
+      const end = Math.min(NOTE_FAR, (remaining + note.duration) / travel * TRAVEL_DISTANCE), start = Math.max(0, z);
+      tail.setEnabled(note.duration > 0 && end > start);
       mesh.position.set((note.lane - 1) * LANE_WIDTH, .54, z);
       // Ease in at the distant end, rather than popping into the old near portal.
       const arrival = Math.max(0, Math.min(1, (NOTE_FAR - z) / 8));
       mesh.scaling.setAll(arrival);
-      if (note.duration > 0) {
-        const end = Math.min(NOTE_FAR, (remaining + note.duration) / travel * TRAVEL_DISTANCE), start = Math.max(0, z);
-        if (end > start) {
-          const tail = tailPools[note.lane][slot]; tail.setEnabled(true);
-          tail.position.set(mesh.position.x, .35, (start + end) / 2); tail.scaling.set(arrival, 1, end - start);
-        }
+      if (tail.isEnabled()) {
+        tail.position.set(mesh.position.x, .35, (start + end) / 2); tail.scaling.set(arrival, 1, end - start);
       }
+    }
+    for (let lane = 0; lane < 3; lane++) for (let slot = counts[lane]; slot < notePools[lane].length; slot++) {
+      notePools[lane][slot].setEnabled(false); tailPools[lane][slot].setEnabled(false);
     }
     const held = holdingLanes(notes, time, playing);
     holdPools.forEach(({ halo, sparks }, lane) => {
@@ -349,7 +353,7 @@ export function createScene(engine, canvas, { fullViewport = false } = {}) {
       for (const p of burst.particles) {
         p.mesh.setEnabled(visible && !reduced); if (!visible || reduced) continue;
         const strength = energy ? 1.6 : .9;
-        p.mesh.position.set((burst.lane - 1) * LANE_WIDTH + p.velocity.x * age * strength, .4 + p.velocity.y * age - age * age * 3, p.velocity.z * age * strength);
+        p.mesh.position.set(burst.origin.x + p.velocity.x * age * strength, burst.origin.y + p.velocity.y * age - age * age * 3, burst.origin.z + p.velocity.z * age * strength);
         p.mesh.scaling.setAll((1 - age / .55) * (energy ? 1.8 : 1));
       }
     }

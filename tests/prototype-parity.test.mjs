@@ -51,7 +51,7 @@ test('prototype compact UI keeps controls accessible and moves metadata before t
 test('prototype storage isolates progress, resets chart revision, and retains compatible audio default', async () => {
   const withoutLegacy = source => source.replace(/function legacy\(storage, defaults\) \{[\s\S]*?(?=function resetLegacyPulse)/, '');
   const expectedStorage = (await read('storage.js', stable)).replaceAll('ttr-web-', 'ttr-babylon-').replace('compatibleAudio: false', 'compatibleAudio: true')
-    .replace('ttr-babylon-save-v1', 'ttr-babylon-save-v2').replace("CHART_VERSION = 'original-v1'", "CHART_VERSION = 'neon-three-v1'");
+    .replace('ttr-babylon-save-v1', 'ttr-babylon-save-v2').replace("CHART_VERSION = 'original-v1'", "CHART_VERSION = 'neon-three-v2'");
   assert.equal(withoutLegacy(await read('storage.js')), withoutLegacy(expectedStorage));
   const original = new Map([
     [stableSave.SAVE_KEY, stableSave.exportProgress(stableSave.DEFAULT_SETTINGS, { records: [], history: [] })],

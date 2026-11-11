@@ -188,3 +188,34 @@ test('hold sparks animate without writing unsupported per-instance visibility', 
   world.update(2.15, false, true, false);
   assert.ok(sparks.every(mesh => !mesh.isEnabled()));
 });
+
+test('hit burst stays at the early/late note position; hold head never snaps to target', t => {
+  const world = fixture(t);
+  for (const time of [9.9, 10.1]) {
+    const note = { lane: 0, time: 10, duration: 2, state: 'pending' };
+    world.setChart([note], 2);
+    world.update(time, true, false, false);
+    const orb = world.scene.getMeshByName('note-0-0');
+    const origin = orb.position.clone();
+    note.state = 'holding';
+    world.hit(0, time, note.time);
+    world.update(time, true, false, false);
+    assert.equal(orb.isEnabled(), false);
+    assert.ok(named(world, 'hold-tail-0').some(mesh => mesh.isEnabled()));
+    const flash = named(world, 'impact-flash').find(mesh => mesh.isEnabled());
+    assert.ok(Vector3.Distance(flash.position, origin) < 1e-8);
+    assert.ok(world.scene.meshes.filter(mesh => mesh.name.startsWith('spark-0-') || mesh.name.startsWith('spark-3-'))
+      .filter(mesh => mesh.isEnabled()).every(mesh => Vector3.Distance(mesh.position, origin) < 1e-8));
+    note.state = 'done';
+    world.update(13, true, false, false);
+    assert.ok(named(world, 'hold-tail-0').every(mesh => !mesh.isEnabled()));
+  }
+});
+
+test('scene geometry stays within the mobile budget without removing stage elements', t => {
+  const world = fixture(t);
+  const triangles = world.scene.geometries.reduce((sum, geometry) => sum + geometry.getTotalIndices() / 3, 0);
+  assert.ok(triangles < 120000, `Unique geometry: ${triangles} triangles (previously 339998)`);
+  assert.equal(named(world, 'arch-neon').length, 5);
+  assert.equal(named(world, 'target-light').length, 3);
+});

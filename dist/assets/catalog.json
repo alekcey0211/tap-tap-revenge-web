@@ -8,22 +8,22 @@
     "genre": "Drum & Bass",
     "levels": {
       "1": {
-        "notes": 123,
+        "notes": 140,
         "holds": 8,
         "shakes": 0
       },
       "2": {
-        "notes": 247,
+        "notes": 282,
         "holds": 8,
         "shakes": 0
       },
       "3": {
-        "notes": 352,
+        "notes": 401,
         "holds": 8,
         "shakes": 0
       },
       "4": {
-        "notes": 414,
+        "notes": 487,
         "holds": 8,
         "shakes": 0
       }
@@ -38,22 +38,22 @@
     "genre": "Dubstep",
     "levels": {
       "1": {
-        "notes": 90,
+        "notes": 103,
         "holds": 6,
         "shakes": 0
       },
       "2": {
-        "notes": 179,
+        "notes": 204,
         "holds": 6,
         "shakes": 0
       },
       "3": {
-        "notes": 193,
+        "notes": 220,
         "holds": 6,
         "shakes": 0
       },
       "4": {
-        "notes": 223,
+        "notes": 258,
         "holds": 6,
         "shakes": 0
       }
@@ -68,22 +68,22 @@
     "genre": "Electro House",
     "levels": {
       "1": {
-        "notes": 89,
+        "notes": 101,
         "holds": 6,
         "shakes": 0
       },
       "2": {
-        "notes": 178,
+        "notes": 203,
         "holds": 6,
         "shakes": 0
       },
       "3": {
-        "notes": 282,
+        "notes": 321,
         "holds": 6,
         "shakes": 0
       },
       "4": {
-        "notes": 326,
+        "notes": 382,
         "holds": 6,
         "shakes": 0
       }

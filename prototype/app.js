@@ -65,7 +65,7 @@ $('play').onclick = () => start(transport.state === 'paused' && transport.offset
 $('silent').onclick = () => start(false);
 function resetRun() {
   transport.reset();
-  session = new PlaySession(chart, { demo: $('mode').value === 'demo', onHit: (note, time) => stage.hit(note.lane, time) });
+  session = new PlaySession(chart, { demo: $('mode').value === 'demo', onHit: (note, time) => stage.hit(note.lane, time, note.time) });
   stage.setChart(session.game.notes, TRAVEL[$('difficulty').value]);
   $('result').hidden = true;
   $('track-meta').textContent = session.demo ? 'Автодемо · без рекордов' : `${$('difficulty').selectedOptions[0].textContent} · без сохранения`;

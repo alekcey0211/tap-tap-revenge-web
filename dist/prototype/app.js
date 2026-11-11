@@ -6,15 +6,15 @@ import { PULSE_CHARTS, PULSE_COUNTS } from './phrase-charts.js?v=0.9.0';
 import { choosePulseZones } from './pulse-zones.js?v=0.8.2';
 import { renderPulse, renderPulseBreakdown } from './pulse-view.js?v=0.8.2';
 import { OfflineView } from './offline-view.js?v=0.10.0';
-import { Game, TRAVEL } from './engine.js?v=1.1.0';
+import { Game, TRAVEL } from './engine.js?v=1.2.0';
 import { SongAudio } from './audio.js?v=0.5.3';
 import { MediaSongAudio } from './media-audio.js?v=0.3.1';
 import { Renderer } from './babylon-renderer.js?v=0.6.1';
 
 import { Temporal } from './temporal.js';
 import { formatNumber, formatPercent, formatSigned, formatTime } from './format.js?v=0.3.0';
-import { DEFAULT_SETTINGS, loadSave, saveSettings as writeSettings, recordAttempt, currentRecords, importProgress } from './storage.js?v=1.1.0';
-import { ProgressView } from './progress.js?v=1.1.0';
+import { DEFAULT_SETTINGS, loadSave, saveSettings as writeSettings, recordAttempt, currentRecords, importProgress } from './storage.js?v=1.2.0';
+import { ProgressView } from './progress.js?v=1.2.0';
 
 const $ = id => document.getElementById(id);
 const APP_VERSION = '0.6.1-babylon';
@@ -425,6 +425,7 @@ function frame() {
 $('song-load-retry').onclick = prepareSong;
 $('play').onclick = () => start();
 function goBack() {
+  if (document.body.dataset.screen === 'results') return showLibrary();
   if (document.body.dataset.screen === 'library') { if (!router?.backTo('#/')) showMenu(); return; }
   if (document.body.dataset.screen === 'song-screen' && router?.backTo('#/library')) return;
   if (document.body.dataset.screen === 'progress-screen') progressView.close();

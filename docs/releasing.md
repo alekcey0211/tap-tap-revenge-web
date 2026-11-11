@@ -3,7 +3,7 @@
 ## Рабочая версия
 
 - Предыдущая Canvas-версия: тег `v0.10.4`.
-- Стабильная Babylon-версия: `v1.0.0`, номер в `package.json`.
+- Стабильная Babylon-версия: номер в `package.json`; первый выпуск — `v1.0.0`.
 - Исторический baseline `v0.1.0`: `8a55780aaa62cd1bf0e95e6ba4023b5ef1bbea96`.
 - Разработка: `codex/development`.
 - Ветка существующего Pages workflow: `codex/initial-web-port`.

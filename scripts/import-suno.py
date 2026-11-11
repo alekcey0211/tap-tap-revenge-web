@@ -1,9 +1,11 @@
 """Rebuild the selected Suno catalog from checksum-verified local MP3 originals.
 
 Usage: python3 scripts/import-suno.py /path/to/mp3-directory
+       python3 scripts/import-suno.py --charts-only
 Requires ffmpeg/ffprobe. Analysis timings are frozen in music/suno-v1.json;
 no audio-analysis library is needed to reproduce charts or run the game.
 """
+from bisect import bisect_right
 import hashlib
 import json
 from pathlib import Path
@@ -21,45 +23,94 @@ def write_json(path, data):
 
 
 def make_chart(song, level):
-    beats = song['beats']
-    onsets = song['onsets']
+    beats, onsets = song['beats'], song['onsets']
     strengths = sorted(o['strength'] for o in onsets)
     threshold = strengths[len(strengths) // (3 if level == 4 else 2)]
-    events = []
+    # Different phrase shapes: DnB alternation, dubstep call/response, house offbeats.
+    patterns = {
+        'Drum & Bass': [[0, 2, 1, 2, 0, 1, 2, 0], [2, 0, 2, 1, 0, 2, 0, 1], [0, 1, 2, 0, 2, 1, 0, 2]],
+        'Dubstep': [[0, 0, 1, 2, 2, 1, 0, 2], [2, 2, 0, 1, 0, 0, 2, 1], [0, 1, 0, 2, 1, 2, 2, 0]],
+        'Electro House': [[0, 1, 2, 1, 2, 0, 1, 0], [2, 1, 0, 1, 0, 2, 1, 2], [0, 2, 1, 0, 1, 2, 0, 1]],
+    }[song['genre']]
+    events = {}
     for i, time in enumerate(beats[:-2]):
         if time < 2.8:
             continue
-        # Easy follows half-time; higher levels add detected offbeat attacks.
         if level > 1 or i % 2 == 0:
-            events.append((time, i, True))
+            events[round(time, 6)] = (i, True)
         if level >= 3:
             target = (time + beats[i + 1]) / 2
             onset = min(onsets, key=lambda o: abs(o['time'] - target))
             if abs(onset['time'] - target) < .065 and onset['strength'] >= threshold:
-                events.append((onset['time'], i, False))
-    events.sort()
-    notes = []
-    busy = [-1, -1, -1]
-    pattern = [0, 1, 2, 1, 0, 2, 1, 2]
-    for index, (time, beat, main) in enumerate(events):
-        wanted = pattern[(index + beat // 16) % len(pattern)]
+                events[round(onset['time'], 6)] = (i, False)
+    # Add a modest number of strong measured attacks, rather than a denser metronome.
+    extra = round(len(events) * .14)
+    spacing = {1: .15, 2: .11, 3: .09, 4: .075}[level]
+    for onset in sorted(onsets, key=lambda o: (-o['strength'], o['time'])):
+        time = round(onset['time'], 6)
+        if not extra:
+            break
+        if time < 2.8 or time >= beats[-3] or any(abs(time - stamp) < spacing for stamp in events):
+            continue
+        beat = max(0, bisect_right(beats, time) - 1)
+        events[time] = (beat, False)
+        extra -= 1
+    # Each four-bar phrase gets one hold at its strongest eligible beat. Different
+    # recordings therefore place holds differently, not at a shared beat number.
+    hold_beats = set()
+    for start in range(0, len(beats) - 2, 32):
+        candidates = [i for i in range(start + 8, min(start + 25, len(beats) - 2))
+                      if round(beats[i], 6) in events]
+        if candidates:
+            hold_beats.add(max(candidates, key=lambda i: max(
+                (o['strength'] for o in onsets if abs(o['time'] - beats[i]) < .09), default=0)))
+    notes, busy, active_until = [], [-1, -1, -1], [-1, -1, -1]
+    for index, (time, (beat, main)) in enumerate(sorted(events.items())):
+        held = sum(end > time for end in active_until)
+        if held >= 2:
+            continue
+        pattern = patterns[(beat // 16) % len(patterns)]
+        wanted = pattern[(beat if main else index + 3) % len(pattern)]
         free = [lane for lane in range(3) if time - busy[lane] >= .12]
         if not free:
             continue
-        lane = wanted if wanted in free else min(free, key=lambda value: busy[value])
         duration = 0
-        if main and beat % 32 == 16:
-            duration = round(beats[beat + 2] - time, 6)
-        notes.append({'time': round(time, 6), 'lane': lane, 'duration': duration, 'shake': False})
-        busy[lane] = time + duration
-        # Sparse two-finger accents, never three-finger chords on a phone.
-        if level == 4 and main and beat % 8 == 0:
+        if main and beat in hold_beats:
+            sides = [lane for lane in free if lane != 1]
+            if sides:
+                free = sides
+                wanted = 0 if (beat // 32) % 2 == 0 else 2
+                length = 1 if song['genre'] == 'Electro House' else 2
+                duration = round(beats[beat + length] - time, 6)
+        lane = wanted if wanted in free else min(free, key=lambda value: busy[value])
+        notes.append({'time': time, 'lane': lane, 'duration': duration, 'shake': False})
+        busy[lane] = active_until[lane] = time + duration
+        # Hard accents are on detected stronger beats. Held fingers count toward
+        # the two-thumb limit too, not just simultaneous note heads.
+        strength = max((o['strength'] for o in onsets if abs(o['time'] - time) < .07), default=0)
+        accent_phase = 2 if song['genre'] == 'Dubstep' else 0
+        if level == 4 and main and beat % 4 == accent_phase and strength >= threshold and held == 0:
             other = next((value for value in [2 - lane, (lane + 1) % 3]
                           if value != lane and time - busy[value] >= .12), None)
             if other is not None:
-                notes.append({'time': round(time, 6), 'lane': other, 'duration': 0, 'shake': False})
-                busy[other] = time
+                notes.append({'time': time, 'lane': other, 'duration': 0, 'shake': False})
+                busy[other] = active_until[other] = time
     return sorted(notes, key=lambda note: (note['time'], note['lane']))
+
+
+def charts_only():
+    """Rebuild maps from frozen analysis without touching audio, artwork or calibration."""
+    catalog_path = ROOT / 'dist/assets/catalog.json'
+    catalog = json.loads(catalog_path.read_text())
+    for source in DATA['tracks']:
+        song = next(song for song in catalog if song['id'] == source['id'])
+        for level in range(1, 5):
+            chart = make_chart(source, level)
+            assert all(n['time'] + n['duration'] < song['duration'] for n in chart)
+            write_json(TRACKS / song['id'] / f'{level}.json', chart)
+            song['levels'][str(level)] = {'notes': len(chart), 'holds': sum(n['duration'] > 0 for n in chart), 'shakes': 0}
+        print(song['title'], song['levels'])
+    write_json(catalog_path, catalog)
 
 
 def pulse_boundaries(song):
@@ -73,6 +124,9 @@ def pulse_boundaries(song):
 
 
 def main():
+    if sys.argv[1:] == ['--charts-only']:
+        charts_only()
+        return
     if len(sys.argv) != 2:
         raise SystemExit('Usage: python3 scripts/import-suno.py /path/to/mp3-directory')
     source_dir = Path(sys.argv[1]).expanduser().resolve()

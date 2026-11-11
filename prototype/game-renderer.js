@@ -5,6 +5,7 @@ import { laneWidths } from './input-regions.js';
 import { sampleSpectrum } from './spectrum.js';
 import { HitEffects } from '../dist/hit-effects.js';
 import { TRAVEL } from './timing.js';
+import { RenderBudget, pixelRatio } from './render-budget.js';
 import { formatNumber } from '../dist/format.js';
 
 let shared;
@@ -21,14 +22,14 @@ export async function prepareRenderer() {
     $('babylon-buffer').replaceChildren(canvas);
     let engine;
     try {
-      const options = { antialias: true, audioEngine: false, powerPreference: 'high-performance' };
+      const options = { antialias: true, audioEngine: false, powerPreference: 'low-power' };
       engine = gpu ? new WebGPUEngine(canvas, options) : new Engine(canvas, true, options);
       if (gpu) {
         const initializing = engine.initAsync();
         try { await timeout(initializing, 15000); }
         catch (error) { void initializing.then(() => engine.dispose(), () => {}); throw error; }
       }
-      engine.setHardwareScalingLevel(1 / Math.min(devicePixelRatio, 1.5));
+      engine.setHardwareScalingLevel(1 / pixelRatio(devicePixelRatio, matchMedia('(pointer: coarse)').matches));
       const world = createScene(engine, canvas, { fullViewport: true });
       await timeout(world.scene.whenReadyAsync(), 20000);
       return { engine, world, canvas, name: gpu ? 'WebGPU' : `WebGL ${formatNumber(engine.webGLVersion)}` };
@@ -36,7 +37,8 @@ export async function prepareRenderer() {
   }
   shared = await chooseBackend({ preference, supported: () => timeout(WebGPUEngine.IsSupportedAsync, 5000), webgpu: () => create(true), webgl: () => create(false) });
   $('babylon-backend').textContent = shared.name;
-  let previousNotes, previousSize = '', statsAt = 0;
+  let previousNotes, previousSize = '', statsAt = performance.now(), rendered = 0, points;
+  const budget = new RenderBudget();
   const feedback = document.createElement('div'); feedback.className = 'babylon-feedback'; feedback.setAttribute('aria-hidden', 'true');
   const countdown = document.createElement('strong'); countdown.className = 'babylon-countdown';
   const judgments = Array.from({ length: 3 }, () => { const span = document.createElement('span'); feedback.append(span); return span; });
@@ -58,6 +60,7 @@ export async function prepareRenderer() {
     const reduced = document.body.dataset.reducedMotion === 'true' || matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (!reduced) ambientTime += delta;
     const active = screen === 'game-screen', paused = screen === 'pause-screen';
+    if (!budget.take(now, { active, paused, reduced, screen })) return;
     const data = active ? shared.pending : { owner: ambient, canvas: $('babylon-background-canvas'),
       time: paused ? shared.pending?.time || 0 : ambientTime, reduced, difficulty: '1', zones: [], track: paused ? shared.pending?.track : null };
     if (!data || !data.canvas.clientWidth || !data.canvas.clientHeight || !data.canvas.getClientRects().length) return;
@@ -68,15 +71,16 @@ export async function prepareRenderer() {
     const size = `${data.canvas.clientWidth}:${data.canvas.clientHeight}`;
     if (size !== previousSize) {
       world.resize({ targetBottom: active ? document.querySelector('#game-screen .game-footer').offsetHeight + 30 : null }); previousSize = size;
+      points = world.targets();
       if (data.canvas.id === 'canvas') {
-        const widths = laneWidths(world.targets(), data.canvas.clientWidth);
+        const widths = laneWidths(points, data.canvas.clientWidth);
         document.querySelectorAll('.touch-lanes [data-lane]').forEach((button, lane) => { button.style.flex = `0 0 ${widths[lane]}px`; });
       }
     }
     const notes = data.game?.notes || emptyNotes;
     if (notes !== previousNotes) { world.setChart(notes, TRAVEL[data.difficulty] || TRAVEL[1]); previousNotes = notes; }
     const multiplier = data.game?.multiplier(data.time) || 1;
-    for (const hit of data.owner.hits.splice(0)) world.hit(hit.lane, hit.time);
+    for (const hit of data.owner.hits.splice(0)) world.hit(hit.lane, hit.time, hit.noteTime);
     const spectrum = data.track && !data.countdown ? sampleSpectrum(data.track.songId, data.track.position, bands) : null;
     world.update(data.time, active && !data.countdown, multiplier >= 8, data.reduced, data.zones, spectrum);
     const effects = data.owner.effects.frame(multiplier, data.time);
@@ -88,7 +92,6 @@ export async function prepareRenderer() {
       milestone.style.opacity = String(Math.pow(Math.min(1, (1.1 - transition.age) / .85), 1.5));
       milestone.style.transform = `scale(${data.reduced ? 1 : .92 + .08 * Math.min(1, transition.age / .12)})`;
     }
-    const points = world.targets();
     judgments.forEach((node, lane) => {
       const item = effects.judgments[lane]; node.textContent = item?.text || '';
       node.dataset.failed = String(Boolean(item?.failed));
@@ -97,7 +100,8 @@ export async function prepareRenderer() {
     countdown.textContent = data.countdown > 0 ? formatNumber(Math.ceil(data.countdown)) : '';
     feedback.hidden = data.canvas.id !== 'canvas';
     world.scene.render();
-    if (performance.now() - statsAt > 1000) { $('babylon-fps').textContent = `${formatNumber(engine.getFps())} FPS`; statsAt = performance.now(); }
+    rendered++;
+    if (now - statsAt > 1000) { $('babylon-fps').textContent = `${formatNumber(rendered * 1000 / (now - statsAt))} FPS`; statsAt = now; rendered = 0; }
   });
 }
 const emptyNotes = [];
@@ -110,7 +114,7 @@ export class Renderer {
     const record = this.effects.recordHit.bind(this.effects), reset = this.effects.reset.bind(this.effects);
     this.effects.recordHit = (note, time, multiplier) => {
       record(note, time, multiplier);
-      if (note?.judgment) { this.hits.push({ lane: note.lane, time }); if (this.hits.length > 24) this.hits.shift(); }
+      if (note?.judgment) { this.hits.push({ lane: note.lane, time, noteTime: note.time }); if (this.hits.length > 24) this.hits.shift(); }
     };
     this.effects.reset = () => { reset(); this.hits = []; };
   }

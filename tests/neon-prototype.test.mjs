@@ -14,7 +14,7 @@ const catalog = JSON.parse(await read('assets/catalog.json'));
 test('three levels contain exactly original medium/hard/extreme notes and timings', async () => {
   const original = JSON.parse(await read('assets/catalog.json', stable));
   assert.deepEqual(LEVELS, { 1: 'Легко', 2: 'Средне', 3: 'Сложно' });
-  assert.deepEqual(TRAVEL, { 1: 2.15, 2: 1.8, 3: 1.4 }); assert.deepEqual(shippedTravel, TRAVEL);
+  assert.deepEqual(TRAVEL, { 1: 1.95, 2: 1.62, 3: 1.26 }); assert.deepEqual(shippedTravel, TRAVEL);
   for (const song of catalog) {
     const source = original.find(item => item.id === song.id);
     assert.deepEqual(Object.keys(song.levels), song.tutorial ? ['1'] : ['1', '2', '3']);
@@ -25,7 +25,7 @@ test('three levels contain exactly original medium/hard/extreme notes and timing
     }
     await assert.rejects(stat(new URL(`assets/tracks/${song.id}/4.json`, root)), { code: 'ENOENT' });
   }
-  assert.equal(await read('engine.js'), (await read('engine.js', stable)).replace('export const TRAVEL = { 1: 2.7, 2: 2.15, 3: 1.8, 4: 1.4 };', 'export const TRAVEL = { 1: 2.15, 2: 1.8, 3: 1.4 };'));
+  assert.equal(await read('engine.js'), (await read('engine.js', stable)).replace('export const TRAVEL = { 1: 2.7, 2: 2.15, 3: 1.8, 4: 1.4 };', 'export const TRAVEL = { 1: 1.95, 2: 1.62, 3: 1.26 };'));
   assert.equal(await read('difficulty.js'), (await read('difficulty.js', stable)).replace(
     "{ 1: 'Легко', 2: 'Средне', 3: 'Сложно', 4: 'Экстрим' }", "{ 1: 'Легко', 2: 'Средне', 3: 'Сложно' }").replace('step <= 4', 'step <= 3'));
 });
@@ -48,7 +48,7 @@ test('new prototype resets attempts once but preserves audio and calibration set
   assert.deepEqual(current.settings, settings);
   assert.deepEqual(current.progress, { records: [], history: [] });
   assert.equal(values.get('ttr-babylon-save-v1'), old); assert.equal(values.get('ttr-web-save-v1'), 'untouched');
-  assert.equal(save.CHART_VERSION, 'neon-three-v1');
+  assert.equal(save.CHART_VERSION, 'neon-three-v2');
   save.saveProgress(storage, progress, settings);
   assert.equal(save.loadSave(storage).progress.history.length, 1);
 });

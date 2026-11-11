@@ -127,3 +127,36 @@ test('release CI builds Babylon and runs both full test suites before publicatio
   }
   assert.match(await read('../.github/workflows/pages.yml'), /path: release/);
 });
+
+test('new chart revision retains old history and audio settings but starts separate records', () => {
+  const progress = save.recordAttempt({ records: [], history: [] }, { songId: id, level: '1', chartVersion: 'neon-three-v1',
+    playedAt: '2026-11-10T12:00:00Z', id: crypto.randomUUID(), result: { score: 1234, accuracy: 98, bestStreak: 21 } });
+  const settings = { ...save.DEFAULT_SETTINGS, offset: 75, volume: 40 };
+  const text = save.exportProgress(settings, progress);
+  const db = storage([[save.SAVE_KEY, text]]), state = save.loadSave(db);
+  assert.deepEqual(state.settings, settings);
+  assert.deepEqual(state.progress, progress);
+  assert.deepEqual(save.currentRecords(state.progress), {});
+  assert.equal(db.getItem(save.SAVE_KEY), text);
+});
+
+test('selected offline song gets new maps from the verified shell without redownloading music', async () => {
+  const caches = new FakeCaches();
+  const next = await mountWorker({ caches, root });
+  const oldName = `tap-tap:/tap-tap-revenge-web/:track:${id}:old-chart-revision`;
+  const old = await caches.open(oldName);
+  for (const file of assets.tracks[id].files) {
+    const data = file.path.endsWith('.json') ? 'old chart bytes' : await readFile(new URL(file.path, root));
+    await old.put(new URL(file.path, next.scope).href, new Response(data));
+  }
+  await next.lifecycle('install');
+  const requests = next.requests.length;
+  next.offline(true); await next.lifecycle('activate');
+  assert.equal(next.requests.length, requests);
+  assert.equal((await next.message('state', id)).result.state, 'ready');
+  for (const file of assets.tracks[id].files) {
+    const response = await next.request(file.path);
+    assert.equal(hash(Buffer.from(await response.arrayBuffer())), file.hash);
+  }
+  for (const other of Object.keys(assets.tracks).filter(key => key !== id)) assert.equal((await next.message('state', other)).result.state, 'missing');
+});

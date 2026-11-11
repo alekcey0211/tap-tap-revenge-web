@@ -48,7 +48,10 @@ worker = replace(worker, 'const keep = new Set([shellName, ...Object.keys(tracks
 worker += '\n' + await readFile(new URL('release/migrate-tracks.js', import.meta.url), 'utf8');
 await writeFile(workerPath, worker);
 const original = JSON.parse((await readFile(new URL('offline-assets.js', source), 'utf8')).split(' = ')[1].replace(/;\s*$/, ''));
-const shell = await Promise.all(original.shell.map(async ({ path }) => {
+// Small chart files ship with the shell, so selected offline songs can update
+// their maps even when activation happens without a connection. Audio stays opt-in.
+const charts = Object.values(original.tracks).flatMap(track => track.files.filter(file => file.path.endsWith('.json')));
+const shell = await Promise.all([...original.shell, ...charts].map(async ({ path }) => {
   const bytes = await readFile(new URL(path, target)); return { path, hash: hash(bytes), bytes: bytes.length };
 }));
 const assets = { ...original, version, revision: hash(JSON.stringify(shell) + worker).slice(0, 16), shell };

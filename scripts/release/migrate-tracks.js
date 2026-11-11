@@ -1,4 +1,4 @@
-// Reuse selected offline tracks across the Canvas → Babylon promotion.
+// Reuse selected offline tracks across chart revisions and the Canvas → Babylon promotion.
 // Paths alone are not sufficient: the three new levels have different numbers.
 async function migrateSelectedTracks() {
   const retained = new Set();
@@ -17,6 +17,14 @@ async function migrateSelectedTracks() {
           const data = await response.clone().arrayBuffer();
           const digest = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', data)), byte => byte.toString(16).padStart(2, '0')).join('');
           byHash.set(`${digest}:${data.byteLength}`, response);
+        }
+        const shellCache = await caches.open(shellName);
+        for (const file of track.files) {
+          const key = `${file.hash}:${file.bytes}`;
+          if (file.path.endsWith('.json') && !byHash.has(key)) {
+            const response = await shellCache.match(url(file.path));
+            if (response) byHash.set(key, response);
+          }
         }
         if (!track.files.every(file => byHash.has(`${file.hash}:${file.bytes}`))) {
           retained.add(name); continue;

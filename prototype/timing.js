@@ -1,2 +1,2 @@
-// Preserve the original medium/hard/extreme travel times after renumbering.
-export const TRAVEL = { 1: 2.15, 2: 1.8, 3: 1.4 };
+// Slightly faster travel; judgment windows and the audio clock are unchanged.
+export const TRAVEL = { 1: 1.95, 2: 1.62, 3: 1.26 };

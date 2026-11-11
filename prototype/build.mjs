@@ -43,7 +43,7 @@ for (const song of catalog.filter(song => !song.tutorial)) {
 }
 await writeFile(new URL('assets/catalog.json', out), JSON.stringify(catalog, null, 2) + '\n');
 const engine = replaceOnce(await readFile(new URL('engine.js', root), 'utf8'),
-  'export const TRAVEL = { 1: 2.7, 2: 2.15, 3: 1.8, 4: 1.4 };', 'export const TRAVEL = { 1: 2.15, 2: 1.8, 3: 1.4 };');
+  'export const TRAVEL = { 1: 2.7, 2: 2.15, 3: 1.8, 4: 1.4 };', 'export const TRAVEL = { 1: 1.95, 2: 1.62, 3: 1.26 };');
 await writeFile(new URL('engine.js', out), engine);
 const difficulty = replaceOnce(await readFile(new URL('difficulty.js', root), 'utf8'),
   "{ 1: 'Легко', 2: 'Средне', 3: 'Сложно', 4: 'Экстрим' }", "{ 1: 'Легко', 2: 'Средне', 3: 'Сложно' }")
@@ -58,7 +58,7 @@ app = replaceOnce(app, 'pulse?.zones(time, TRAVEL[run.level]));', 'pulse?.zones(
 await writeFile(new URL('app.js', out), app);
 let storage = (await readFile(new URL('storage.js', root), 'utf8')).replaceAll('ttr-web-', 'ttr-babylon-').replace('compatibleAudio: false', 'compatibleAudio: true');
 storage = replaceOnce(storage, "'ttr-babylon-save-v1'", "'ttr-babylon-save-v2'");
-storage = replaceOnce(storage, "CHART_VERSION = 'original-v1'", "CHART_VERSION = 'neon-three-v1'");
+storage = replaceOnce(storage, "CHART_VERSION = 'original-v1'", "CHART_VERSION = 'neon-three-v2'");
 const legacyStart = storage.indexOf('function legacy(storage, defaults) {');
 const legacyEnd = storage.indexOf('function resetLegacyPulse', legacyStart);
 if (legacyStart < 0 || legacyEnd < 0) throw new Error('Storage migration changed');
@@ -113,7 +113,7 @@ for (const [source, target] of [['app.js', 'stage.js'], ['game-renderer.js', 'ba
     bundle: true, minify: true, format: 'esm', target: ['safari16', 'es2022'], legalComments: 'inline' });
   await writeFile(new URL(target, out), normalize(result.outputFiles[0].text));
 }
-const files = ['app.js', 'scene.js', 'hold-feedback.js', 'venue-layout.js', 'timing.js', 'backend.js', 'transport.js', 'session.js', 'spectrum.js', 'spectra.json', 'spectrum-analysis.mjs', 'analyze-music.mjs', 'input-regions.js', 'game-renderer.js', 'game-bootstrap.js', 'game.css', 'lab.html', 'lab.css', 'build.mjs', 'package.json', 'package-lock.json'];
+const files = ['app.js', 'scene.js', 'hold-feedback.js', 'venue-layout.js', 'timing.js', 'backend.js', 'transport.js', 'session.js', 'spectrum.js', 'spectra.json', 'spectrum-analysis.mjs', 'analyze-music.mjs', 'input-regions.js', 'game-renderer.js', 'render-budget.js', 'game-bootstrap.js', 'game.css', 'lab.html', 'lab.css', 'build.mjs', 'package.json', 'package-lock.json'];
 const sources = Object.fromEntries(await Promise.all(files.map(async file => [file, hash(await readFile(new URL(file, import.meta.url)))])));
 const bytes = await readFile(new URL('stage.js', out));
 const renderer = await readFile(new URL('babylon-renderer.js', out));
